@@ -640,6 +640,7 @@ void GRigid::CollisionCheck(GRigid *rigid)
 							Hit[HitN].Target=rigid;
 							Hit[HitN].Ud=ud;
 							Hit[HitN].Us=us;
+							Hit[HitN].Ux=0.0f;
 							HitN++;
 							hitFlag=true;
 						}
@@ -657,6 +658,7 @@ void GRigid::CollisionCheck(GRigid *rigid)
 						Hit[HitN].Target=rigid;
 						Hit[HitN].Ud=ud;
 						Hit[HitN].Us=us;
+						Hit[HitN].Ux=0.0f;
 						HitN++;
 						hitFlag=true;
 					}
@@ -723,6 +725,7 @@ void GRigid::CollisionCheck(GRigid *rigid)
 						Hit[HitN].Target=rigid;
 						Hit[HitN].Ud=ud;
 						Hit[HitN].Us=us;
+						Hit[HitN].Ux=0.0f;
 						HitN++;
 						hitFlag=true;
 					}
@@ -744,6 +747,7 @@ void GRigid::CollisionCheck(GRigid *rigid)
 					Hit[HitN].Target=rigid;
 					Hit[HitN].Ud=ud;
 					Hit[HitN].Us=us;
+					Hit[HitN].Ux=0.0f;
 					HitN++;
 					hitFlag=true;
 				}
@@ -756,6 +760,7 @@ void GRigid::CollisionCheck(GRigid *rigid)
 					Hit[HitN].Target=rigid;
 					Hit[HitN].Ud=ud;
 					Hit[HitN].Us=us;
+					Hit[HitN].Ux=0.0f;
 					HitN++;
 					hitFlag=true;
 				}
@@ -770,6 +775,7 @@ void GRigid::CollisionCheck(GRigid *rigid)
 					Hit[HitN].Target=rigid;
 					Hit[HitN].Ud=ud;
 					Hit[HitN].Us=us;
+					Hit[HitN].Ux=0.0f;
 					HitN++;
 					hitFlag=true;
 				}
@@ -784,6 +790,7 @@ void GRigid::CollisionCheck(GRigid *rigid)
 					Hit[HitN].Target=rigid;
 					Hit[HitN].Ud=ud;
 					Hit[HitN].Us=us;
+					Hit[HitN].Ux=0.0f;
 					HitN++;
 					hitFlag=true;
 				}
@@ -1000,22 +1007,26 @@ void GRigid::Impulse() {
 						Top->MaxImpulse=(GFloat)fabs(j1);
 				}
 				else {j1=-j1;nv=-nv;}
-				//‚±‚ë‚ª‚è–€ŽC
-				if((ChipType==4 || ChipType==5)&&Hit[i].Ux>0) {
-					ApplyTorque(-L/Dt*Hit[i].Ux);
-				}
 				//–€ŽC‚É‚æ‚é’ïR—Í
 				GFloat uk=1.2f;//‚¢‚ñ‚¿‚«ŒW”
 				GFloat us;
 				GFloat ud;
+				GFloat ux;
 				if(Hit[i].Target->Type==-1) {
 					us=Us*Hit[i].Us;
 					ud=Ud*Hit[i].Ud*uk;
+					ux=Hit[i].Ux;
 				}
 				else {
 					us=Us*Hit[i].Target->Us;
 					ud=Ud*Hit[i].Target->Ud*uk;
+					ux=Hit[i].Target->Ux;
 				}
+				//‚±‚ë‚ª‚è–€ŽC
+				if((ChipType==4 || ChipType==5)&&ux>0) {
+					ApplyTorque(-L/Dt*ux);
+				}
+				//-----------
 				GFloat ud2=0.0f;
 				
 				GVector n2=Vrel.Cut2(n).normalize2();
@@ -1062,12 +1073,12 @@ void GRigid::Impulse() {
 					if(ShowDustFlag) {
 						//
 						GFloat a=(j2*n2-j1*(n2*ud+na*ud2)*dd/2.0f).abs();
-						if((myrand()%100)<(int)(V.abs()*(1+Hit[i].Ux*50)) && a>30.0) {
+						if((myrand()%100)<(int)(V.abs()*(1+ux*50)) && a>30.0) {
 							a=(a-30.0f)/100.0f+(myrand()%100)/5000.0f-0.01f;
 							if(a>1.0f) a=1.0f;else if(a<=0.0f) a=0.0f;
 							GVector v=j1*n2/5+GVector(0,0.03f,0);
 							if(v.abs()>0.1f) v=v.normalize()/10.0f;
-							GroundParticle->Add(hitPos-V*Dt*(rand()%8),v,GVector(0,0,0),v.abs()*(1+Hit[i].Ux*50),a,0.02f+(rand()%10)/100.0,GVector(1,1,1));
+							GroundParticle->Add(hitPos-V*Dt*(rand()%8),v,GVector(0,0,0),v.abs()*(1+ux*50),a,0.02f+(rand()%10)/100.0,GVector(1,1,1));
 						}
 					}
 					GVector fv=-j1*(n2*ud*dd+na*ud2);
@@ -1941,7 +1952,7 @@ void GWorld::Move(bool initFlag)
 				for(j=0;j<ChipCount;j++) {
 					if(Bullet->Vertex[i].Rigid!=Rigid[j] && Rigid[j]->ChipType!=9 && (Rigid[j]->ChipType<32 || myrand()%100>=70)) {
 						t=Rigid[j]->X.distanceOnBallAndLine(0.3f,Bullet->Vertex[i].Pos,Bullet->Vertex[i].Vec.normalize2());
-						if(t>=0 && t<Bullet->Vertex[i].Vec.abs() && t<t2) {
+						if(t>=0 && t<Bullet->Vertex[i].Vec.abs() && t<Bullet->Vertex[i].Dist && t<t2) {
 							t2=t;
 							r=Rigid[j];
 						}

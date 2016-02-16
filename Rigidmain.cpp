@@ -748,7 +748,7 @@ HRESULT MyReceiveFunc( MYAPP_PLAYER_INFO* playerInfo,DWORD size,BYTE *stream ) {
 			GSTREAM strm2;
 			strm2.code=1;
 			char *str=(char*)strm2.data;
-			sprintf(str,"Version=1.5 B27");
+			sprintf(str,"Version=1.5 C2");
 			DWORD size=strlen(str)+1+sizeof(short);
 			DPlay->SendTo(playerInfo->dpnidPlayer,(BYTE*)&strm2,size);
 		}
@@ -910,7 +910,7 @@ HRESULT MyCreateFunc( MYAPP_PLAYER_INFO* playerInfo ) {
 			PlayerData[i].ReceiveData.info.strPlayerName[0]='0';
 		}
 	}
-	PlayersInfoDisp();
+	//PlayersInfoDisp();
 	return S_OK;
 }
 HRESULT MyDestroyFunc( MYAPP_PLAYER_INFO* playerInfo) {
@@ -2180,6 +2180,9 @@ void GWorld::DispNetChip(int n)
 		int type=chip->data.type&0x3f;
 		int op1=(chip->data.type>>6)&0x01;
 		int op2=(chip->data.type>>7)&0x01;
+		
+		PlayerData[n].Jet[PlayerData[n].ChipCount]=0;
+		
 		if(type==GT_COWL&&!ShowCowl) {PlayerData[n].ChipCount++;continue;} 
 		CD3DMesh* mesh=NULL;
 		int meshNo=0;
@@ -2339,7 +2342,6 @@ void GWorld::DispNetChip(int n)
 					m_pXMesh[22]->Render(G3dDevice);
 				}
 			}
-			PlayerData[n].Jet[PlayerData[n].ChipCount]=0;
 			if(type==GT_JET) {
 				if(op1==1 || op1==2){
 					FLOAT f=chip->data.option/10.0f*w2+chip2->data.option/10.0f*w1;
@@ -2646,34 +2648,34 @@ void GWorld::DispNetChipInfo(int n,float zz)
 		mesh->m_pMaterials[0].Ambient=mesh->m_pMaterials[0].Diffuse;
 
 		mesh->Render(G3dDevice);
-	}
-	if(GNAMESIZE!=0.0f) {
-		if(GNAMESIZE<1.5) {
-			l=zz*0.1f*GNAMESIZE;
-		}
-		else {
-			l=zz;
-			if(l<50.0f) l=1.0f;else l=l/50.0f;
-		}
-		l=l*0.25f;
-		D3DXMatrixScaling(&smat,l,l,l);
-		D3DXMatrixMultiply( &mat , &smat, &vmat2);
-		G3dDevice->SetTransform( D3DTS_WORLD, &mat );
+		if(GNAMESIZE!=0.0f) {
+			if(GNAMESIZE<1.5) {
+				l=zz*0.1f*GNAMESIZE;
+			}
+			else {
+				l=zz;
+				if(l<50.0f) l=1.0f;else l=l/50.0f;
+			}
+			l=l*0.25f;
+			D3DXMatrixScaling(&smat,l,l,l);
+			D3DXMatrixMultiply( &mat , &smat, &vmat2);
+			G3dDevice->SetTransform( D3DTS_WORLD, &mat );
 
-		D3DMATERIAL8 mtrlText;
-		mtrlText.Power=1.0f;
-		mtrlText.Specular.r=mtrlText.Specular.g=mtrlText.Specular.b=mtrlText.Specular.a=0;
-		mtrlText.Emissive.r=1;
-		mtrlText.Emissive.g=1;
-		mtrlText.Emissive.b=1;
-		mtrlText.Emissive.a=1.0f;
-		mtrlText.Diffuse.r=0;
-		mtrlText.Diffuse.g=0;
-		mtrlText.Diffuse.b=0;
-		mtrlText.Diffuse.a=0.5;
-		mtrlText.Ambient=mtrlText.Diffuse;
-		G3dDevice->SetMaterial( &mtrlText );
-		g_pApp->m_pFont3D->Render3DText(PlayerData[n].ReceiveData.info.strPlayerName,D3DFONT_CENTERED|D3DFONT_FILTERED);
+			D3DMATERIAL8 mtrlText;
+			mtrlText.Power=1.0f;
+			mtrlText.Specular.r=mtrlText.Specular.g=mtrlText.Specular.b=mtrlText.Specular.a=0;
+			mtrlText.Emissive.r=1;
+			mtrlText.Emissive.g=1;
+			mtrlText.Emissive.b=1;
+			mtrlText.Emissive.a=1.0f;
+			mtrlText.Diffuse.r=0;
+			mtrlText.Diffuse.g=0;
+			mtrlText.Diffuse.b=0;
+			mtrlText.Diffuse.a=0.5;
+			mtrlText.Ambient=mtrlText.Diffuse;
+			G3dDevice->SetMaterial( &mtrlText );
+			g_pApp->m_pFont3D->Render3DText(PlayerData[n].ReceiveData.info.strPlayerName,D3DFONT_CENTERED|D3DFONT_FILTERED);
+		}
 	}
 }
 void GRigid::DispObject()
@@ -4122,7 +4124,7 @@ HRESULT LoadLand(LPDIRECT3DDEVICE8 Device,char *fname)
 	LPDIRECT3DVERTEXBUFFER8 pMeshVB;
 	LPDIRECT3DINDEXBUFFER8 pMeshIB;
 	D3DVERTEX             *pVertex;
-	struct {short p1,p2,p3;} *pIndex;
+	struct {unsigned short p1,p2,p3;} *pIndex;
 	
 	for(i=0;i<(signed int)m_pLandMesh->m_dwNumMaterials;i++) {
 		m_pLandMesh->m_pMaterials[i].Diffuse.a=0.5;
@@ -4140,7 +4142,7 @@ HRESULT LoadLand(LPDIRECT3DDEVICE8 Device,char *fname)
 	LPD3DXMESH lpMeshC;
 	m_pLandMesh->GetSysMemMesh()->Optimize( D3DXMESHOPT_ATTRSORT, NULL, NULL, NULL, NULL, &lpMeshC );
 	lpMeshC->GetAttributeTable( NULL, &(World->Land->AttribTableSize) );
-	D3DXATTRIBUTERANGE AttribTable[100];
+	D3DXATTRIBUTERANGE AttribTable[1000];
 	lpMeshC->GetAttributeTable( AttribTable, &(World->Land->AttribTableSize) );
     pMeshVB->Lock( 0, 0, (BYTE**)&pVertex, D3DLOCK_READONLY  );
 	landCode=0;
@@ -5549,6 +5551,8 @@ if( win == FALSE )
 
 			lstrcpy(CurrDataDir,szDrive);
 			lstrcat(CurrDataDir,szPath);
+			lstrcpy(szSystemFileName0,szTitle);
+			lstrcat(szSystemFileName0,szExt);
 
 			_tcscpy( CurrScenarioDir, CurrDataDir );
 			luaSystemInit();
@@ -6960,7 +6964,7 @@ HRESULT CMyD3DApplication::Render()
 			m_pd3dDevice->SetRenderState( D3DRS_ALPHABLENDENABLE,TRUE );
 			m_pd3dDevice->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);  //DEST‚ÌÝ’è
 			m_pd3dDevice->SetRenderState( D3DRS_ZWRITEENABLE, TRUE );
-			for(i=0;i<(unsigned int)DPlay->GetCurrentPlayers();i++) {
+			for(i=0;i<(unsigned int)DPlay->GetNumPlayers();i++) {
 				World->DispNetChip(i);
 			}
 		}

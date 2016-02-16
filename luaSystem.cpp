@@ -378,6 +378,8 @@ int luaLoadLand(lua_State *L)
 			Chip[0]->R=GMatrix33();
 			World->RestoreLink(Chip[0],Chip[0]);
 			if(Chip[0]->X.y<=-100000.0f)Chip[0]->X.y=0.0f;
+			m_pLandMesh->InvalidateDeviceObjects();
+			m_pLandMesh->RestoreDeviceObjects(G3dDevice);
 		}
 	}
 	World->MainStepCount=-1;
