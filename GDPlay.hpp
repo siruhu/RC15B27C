@@ -499,6 +499,7 @@ public:
 			if(m_dpnidLocalPlayer!=0 || m_hConnectAsyncOp==NULL) {
 				break;
 			}
+			Sleep(10);
 		}
 		if(m_hConnectAsyncOp) m_pDP->CancelAsyncOperation( m_hConnectAsyncOp, 0 );
 		// IDirectPlay8Addressインタフェースの解放
