@@ -40,7 +40,7 @@ extern int GDTSTEP;
 extern int GLOOP;
 extern int LIMITFPS;
 
-int GNETSPAN=200;
+int GNETSPAN=190; //200msはﾌﾚｰﾑ間隔*6(=199.8)に近すぎてまずい
 
 float ARMSPEED=20.0f;
 
@@ -518,8 +518,6 @@ HRESULT MyReceiveFunc( MYAPP_PLAYER_INFO* playerInfo,DWORD size,BYTE *stream ) {
 				PlayerData[i].ReceiveData.size=0;
 				PrePlayerData[i]=PlayerData[i];
 				PrePlayerData[i].ReceiveData.info=PlayerData[i].ReceiveData.info;
-				PrePlayerData[i].time=PlayerData[i].time;
-				PrePlayerData[i].time2=PlayerData[i].time2;
 				for(int j=0;j<s;j++) {
 					((BYTE*)PrePlayerData[i].ReceiveData.data)[j]=((BYTE*)PlayerData[i].ReceiveData.data)[j];
 				}
@@ -529,6 +527,12 @@ HRESULT MyReceiveFunc( MYAPP_PLAYER_INFO* playerInfo,DWORD size,BYTE *stream ) {
 				for(unsigned int j=0;j<size;j++) {
 					((BYTE*)PlayerData[i].ReceiveData.data)[j]=data[j];
 				}
+				PrePlayerData[i].sendtime=PlayerData[i].sendtime;
+				PrePlayerData[i].sendtime2=PlayerData[i].sendtime2;
+				PlayerData[i].sendtime=PlayerData[i].sendtime2=PlayerData[i].ReceiveData.data[0].color; //今のところ(C8)ｺｱ詳細座標のみでいいはず
+				
+				PrePlayerData[i].time=PlayerData[i].time;
+				PrePlayerData[i].time2=PlayerData[i].time2;
 				PlayerData[i].time=PlayerData[i].time2=timeGetTime();
 				PrePlayerData[i].ReceiveData.size=s;
 				PlayerData[i].ReceiveData.size=size;
@@ -563,9 +567,8 @@ HRESULT MyReceiveFunc( MYAPP_PLAYER_INFO* playerInfo,DWORD size,BYTE *stream ) {
 				int s2=PrePlayerData[i].ReceiveData.size;
 				PrePlayerData[i].ReceiveData.size=0;
 				PlayerData[i].ReceiveData.size=0;
-				PrePlayerData[i].time2=PlayerData[i].time2;
 				//位置情報だけを更新する
-				int k=0;
+				unsigned int k=0;
 				for(unsigned int j=0;j<size/sizeof(GCHIPDATA);j++) {
 					GCHIPDATA *chip=(GCHIPDATA*)&data[j*sizeof(GCHIPDATA)];
 					int id=chip->id&0xfff;
@@ -579,7 +582,10 @@ HRESULT MyReceiveFunc( MYAPP_PLAYER_INFO* playerInfo,DWORD size,BYTE *stream ) {
 						}
 					}
 				}
+				PrePlayerData[i].sendtime2=PlayerData[i].sendtime2;
+				PlayerData[i].sendtime2=PlayerData[i].ReceiveData.data[0].color; //今のところ(C8)ｺｱ詳細座標のみでいいはず
 				
+				PrePlayerData[i].time2=PlayerData[i].time2;
 				PlayerData[i].time2=timeGetTime();
 				PrePlayerData[i].ReceiveData.size=s2;
 				PlayerData[i].ReceiveData.size=s1;
@@ -762,7 +768,7 @@ HRESULT MyReceiveFunc( MYAPP_PLAYER_INFO* playerInfo,DWORD size,BYTE *stream ) {
 			GSTREAM strm2;
 			strm2.code=1;
 			char *str=(char*)strm2.data;
-			sprintf(str,"Version=1.5 C7");
+			sprintf(str,"Version=1.5 C8");
 			DWORD size=strlen(str)+1+sizeof(short);
 			DPlay->SendTo(playerInfo->dpnidPlayer,(BYTE*)&strm2,size,180,DPNSEND_NOLOOPBACK|DPNSEND_NOCOMPLETE);
 		}
@@ -2161,12 +2167,18 @@ void GWorld::DispNetChip(int n)
 	float w1=0.0f,w2=1.0f;
 	float ww1=0.0f,ww2=1.0f;
 	if(PrePlayerData[n].ReceiveData.size==PlayerData[n].ReceiveData.size) {
-		DWORD span=PlayerData[n].time-PrePlayerData[n].time;
-		DWORD span2=PlayerData[n].time2-PrePlayerData[n].time2;
-		DWORD timeGt=timeGetTime();
-		DWORD t=timeGt-PlayerData[n].time;
-		DWORD t2=timeGt-PlayerData[n].time2;
-		if(t<span*2) {
+		unsigned short span=PlayerData[n].sendtime-PrePlayerData[n].sendtime;
+		unsigned short span2=PlayerData[n].sendtime2-PrePlayerData[n].sendtime2;
+		DWORD lspan=PlayerData[n].time-PrePlayerData[n].time; //localspan
+		DWORD lspan2=PlayerData[n].time2-PrePlayerData[n].time2;
+		unsigned short delay=(unsigned short)lspan-span;
+		unsigned short delay2=(unsigned short)lspan2-span2;
+		if(delay>0x8000)delay=0;
+		if(delay2>0x8000)delay2=0;
+		DWORD timeGt=timeGetTime(); //ﾌﾚｰﾑ時刻を使ったほうがいい
+		DWORD t=timeGt-PlayerData[n].time;+delay;
+		DWORD t2=timeGt-PlayerData[n].time2+delay2;
+		if(t<(DWORD)span*2) {
 			w2=(float)t/(float)span;
 			w1=1.0f-w2;
 			if(t<0) {
@@ -2174,7 +2186,7 @@ void GWorld::DispNetChip(int n)
 				w1=1;
 			}
 		}
-		if(t2<span2*6) {
+		if(t2<(DWORD)span2*6) {
 			ww2=(float)t2/(float)span2;
 			ww1=1.0f-ww2;
 			if(t2<0) {
@@ -3238,7 +3250,7 @@ CMyD3DApplication::CMyD3DApplication()
 
 	m_dwCreationWidth           = 640;
     m_dwCreationHeight          = 480;
-    m_strWindowTitle            = TEXT( "RigidChips 1.5.B27C7" );
+    m_strWindowTitle            = TEXT( "RigidChips 1.5.B27C8" );
     m_bUseDepthBuffer           = TRUE;
 
 	m_dLimidFPS=1000/LIMITFPS;
@@ -5027,7 +5039,7 @@ if( win == FALSE )
 		}
 	}
 	//メッセージの送信
-	if(DPlay->GetNumPlayers()>0 && t-lastT>(DWORD)GNETSPAN && tempMoveEnd) {
+	if(DPlay->GetNumPlayers()>0 && t-lastT>(DWORD)GNETSPAN && t-lastT2>(DWORD)GNETSPAN/3 && tempMoveEnd) {
 		if(MessageDataLen) {
 			GSTREAM stream;
 			stream.code=30;//シナリオメッセージ
@@ -5041,7 +5053,7 @@ if( win == FALSE )
 	}
 
 	//ネットデータ送信
-	if(DPlay->GetNumPlayers()>0 && t-lastT>(DWORD)GNETSPAN && tempMoveEnd) {
+	if(DPlay->GetNumPlayers()>0 && t-lastT>(DWORD)GNETSPAN && t-lastT2>(DWORD)GNETSPAN/3 && tempMoveEnd) {
 		MoveEnd=false;
 		lastT=t;
 		lastT2=t;
@@ -5052,6 +5064,7 @@ if( win == FALSE )
 		do {
 			if(World->Rigid[j]->Parent==NULL) {
 				stream.data[i].id=j+512;
+				stream.data[i].color=(unsigned short)t; //ほんとはｺｱ分だけでいい
 				stream.data[i].data.f[0]=World->Rigid[j]->X.x;
 				stream.data[i].data.f[1]=World->Rigid[j]->X.y;
 				stream.data[i].data.f[2]=World->Rigid[j]->X.z;
@@ -5123,6 +5136,7 @@ if( win == FALSE )
 		for(i=0;i<World->ChipCount;i++){
 			if(World->Rigid[i]->Parent==NULL) {
 				stream.data[j].id=i+512;
+				stream.data[j].color=(unsigned short)t; //ほんとはｺｱ分だけでいい 以降は他のﾃﾞｰﾀ入れてもいいけど系の数不定だし･･･
 				stream.data[j].data.f[0]=World->Rigid[i]->X.x;
 				stream.data[j].data.f[1]=World->Rigid[i]->X.y;
 				stream.data[j].data.f[2]=World->Rigid[i]->X.z;
