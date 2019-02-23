@@ -1270,6 +1270,10 @@ int luaSystemInit() {
 	setlocale(LC_ALL, "");
     //
 	SystemL = lua_open();  /* create state */
+	
+	// ŠÖ”‚ğ“o˜^‚·‚é(v1.5C)
+	lua_register(SystemL, "_NTICKS",luaGetNoiseTicks);
+	lua_register(SystemL, "_SETSCLFUNC",luaSetScriptFunction);
 	// ŠÖ”‚ğ“o˜^‚·‚é(v1.5)
     lua_register(SystemL, "_CTRLLOCK", luaControlKeyLock);
     lua_register(SystemL, "_SENDALL", luaSendAllMessage);

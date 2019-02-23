@@ -20,6 +20,9 @@ extern GDPlay *DPlay;
 extern GPLAYERDATA PlayerData[];
 extern GMYDATA MyPlayerData;
 
+extern lua_State *ScriptL;
+extern lua_State *SystemL;
+
 
 float luaL3dx,luaL3dy,luaL3dz;
 float luaL2dx,luaL2dy;
@@ -1118,4 +1121,19 @@ void luaUpdateVal() {
 			else *(ValList[i].Ref[k])=ValList[i].Val;
 		}
 	}
+}
+//---------------------º≈ÿµä÷êî
+int luaGetNoiseTicks(lua_State *L)
+{
+	lua_pushnumber(L, randTime );
+	return 1;
+}
+int luaSetScriptFunction(lua_State *L)
+{
+	char *name=(char*)lua_tostring(L, 1);
+	lua_CFunction func=lua_tocfunction(L, 2);
+	
+	if((name==NULL) | (func==NULL) | (ScriptL==NULL))return 1;
+	lua_register(ScriptL, name, func);
+	return 1;
 }

@@ -529,8 +529,7 @@ HRESULT MyReceiveFunc( MYAPP_PLAYER_INFO* playerInfo,DWORD size,BYTE *stream ) {
 				for(unsigned int j=0;j<size;j++) {
 					((BYTE*)PlayerData[i].ReceiveData.data)[j]=data[j];
 				}
-				PlayerData[i].time=timeGetTime();
-				PlayerData[i].time2=timeGetTime();
+				PlayerData[i].time=PlayerData[i].time2=timeGetTime();
 				PrePlayerData[i].ReceiveData.size=s;
 				PlayerData[i].ReceiveData.size=size;
 				break;
@@ -763,7 +762,7 @@ HRESULT MyReceiveFunc( MYAPP_PLAYER_INFO* playerInfo,DWORD size,BYTE *stream ) {
 			GSTREAM strm2;
 			strm2.code=1;
 			char *str=(char*)strm2.data;
-			sprintf(str,"Version=1.5 C5");
+			sprintf(str,"Version=1.5 C7");
 			DWORD size=strlen(str)+1+sizeof(short);
 			DPlay->SendTo(playerInfo->dpnidPlayer,(BYTE*)&strm2,size,180,DPNSEND_NOLOOPBACK|DPNSEND_NOCOMPLETE);
 		}
@@ -2164,9 +2163,10 @@ void GWorld::DispNetChip(int n)
 	if(PrePlayerData[n].ReceiveData.size==PlayerData[n].ReceiveData.size) {
 		DWORD span=PlayerData[n].time-PrePlayerData[n].time;
 		DWORD span2=PlayerData[n].time2-PrePlayerData[n].time2;
-		DWORD t=timeGetTime()-PlayerData[n].time;
-		DWORD t2=timeGetTime()-PlayerData[n].time2;
-		if(t<span) {
+		DWORD timeGt=timeGetTime();
+		DWORD t=timeGt-PlayerData[n].time;
+		DWORD t2=timeGt-PlayerData[n].time2;
+		if(t<span*2) {
 			w2=(float)t/(float)span;
 			w1=1.0f-w2;
 			if(t<0) {
@@ -2174,7 +2174,7 @@ void GWorld::DispNetChip(int n)
 				w1=1;
 			}
 		}
-		if(t2<span2) {
+		if(t2<span2*6) {
 			ww2=(float)t2/(float)span2;
 			ww1=1.0f-ww2;
 			if(t2<0) {
@@ -2313,9 +2313,9 @@ void GWorld::DispNetChip(int n)
 				if(chip->data.option>=1 &&!ShowGhost) {PlayerData[n].ChipCount++;continue;} 
 			}
 			if(type==GT_COWL) {
-				float r1=((((int)chip->color)>>10)/32.0f)*w2+((((int)chip2->color)>>10)/32.0f)*w1;
-				float g1=(((((int)chip->color)&0x3e0)>>5)/32.0f)*w2+(((((int)chip2->color)&0x3e0)>>5)/32.0f)*w1;
-				float b1=((((int)chip->color)&0x1f)/32.0f)*w2+((((int)chip->color)&0x1f)/32.0f)*w1;
+				float r1=(((int)chip->color)>>10)/32.0f;
+				float g1=((((int)chip->color)&0x3e0)>>5)/32.0f;
+				float b1=(((int)chip->color)&0x1f)/32.0f;
 
 				int opt=chip->data.option&0x07;
 				float spe=(chip->data.option&0x08)>>3;//1bit
@@ -2372,9 +2372,9 @@ void GWorld::DispNetChip(int n)
 				else if(op1==0) PlayerData[n].Jet[PlayerData[n].ChipCount]=i;
 			}
 			if(type!=GT_COWL) {
-				float r1=((((int)chip->color)>>10)/32.0f)*w2+((((int)chip2->color)>>10)/32.0f)*w1;
-				float g1=(((((int)chip->color)&0x3e0)>>5)/32.0f)*w2+(((((int)chip2->color)&0x3e0)>>5)/32.0f)*w1;
-				float b1=((((int)chip->color)&0x1f)/32.0f)*w2+((((int)chip->color)&0x1f)/32.0f)*w1;
+				float r1=(((int)chip->color)>>10)/32.0f;
+				float g1=((((int)chip->color)&0x3e0)>>5)/32.0f;
+				float b1=(((int)chip->color)&0x1f)/32.0f;
 				mesh->m_pMaterials[0].Diffuse.r=r1;
 				mesh->m_pMaterials[0].Diffuse.g=g1;
 				mesh->m_pMaterials[0].Diffuse.b=b1;
@@ -2415,14 +2415,9 @@ void GWorld::DispNetChip(int n)
 			GVector X1=PlayerData[n].X[id];
 			GVector X2=PrePlayerData[n].X[id];
 			GVector X=(((X1-X2)*ww2+X1)+PlayerData[n].X2[id])/2.0f;
-			PlayerData[n].X[PlayerData[n].ChipCount].x=chip->data.pos.x/100.0f+X1.x;
-			PlayerData[n].X[PlayerData[n].ChipCount].y=chip->data.pos.y/100.0f+X1.y;
-			PlayerData[n].X[PlayerData[n].ChipCount].z=chip->data.pos.z/100.0f+X1.z;
 				p.x=(chip->data.pos.x/100.0f+X.x)*w2+(chip2->data.pos.x/100.0f+X.x)*w1;
 				p.y=(chip->data.pos.y/100.0f+X.y)*w2+(chip2->data.pos.y/100.0f+X.y)*w1;
 				p.z=(chip->data.pos.z/100.0f+X.z)*w2+(chip2->data.pos.z/100.0f+X.z)*w1;
-			if(PlayerData[n].ChipCount==0) {PlayerData[n].x=p.x;PlayerData[n].y=p.y;PlayerData[n].z=p.z;}
-			if(p.y>PlayerData[n].maxY) PlayerData[n].maxY=p.y;
 			q.x=chip->data.quat.x/100.0f;
 			q.y=chip->data.quat.y/100.0f;
 			q.z=chip->data.quat.z/100.0f;
@@ -2450,6 +2445,13 @@ void GWorld::DispNetChip(int n)
 			mesh=m_pXMesh[meshNo];
 
 			if(mesh) {
+				float alpha=1.0f-((chip->data.option&0xe0)>>5)/7.0f;//3bit
+				if(alpha==1) {PlayerData[n].ChipCount++;continue;} 
+				int opt=chip->data.option&0x07;
+				float spe=(chip->data.option&0x08)>>3;//1bit
+				float emi=(chip->data.option&0x10)>>4;//1bit
+				float emi_=1.0f-emi;
+				
 				D3DXMatrixMultiply( &mat1 , &mat1, &matLocal);
 				D3DXMatrixMultiply( &mat1 , &mat1, &GMatWorld);
 				
@@ -2459,22 +2461,16 @@ void GWorld::DispNetChip(int n)
 				G3dDevice->SetTransform( D3DTS_WORLD, &mat1 );
 				G3dDevice->SetRenderState( D3DRS_ALPHABLENDENABLE,TRUE );
 				G3dDevice->SetRenderState( D3DRS_ZWRITEENABLE,FALSE );
-				float r1=((((int)chip->color)>>10)/32.0f)*w2+((((int)chip2->color)>>10)/32.0f)*w1;
-				float g1=(((((int)chip->color)&0x3e0)>>5)/32.0f)*w2+(((((int)chip2->color)&0x3e0)>>5)/32.0f)*w1;
-				float b1=((((int)chip->color)&0x1f)/32.0f)*w2+((((int)chip->color)&0x1f)/32.0f)*w1;
+				float r1=(((int)chip->color)>>10)/32.0f;
+				float g1=((((int)chip->color)&0x3e0)>>5)/32.0f;
+				float b1=(((int)chip->color)&0x1f)/32.0f;
 
-				int opt=chip->data.option&0x07;
-				float spe=(chip->data.option&0x08)>>3;//1bit
-				float emi=(chip->data.option&0x10)>>4;//1bit
-				float emi_=1.0f-emi;
-				float alpha=1.0f-((chip->data.option&0xe0)>>5)/7.0f;//3bit
 
 				if(opt==1) mesh=m_pXMesh[24];
 				else if(opt==2) mesh=m_pXMesh[25];
 				else if(opt==3) mesh=m_pXMesh[26];
 				else if(opt==4) mesh=m_pXMesh[27];
 				else if(opt==5) mesh=m_pXMesh[28];
-				if(alpha==1) {PlayerData[n].ChipCount++;continue;} 
 				mesh->m_pMaterials[0].Emissive.r=r1*emi;
 				mesh->m_pMaterials[0].Emissive.g=g1*emi;
 				mesh->m_pMaterials[0].Emissive.b=b1*emi;
@@ -2507,6 +2503,8 @@ void GWorld::DispNetJetAll()
 		if(PlayerData[i].ReceiveData.info.dpnidPlayer==0) continue;
 		float w1=PlayerData[i].w1;
 		float w2=PlayerData[i].w2;
+		float ww1=PlayerData[i].ww1;
+		float ww2=PlayerData[i].ww2;
 
 		for(int j=0;j<PlayerData[i].ChipCount;j++) {
 			if(PlayerData[i].Jet[j]>0) {
@@ -2524,7 +2522,7 @@ void GWorld::DispNetJetAll()
 				GVector p;
 				GVector X1=PlayerData[i].X[id];
 				GVector X2=PrePlayerData[i].X[id2];
-				GVector X=(X1-X2)*w2+X1;
+				GVector X=(X1-X2)*ww2+X1;
 
 
 				p.x=(chip->data.pos.x/100.0f+X.x)*w2+(chip2->data.pos.x/100.0f+X.x)*w1;
@@ -3240,7 +3238,7 @@ CMyD3DApplication::CMyD3DApplication()
 
 	m_dwCreationWidth           = 640;
     m_dwCreationHeight          = 480;
-    m_strWindowTitle            = TEXT( "RigidChips 1.5.B27C5" );
+    m_strWindowTitle            = TEXT( "RigidChips 1.5.B27C7" );
     m_bUseDepthBuffer           = TRUE;
 
 	m_dLimidFPS=1000/LIMITFPS;
@@ -4983,7 +4981,7 @@ if( win == FALSE )
 
 			if(j>0) {
 				DWORD mySize=j*sizeof(GEXPDATA2)+sizeof(short);
-				DPlay->SendTo(DPNID_ALL_PLAYERS_GROUP,(BYTE*)&stream,mySize,60, DPNSEND_NOLOOPBACK|DPNSEND_NOCOMPLETE|DPNSEND_PRIORITY_LOW );
+				DPlay->SendTo(DPNID_ALL_PLAYERS_GROUP,(BYTE*)&stream,mySize,GNETSPAN/3, DPNSEND_NOLOOPBACK|DPNSEND_NOCOMPLETE|DPNSEND_PRIORITY_LOW );
 			}		}
 		else if(World->B20Bullet) {
 			GEXPSTREAM stream;
@@ -5002,7 +5000,7 @@ if( win == FALSE )
 
 			if(j>0) {
 				DWORD mySize=j*sizeof(GEXPDATA)+sizeof(short);
-				DPlay->SendTo(DPNID_ALL_PLAYERS_GROUP,(BYTE*)&stream,mySize,60, DPNSEND_NOLOOPBACK|DPNSEND_NOCOMPLETE|DPNSEND_PRIORITY_LOW );
+				DPlay->SendTo(DPNID_ALL_PLAYERS_GROUP,(BYTE*)&stream,mySize,GNETSPAN/3, DPNSEND_NOLOOPBACK|DPNSEND_NOCOMPLETE|DPNSEND_PRIORITY_LOW );
 			}
 		}
 		else {
@@ -5024,7 +5022,7 @@ if( win == FALSE )
 
 			if(j>0) {
 				DWORD mySize=j*sizeof(GEXPDATA2)+sizeof(short);
-				DPlay->SendTo(DPNID_ALL_PLAYERS_GROUP,(BYTE*)&stream,mySize,60, DPNSEND_NOLOOPBACK|DPNSEND_NOCOMPLETE|DPNSEND_PRIORITY_LOW );
+				DPlay->SendTo(DPNID_ALL_PLAYERS_GROUP,(BYTE*)&stream,mySize,GNETSPAN/3, DPNSEND_NOLOOPBACK|DPNSEND_NOCOMPLETE|DPNSEND_PRIORITY_LOW );
 			}
 		}
 	}
@@ -5036,7 +5034,7 @@ if( win == FALSE )
 			*((int*)stream.data)=scenarioCode;
 			memcpy((char*)&stream.data[sizeof(int)],MessageData,MessageDataLen+1);
 			DWORD size=(DWORD)(sizeof(int)+MessageDataLen+1+sizeof(short));
-			DPlay->SendTo(DPNID_ALL_PLAYERS_GROUP,(BYTE*)&stream,size,60, DPNSEND_NOLOOPBACK|DPNSEND_NOCOMPLETE );
+			DPlay->SendTo(DPNID_ALL_PLAYERS_GROUP,(BYTE*)&stream,size,GNETSPAN/2, DPNSEND_NOLOOPBACK|DPNSEND_NOCOMPLETE );
 			MessageData[0]='\0';
 			MessageDataLen=0;
 		}
@@ -5114,7 +5112,7 @@ if( win == FALSE )
 		}while(j<World->ChipCount);
 
 		MyNetDataSize=i*sizeof(GCHIPDATA)+sizeof(short);
-		DPlay->SendTo(DPNID_ALL_PLAYERS_GROUP,(BYTE*)&stream,MyNetDataSize,60, DPNSEND_NOLOOPBACK|DPNSEND_NOCOMPLETE|DPNSEND_PRIORITY_LOW );
+		DPlay->SendTo(DPNID_ALL_PLAYERS_GROUP,(BYTE*)&stream,MyNetDataSize,GNETSPAN/2, DPNSEND_NOLOOPBACK|DPNSEND_NOCOMPLETE|DPNSEND_PRIORITY_LOW );
 	}
 	//ネットデータ送信2 位置情報だけを送る //C6 全ルートチップの位置情報追加
 	if(DPlay->GetNumPlayers()>0 && t-lastT2>(DWORD)GNETSPAN/3 && tempMoveEnd) {
@@ -5132,7 +5130,7 @@ if( win == FALSE )
 			}
 		}
 		MyNetDataSize=j*sizeof(GCHIPDATA)+sizeof(short);//1Chip分だけ送る
-		DPlay->SendTo(DPNID_ALL_PLAYERS_GROUP,(BYTE*)&stream,MyNetDataSize,60, DPNSEND_NOLOOPBACK|DPNSEND_NOCOMPLETE|DPNSEND_PRIORITY_LOW );
+		DPlay->SendTo(DPNID_ALL_PLAYERS_GROUP,(BYTE*)&stream,MyNetDataSize,GNETSPAN/3, DPNSEND_NOLOOPBACK|DPNSEND_NOCOMPLETE|DPNSEND_PRIORITY_LOW );
 
 	}
 	if(World->Stop==false && World->NetStop==false) {
