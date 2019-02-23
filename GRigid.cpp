@@ -1083,7 +1083,7 @@ void GRigid::Impulse() {
 							if(a>1.0f) a=1.0f;else if(a<=0.0f) a=0.0f;
 							GVector v=j1*n2/5+GVector(0,0.03f,0);
 							if(v.abs()>0.1f) v=v.normalize()/10.0f;
-							GroundParticle->Add(hitPos-V*Dt*(rand()%8),v,GVector(0,0,0),v.abs()*(1+ux*50),a,0.02f+(rand()%10)/100.0,GVector(1,1,1));
+							GroundParticle->Add(hitPos-V*Dt*(float)(rand()%8),v,GVector(0,0,0),v.abs()*(1+ux*50),a,0.02f+(rand()%10)/100.0f,GVector(1,1,1));
 						}
 					}
 					GVector fv=-j1*(n2*ud*dd+na*ud2);
@@ -1098,7 +1098,7 @@ void GRigid::Impulse() {
 					}
 				}
 			}
-			if(hn2>=1)ApplyImpulse(fvTotal/hn2,hitPosTotal/hn2);
+			if(hn2>=1)ApplyImpulse(fvTotal/(float)hn2,hitPosTotal/(float)hn2);
 
 		}
 		//‚ß‚è‚ñ‚¾•ª‚ğ–ß‚·
