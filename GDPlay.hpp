@@ -527,7 +527,7 @@ public:
 		if(m_hConnectAsyncOp) return true;
 		return false;
 	}
-	HRESULT SendAll(BYTE *data,DWORD size) {
+/*	HRESULT SendAll(BYTE *data,DWORD size) {
 		HRESULT	hr=S_OK;
         // Send a message to all of the players
 
@@ -551,6 +551,19 @@ public:
         DPNHANDLE hAsync;
         m_pDP->SendTo( dpnid, &bufferDesc, 1,
                        60, NULL, &hAsync, DPNSEND_NOLOOPBACK|DPNSEND_NOCOMPLETE );
+		return hr;
+	}*/
+	HRESULT SendTo(DPNID dpnid,BYTE *data,DWORD size,DWORD dwTimeOut,DWORD dwFlags) {
+		HRESULT	hr=S_OK;
+        // Send a message to all of the players
+
+        DPN_BUFFER_DESC bufferDesc;
+        bufferDesc.dwBufferSize = size;
+        bufferDesc.pBufferData  = (BYTE*) data;
+
+        DPNHANDLE hAsync;
+        m_pDP->SendTo( dpnid, &bufferDesc, 1,
+                       dwTimeOut, NULL, &hAsync, dwFlags );
 		return hr;
 	}
 	int GetNumPlayers(){

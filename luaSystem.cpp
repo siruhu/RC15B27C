@@ -1114,13 +1114,22 @@ int luaGetChip(lua_State *L)
 			value=World->Rigid[n]->UserEffect;
 		}
 		else if(strcmp(name,"USER2")==0) {
-			value=World->Rigid[n]->UserOption;			
+			value=World->Rigid[n]->UserOption;
 		}
 		else if(strcmp(name,"FUEL")==0) {
-			value=World->Rigid[n]->Fuel;			
+			value=World->Rigid[n]->Fuel;
 		}
 		else if(strcmp(name,"FUELMAX")==0) {
-			value=World->Rigid[n]->FuelMax;			
+			value=World->Rigid[n]->FuelMax;
+		}
+		else if(strcmp(name,"Density")==0) {
+			value=World->Rigid[n]->Density;
+		}
+		else if(strcmp(name,"T")==0) {
+			value=World->Rigid[n]->Tolerant;
+		}
+		else if(strcmp(name,"E")==0) {
+			value=World->Rigid[n]->Energy;
 		}
 	}
 	lua_pushnumber(L,value);
@@ -1183,6 +1192,16 @@ int luaSetChip(lua_State *L)
 		}
 		else if(strcmp(name,"FUELMAX")==0) {
 			World->Rigid[n]->FuelMax=value;
+		}
+		else if(strcmp(name,"Density")==0) {
+			World->Rigid[n]->Density=value;
+			World->Rigid[n]->SetTensor();
+		}
+		else if(strcmp(name,"T")==0) {
+			World->Rigid[n]->Tolerant=value;
+		}
+		else if(strcmp(name,"E")==0) {
+			World->Rigid[n]->Energy=value;
 		}
 	}
 	return 0;
