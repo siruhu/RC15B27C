@@ -90,25 +90,28 @@ GVector GVector::pointOnFaceAndLine(const GVector& n, const GFloat d,const GVect
 }
 // 直線(2点)との距離
 GFloat GVector::distanceFromLine(const GVector& p1, const GVector& p2) const {
-    GVector b=(p2-p1).normalize2();
-    if(b.abs()==0) return distance(p1);
-	GFloat t=((*this-p1).dot(b))/(b.x*b.x+b.y*b.y+b.z*b.z);
+	GVector b=(p2-p1).normalize2();
+	GFloat b_abs2=b.abs2();
+	if(b_abs2 < gEpsilon) distance(p1);
+	GFloat t=(*this-p1).dot(b);
 	return (b*t+p1-(*this)).abs();
 }
 
 // 直線(点と方向ベクトル)との距離
 GFloat GVector::distanceFromVectorLine(const GVector& p, const GVector& v) const {
-    if(v.abs()==0) return distance(p);
-    GVector b=v.normalize2();
-	GFloat t=((*this-p).dot(b))/(b.x*b.x+b.y*b.y+b.z*b.z);
+	GVector b=v.normalize2();
+	GFloat b_abs2=b.abs2();
+	if(b_abs2 < gEpsilon) return distance(p);
+	GFloat t=(*this-p).dot(b);
 	return (b*t+p-(*this)).abs();
 }
 
 // 線分との距離
 GFloat GVector::distanceFromLine2(const GVector& p1, const GVector& p2) const {
     GVector b=(p2-p1);
-    if(b.abs()==0) return distance(p1);
-	GFloat t=((*this-p1).dot(b))/(b.x*b.x+b.y*b.y+b.z*b.z);
+	GFloat b_abs2=b.abs2();
+	if(b_abs2 < gEpsilon) distance(p1);
+	GFloat t=((*this-p1).dot(b))/b_abs2;
     if(t>1.0) t=1.0;else if (t<0.0) t=0.0;
 	return (b*t+p1-(*this)).abs();
 }
@@ -930,11 +933,11 @@ void GMatrix::getEular( GFloat & yaw, GFloat & pitch, GFloat & roll )
 
 	yaw = atan2( z_axis.x, z_axis.z );
 
-	float  cos_yaw = cos( yaw );
+	GFloat  cos_yaw = cos( yaw );
 	pitch = atan2( cos_yaw * z_axis.y, fabs( z_axis.z ) );
 
-	float  sin_yaw = sin( yaw );
-	float  cos_pitch = cos( pitch );
+	GFloat  sin_yaw = sin( yaw );
+	GFloat  cos_pitch = cos( pitch );
 	roll = atan2( cos_pitch * ( sin_yaw * y_axis.z - cos_yaw * y_axis.x ), y_axis.y );
 }
 
@@ -1585,11 +1588,11 @@ void GMatrix33::getEular( GFloat & yaw, GFloat & pitch, GFloat & roll )
 
 	yaw = atan2( z_axis.x, z_axis.z );
 
-	float  cos_yaw = cos( yaw );
+	GFloat  cos_yaw = cos( yaw );
 	pitch = atan2( cos_yaw * z_axis.y, fabs( z_axis.z ) );
 
-	float  sin_yaw = sin( yaw );
-	float  cos_pitch = cos( pitch );
+	GFloat  sin_yaw = sin( yaw );
+	GFloat  cos_pitch = cos( pitch );
 	roll = atan2( cos_pitch * ( sin_yaw * y_axis.z - cos_yaw * y_axis.x ), y_axis.y );
 }
 //行列をクォ－タニオンにする

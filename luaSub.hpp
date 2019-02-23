@@ -134,9 +134,38 @@ int luaGetFuel(lua_State *L);
 int luaGetFuelMax(lua_State *L);
 void luaUpdateVal();
 //--------
+int luaRand(lua_State *L);
+int luaRandInit(lua_State *L);
+int luaGettimeGetTime(lua_State *L);
+int luaGetHostName(lua_State *L);
+int luaGetPortNumber(lua_State *L);
+int luaGetFaceData(lua_State *L);
 int luaGetPlayerExtTime(lua_State *L);
+int luaGetPlayerPos(lua_State *L);
+int luaGetRange(lua_State *L);
+int luaGetLastChat(lua_State *L);
+int luaGetView(lua_State *L);
+int luaGetViewUp(lua_State *L);
+int luaGetViewType(lua_State *L);
+int luaGetViewZoom(lua_State *L);
+int luaGetSpeedLimit(lua_State *L);
+int luaGetFogRange(lua_State *L);
+int luaGetMakerSize(lua_State *L);
+int luaGetNameSize(lua_State *L);
+//--------¿ﬁ–∞ä÷êî
+int luaDummyFunc0(lua_State *L);
+int luaDummyFunc1(lua_State *L);
+int luaDummyFuncFunc(lua_State *L);
 //--------ºΩ√—ä÷êî
 int luaGetNoiseTicks(lua_State *L);
 int luaSetScriptFunction(lua_State *L);
+int luaSetSpeedLimit(lua_State *L);
+int luaSetFogRange(lua_State *L);
+int luaSetMakerSize(lua_State *L);
+int luaSetNameSize(lua_State *L);
+int luaSetView(lua_State *L);
+int luaSetViewUp(lua_State *L);
+int luaSetViewType(lua_State *L);
+int luaSetViewZoom(lua_State *L);
 
 #endif

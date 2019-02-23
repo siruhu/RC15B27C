@@ -65,17 +65,24 @@ HRESULT CD3DMesh::Create( LPDIRECT3DDEVICE8 pd3dDevice, TCHAR* strFilename )
     DXUtil_ConvertGenericStringToAnsi( strPathANSI, strPath );
 
     // Load the mesh
-    if( FAILED( hr = D3DXLoadMeshFromX( strPathANSI, D3DXMESH_SYSTEMMEM, pd3dDevice, 
+    if( FAILED( hr = D3DXLoadMeshFromX( strPathANSI, D3DXMESH_32BIT | D3DXMESH_SYSTEMMEM, pd3dDevice, 
                                         &pAdjacencyBuffer, &pMtrlBuffer, 
                                         &m_dwNumMaterials, &m_pSysMemMesh ) ) )
     {
         return hr;
     }
 
+	// —×Ú«ÃÞ°À‚Ì•ÛŽ
+	if( pAdjacencyBuffer )
+	{
+		// ÒÓØŠ„‚è“–‚Ä
+		m_pAdjacency = new DWORD[m_pSysMemMesh->GetNumFaces()*3];
+	}
+	
     // Optimize the mesh for performance
     if( FAILED( hr = m_pSysMemMesh->OptimizeInplace(
                         D3DXMESHOPT_COMPACT | D3DXMESHOPT_ATTRSORT | D3DXMESHOPT_VERTEXCACHE,
-                        (DWORD*)pAdjacencyBuffer->GetBufferPointer(), NULL, NULL, NULL ) ) )
+                        (DWORD*)pAdjacencyBuffer->GetBufferPointer(), m_pAdjacency, NULL, NULL ) ) )
     {
         SAFE_RELEASE( pAdjacencyBuffer );
         SAFE_RELEASE( pMtrlBuffer );
@@ -135,17 +142,24 @@ HRESULT CD3DMesh::Create( LPDIRECT3DDEVICE8 pd3dDevice,
     HRESULT      hr;
 
     // Load the mesh from the DXFILEDATA object
-    if( FAILED( hr = D3DXLoadMeshFromXof( pFileData, D3DXMESH_SYSTEMMEM, pd3dDevice,
+    if( FAILED( hr = D3DXLoadMeshFromXof( pFileData, D3DXMESH_32BIT | D3DXMESH_SYSTEMMEM, pd3dDevice,
                                           &pAdjacencyBuffer, &pMtrlBuffer, 
                                           &m_dwNumMaterials, &m_pSysMemMesh ) ) )
     {
         return hr;
     }
 
+	// —×Ú«ÃÞ°À‚Ì•ÛŽ
+	if( pAdjacencyBuffer )
+	{
+		// ÒÓØŠ„‚è“–‚Ä
+		m_pAdjacency = new DWORD[m_pSysMemMesh->GetNumFaces()*3];
+	}
+	
     // Optimize the mesh for performance
     if( FAILED( hr = m_pSysMemMesh->OptimizeInplace(
                         D3DXMESHOPT_COMPACT | D3DXMESHOPT_ATTRSORT | D3DXMESHOPT_VERTEXCACHE,
-                        (DWORD*)pAdjacencyBuffer->GetBufferPointer(), NULL, NULL, NULL ) ) )
+                        (DWORD*)pAdjacencyBuffer->GetBufferPointer(), m_pAdjacency, NULL, NULL ) ) )
     {
         SAFE_RELEASE( pAdjacencyBuffer );
         SAFE_RELEASE( pMtrlBuffer );
@@ -204,13 +218,13 @@ HRESULT CD3DMesh::SetFVF( LPDIRECT3DDEVICE8 pd3dDevice, DWORD dwFVF )
 
     if( m_pSysMemMesh )
     {
-        if( FAILED( m_pSysMemMesh->CloneMeshFVF( D3DXMESH_SYSTEMMEM, dwFVF,
+        if( FAILED( m_pSysMemMesh->CloneMeshFVF( D3DXMESH_32BIT | D3DXMESH_SYSTEMMEM, dwFVF,
                                                  pd3dDevice, &pTempSysMemMesh ) ) )
             return E_FAIL;
     }
     if( m_pLocalMesh )
     {
-        if( FAILED( m_pLocalMesh->CloneMeshFVF( 0L, dwFVF, pd3dDevice,
+        if( FAILED( m_pLocalMesh->CloneMeshFVF( D3DXMESH_32BIT, dwFVF, pd3dDevice,
                                                 &pTempLocalMesh ) ) )
         {
             SAFE_RELEASE( pTempSysMemMesh );
@@ -225,6 +239,7 @@ HRESULT CD3DMesh::SetFVF( LPDIRECT3DDEVICE8 pd3dDevice, DWORD dwFVF )
     if( pTempLocalMesh )  m_pLocalMesh  = pTempLocalMesh;
 
     // Compute normals in case the meshes have them
+	/* ’¸“_–@üÍÞ¸ÄÙ‹­§“I‚Éã‘‚«‚³‚ê‚Ä‚à¢‚é
 	if( m_pSysMemMesh )
 #if (D3D_SDK_VERSION >= 220)
         D3DXComputeNormals( m_pSysMemMesh, NULL );
@@ -237,6 +252,7 @@ HRESULT CD3DMesh::SetFVF( LPDIRECT3DDEVICE8 pd3dDevice, DWORD dwFVF )
 #else
         D3DXComputeNormals( m_pLocalMesh );
 #endif
+	*/
     return S_OK;
 }
 
@@ -254,7 +270,7 @@ HRESULT CD3DMesh::RestoreDeviceObjects( LPDIRECT3DDEVICE8 pd3dDevice )
 
     // Make a local memory version of the mesh. Note: because we are passing in
     // no flags, the default behavior is to clone into local memory.
-    if( FAILED( m_pSysMemMesh->CloneMeshFVF( 0L, m_pSysMemMesh->GetFVF(),
+    if( FAILED( m_pSysMemMesh->CloneMeshFVF( D3DXMESH_32BIT, m_pSysMemMesh->GetFVF(),
                                              pd3dDevice, &m_pLocalMesh ) ) )
         return E_FAIL;
 
@@ -290,6 +306,7 @@ HRESULT CD3DMesh::Destroy()
         SAFE_RELEASE( m_pTextures[i] );
     SAFE_DELETE_ARRAY( m_pTextures );
     SAFE_DELETE_ARRAY( m_pMaterials );
+    SAFE_DELETE_ARRAY( m_pAdjacency );
 
     SAFE_RELEASE( m_pSysMemMesh );
 

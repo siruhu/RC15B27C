@@ -198,9 +198,9 @@ public:
 	LRESULT MsgProc( HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam );
     CMyD3DApplication();
 	
-	HRESULT ResetChips(float x,float z,float a);
-	HRESULT ResetChips(float y,float a);
-	HRESULT InitChips(float a,int hereFlag);
+	HRESULT ResetChips(GFloat x,GFloat z,GFloat a);
+	HRESULT ResetChips(GFloat y,GFloat a);
+	HRESULT InitChips(GFloat a,int hereFlag);
     HRESULT InputAddDeviceCB( CInputDeviceManager::DeviceInfo* pDeviceInfo, const DIDEVICEINSTANCE* pdidi );
     static HRESULT CALLBACK StaticInputAddDeviceCB( CInputDeviceManager::DeviceInfo* pDeviceInfo, const DIDEVICEINSTANCE* pdidi, LPVOID pParam );   
     BOOL    ConfigureInputDevicesCB( IUnknown* pUnknown );

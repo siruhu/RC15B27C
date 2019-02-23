@@ -26,6 +26,7 @@ public:
     LPD3DXMESH          m_pLocalMesh;     // Local mesh, rebuilt on resize
     
     DWORD               m_dwNumMaterials; // Materials for the mesh
+	DWORD*              m_pAdjacency;
     D3DMATERIAL8*       m_pMaterials;
     LPDIRECT3DTEXTURE8* m_pTextures;
     BOOL                m_bUseMaterials;

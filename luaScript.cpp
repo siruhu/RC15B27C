@@ -41,7 +41,7 @@
 //--ÉÅÉÇÉäÉäÅ[ÉNåüèoóp
 
 extern char szUpdateFileName0[];
-extern float luaL3dx,luaL3dy,luaL3dz;
+extern GFloat luaL3dx,luaL3dy,luaL3dz;
 extern int luaGraColor;
 extern int randTime;
 
@@ -82,8 +82,41 @@ lua_State *luaScriptInit(char *buff) {
 	setlocale(LC_ALL, "");
     //
 	lua_State *L = lua_open();  /* create state */
-	// ä÷êîÇìoò^Ç∑ÇÈ(v1.5C8)
+	// ä÷êîÇìoò^Ç∑ÇÈ(v1.5C)
+    lua_register(L, "_GETSPPEDLIM", luaGetSpeedLimit);
+    lua_register(L, "_GETFOGRANGE", luaGetFogRange);
+    lua_register(L, "_GETNAMESIZE", luaGetNameSize);
+    lua_register(L, "_GETMAKERSIZE", luaGetMakerSize);
+    lua_register(L, "_FACEDATA", luaGetFaceData);
+	lua_register(L, "_RANGE",luaGetRange);
     lua_register(L, "_PLAYEREXTTIME", luaGetPlayerExtTime);
+	lua_register(L, "_PLAYERPOS",luaGetPlayerPos);
+	//ΩÀﬂå›ä∑óp
+    lua_register(L, "InitMTRand", luaRandInit);
+    lua_register(L, "MTRand", luaRand);
+    lua_register(L, "GetTickCount", luaGettimeGetTime);
+    lua_register(L, "GetHostName", luaGetHostName);
+    lua_register(L, "GetPortNumber", luaGetPortNumber);
+    lua_register(L, "GetFogDepth", luaGetFogRange);
+	lua_register(L, "_CHAT", luaGetLastChat);
+    lua_register(L, "_GETVIEW", luaGetView);
+    lua_register(L, "_GETVIEWUP", luaGetViewUp);
+    lua_register(L, "_GETVIEWTYPE", luaGetViewType);
+    lua_register(L, "_SETVIEWTYPE", luaSetViewType);
+    lua_register(L, "_GETVIEWZOOM", luaGetViewZoom);
+    lua_register(L, "_SETVIEWZOOM", luaSetViewZoom);
+	//¿ﬁ–∞ä÷êî
+    lua_register(L, "_SETLIMITVELOCITY", luaDummyFunc1);
+    lua_register(L, "SetFogDepth", luaDummyFunc1);
+	lua_register(L, "loadlib",luaDummyFuncFunc);
+	lua_register(L, "_NTICKS",luaDummyFunc1);
+	lua_register(L, "_SETVIEW",luaDummyFunc1);
+	lua_register(L, "_SETVIEWUP",luaDummyFunc1);
+	lua_register(L, "_EXFOPEN",luaDummyFunc1);
+	lua_register(L, "_EXFCLOSE",luaDummyFunc1);
+	lua_register(L, "_EXFPUTS",luaDummyFunc1);
+	lua_register(L, "_EXFGETS",luaDummyFunc1);
+	
 	
     // ä÷êîÇìoò^Ç∑ÇÈ
     lua_register(L, "out", luaPrint);

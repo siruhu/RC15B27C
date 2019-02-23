@@ -152,7 +152,7 @@ class GRigid {
 
 		//物理特性
 		GVector X;		//*重心位置
-		GVector preX;		//*1フレーム前の位置
+		GVector preX;	//*1フレーム前の位置
 		GMatrix R;		//*向き(行列)
 		GMatrix Rt;		//*向きの逆行列
 		GQuat   Q;		//*向き(クォータニオン)
@@ -176,9 +176,9 @@ class GRigid {
 		GFloat  Volume;	//体積
 		GFloat  M;		//質量
 		GFloat  M_;		//質量の逆数
-		GMatrix33 I;		//*慣性テンソル
-		GMatrix33 Ib;		//基本姿勢での慣性テンソル
-		GMatrix33 I_;		//*慣性テンソルの逆数
+		GMatrix33 I;	//*慣性テンソル
+		GMatrix33 Ib;	//基本姿勢での慣性テンソル
+		GMatrix33 I_;	//*慣性テンソルの逆数
 		GMatrix33 Ib_;	//基本姿勢での慣性テンソルの逆数
 
 		GMatrix TM;		//*姿勢行列（位置・角度）
@@ -266,7 +266,7 @@ class GRigid {
 		void Impulse();
 		void CreateViewModel();
 		void AddViewModel();
-		void Disp();
+		void Disp(BOOL bDrawOpaqueSubsets=TRUE,BOOL bDrawAlphaSubsets=TRUE);
 		void DispObject();
 		void DispJet();
 		void DispShadow();
@@ -351,14 +351,14 @@ class GWorld {
 		void Move(bool initFlag);
 		void Check(GRigid *rigid);
 		void CheckObject(GRigid *rigid);
-		void Disp(BOOL net);
+		void Disp(BOOL net,BOOL bDrawOpaqueSubsets=TRUE,BOOL bDrawAlphaSubsets=TRUE,BOOL bDrawShadow=TRUE);
 		void Disp2();
 		void DispNetChip(int n);
-		void DispNetChipInfo(int n,float z);
+		void DispNetChipInfo(int n,GFloat z);
 		void DispNetShadow();
 		void ObjectDisp();
 		void DispNetJetAll();
-		void DispNetJet(int type,GMatrix tm,float f,int dir);
+		void DispNetJet(int type,GMatrix tm,GFloat f,int dir);
 		void JetDisp();
 		void CheckJoint(GRigid* rigidA, GVector &offsetA, GRigid* rigidB, GVector &offsetB);
 		void CheckShaft(GRigid* rigidA, GVector &offsetA, GRigid* rigidB, GVector &offsetB, GVector &axis);

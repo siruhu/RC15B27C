@@ -1,6 +1,6 @@
 //{{NO_DEPENDENCIES}}
-// Microsoft Visual C++ generated include file.
-// Used by Rigid.rc
+// Microsoft Visual C++ で生成されたインクルード ファイル。
+// Rigid.rc で使用
 //
 #define IDI_MAIN_ICON                   101
 #define IDR_MAIN_ACCEL                  113
@@ -22,6 +22,8 @@
 #define IDC_TAB1                        1003
 #define IDC_KOKUTI                      1004
 #define IDC_MULTISAMPLE_COMBO           1005
+#define IDC_SPEEDLIMITSTATIC            1005
+#define IDC_FARSTATIC                   1006
 #define IDC_WINDOWED_CHECKBOX           1012
 #define IDC_FULLSCREEN_TEXT             1014
 #define IDC_WINDOW                      1016
@@ -46,6 +48,8 @@
 #define IDC_HOSTRADIO                   1041
 #define IDC_CONNECTRADIO                1042
 #define IDC_STATICMES                   1043
+#define IDC_FARSLIDER2                  1043
+#define IDC_SPEEDLIMITSLIDER            1043
 #define IDC_PLAYERLIST                  1045
 #define IDC_CHATTEXT                    1050
 #define IDC_CHATEDIT                    1051
@@ -136,6 +140,7 @@
 #define IDM_OPENGAME                    40086
 #define IDM_CONFIGDEVICE                40092
 #define IDM_HELP_SHOWDATA               40094
+#define IDM_SHOWLANDNORMAL              40096
 #define IDM_SHOWPOWER                   40097
 #define IDM_WIND_SOFT                   40102
 #define IDM_WIND_STRONG                 40105
@@ -164,6 +169,14 @@
 #define ID_SETTING_                     40174
 #define IDM_ENERGY                      40176
 #define IDM_WEBHELP                     40181
+#define ID_Menu                         40184
+#define ID_HELP_SHOWHITMESH             40185
+#define IDM_SHOWHITMESH                 40186
+#define ID_Menu40187                    40187
+#define ID_Menu40188                    40188
+#define ID_SETTING_LIMIT60FPS           40189
+#define IDM_LIMIT60                     40190
+#define ID_Menu40191                    40191
 
 // Next default values for new objects
 // 
@@ -171,8 +184,8 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_3D_CONTROLS                     1
 #define _APS_NEXT_RESOURCE_VALUE        203
-#define _APS_NEXT_COMMAND_VALUE         40184
-#define _APS_NEXT_CONTROL_VALUE         1005
+#define _APS_NEXT_COMMAND_VALUE         40192
+#define _APS_NEXT_CONTROL_VALUE         1006
 #define _APS_NEXT_SYMED_VALUE           102
 #endif
 #endif

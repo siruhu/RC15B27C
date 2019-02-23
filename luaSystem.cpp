@@ -44,7 +44,7 @@
 
 extern CMyD3DApplication* g_pApp;
 extern char szUpdateFileName0[];
-extern float luaL3dx,luaL3dy,luaL3dz;
+extern GFloat luaL3dx,luaL3dy,luaL3dz;
 extern int luaGraColor;
 extern GVector CompassTarget;
 extern int ViewUpdate;
@@ -77,28 +77,22 @@ extern GDPlay *DPlay;
 extern GPLAYERDATA PlayerData[];
 extern GMYDATA MyPlayerData;
 
-extern char LastChatData[];
 
 
 #define FILEMAX 32
 FILE *FpTable[32];
 extern bool ControlKeysLock[];//0:Init,1:Reset,2:Open,3:Update,4:OpenLand,5:OpenGame,6:YForce,7:Title
 
-int luaGetLastChat(lua_State *L)
-{
-	lua_pushstring(L,LastChatData);
-	return 1;
-}
 int luaControlKeyLock(lua_State *L)
 {
 	int n=(int)lua_tonumber(L, 1);
 	int f=(int)lua_tonumber(L, 2);
 	if(n>=8) return 0;
 	if(n<0) {
-		for(int i=0;i<8;i++) ControlKeysLock[i]=f;
+		for(int i=0;i<8;i++) ControlKeysLock[i]=(f!=0);
 	}
 	else {
-		ControlKeysLock[n]=f;
+		ControlKeysLock[n]=(f!=0);
 	}
 	return 0;
 }
@@ -208,9 +202,9 @@ int luaReset(lua_State *L)
 }
 int luaSetTarget(lua_State *L)
 {
-	CompassTarget.x=(float)lua_tonumber(L, 1);
-	CompassTarget.y=(float)lua_tonumber(L, 2);
-	CompassTarget.z=(float)lua_tonumber(L, 3);
+	CompassTarget.x=(GFloat)lua_tonumber(L, 1);
+	CompassTarget.y=(GFloat)lua_tonumber(L, 2);
+	CompassTarget.z=(GFloat)lua_tonumber(L, 3);
 	return 0;
 }
 int luaKeyLock(lua_State *L)
@@ -230,62 +224,6 @@ int luaGetSystemTickCount(lua_State *L)
 {
     lua_pushnumber(L, SystemTickCount );
     return 1;
-}
-int luaSetView(lua_State *L)
-{
-	UserEyePos.x=(float)lua_tonumber(L, 1);
-	UserEyePos.y=(float)lua_tonumber(L, 2);
-	UserEyePos.z=(float)lua_tonumber(L, 3);
-	UserRefPos.x=(float)lua_tonumber(L, 4);
-	UserRefPos.y=(float)lua_tonumber(L, 5);
-	UserRefPos.z=(float)lua_tonumber(L, 6);
-	UserUpVec=GVector(0,1,0);
-	GVector u=(UserRefPos-UserEyePos).cross(UserUpVec).cross(UserRefPos-UserEyePos).normalize2();
-	if(u.abs()!=0) UserUpVec=u;
-	else UserUpVec=GVector(0,0,-1);
-	ViewType=-1;
-	ViewUpdate=1;
-	return 0;
-}
-int luaSetViewUp(lua_State *L)
-{
-	UserUpVec.x=(float)lua_tonumber(L, 1);
-	UserUpVec.y=(float)lua_tonumber(L, 2);
-	UserUpVec.z=(float)lua_tonumber(L, 3);
-	ViewType=-1;
-	ViewUpdate=1;
-	return 0;
-}
-int luaGetView(lua_State *L)
-{
-	lua_pushnumber(L,UserEyePos.x);
-	lua_pushnumber(L,UserEyePos.y);
-	lua_pushnumber(L,UserEyePos.z);
-	lua_pushnumber(L,UserRefPos.x);
-	lua_pushnumber(L,UserRefPos.y);
-	lua_pushnumber(L,UserRefPos.z);
-	return 6;
-}
-int luaSetViewType(lua_State *L)
-{
-	ViewType=(int)lua_tonumber(L,1);
-	return 0;
-}
-int luaGetViewType(lua_State *L)
-{
-	lua_pushnumber(L,ViewType);
-	return 1;
-}
-int luaSetViewZoom(lua_State *L)
-{
-	Zoom=(float)lua_tonumber(L,1);
-	ViewUpdate=1;
-	return 0;
-}
-int luaGetViewZoom(lua_State *L)
-{
-	lua_pushnumber(L,Zoom);
-	return 1;
 }
 int luaSetRegulationFlag(lua_State *L)
 {
@@ -418,9 +356,9 @@ int luaUpdateChips(lua_State *L)
 }
 int luaWind(lua_State *L)
 {
-	float x=(float)lua_tonumber(L, 1);
-	float y=(float)lua_tonumber(L, 2);
-	float z=(float)lua_tonumber(L, 3);
+	GFloat x=(GFloat)lua_tonumber(L, 1);
+	GFloat y=(GFloat)lua_tonumber(L, 2);
+	GFloat z=(GFloat)lua_tonumber(L, 3);
 
 	AirSpeed=GVector(x,y,z);
 	return 0;
@@ -434,11 +372,11 @@ int luaGetWind(lua_State *L)
 }
 int luaAddBall(lua_State *L)
 {
-	float r=(float)lua_tonumber(L, 1);
-	float x=(float)lua_tonumber(L, 2);
-	float y=(float)lua_tonumber(L, 3);
-	float z=(float)lua_tonumber(L, 4);
-	float d=(float)lua_tonumber(L, 5);
+	GFloat r=(GFloat)lua_tonumber(L, 1);
+	GFloat x=(GFloat)lua_tonumber(L, 2);
+	GFloat y=(GFloat)lua_tonumber(L, 3);
+	GFloat z=(GFloat)lua_tonumber(L, 4);
+	GFloat d=(GFloat)lua_tonumber(L, 5);
 
 	GRigid *rg=World->AddObject(GTYPE_BALL,false,r*2,r*2,r*2,d);
 	if(rg) { 
@@ -466,9 +404,9 @@ int luaSetObjFix(lua_State *L)
 int luaSetObjColor(lua_State *L)
 {
 	int n=(int)lua_tonumber(L, 1);
-	float r=(float)lua_tonumber(L, 2);
-	float g=(float)lua_tonumber(L, 3);
-	float b=(float)lua_tonumber(L, 4);
+	GFloat r=(GFloat)lua_tonumber(L, 2);
+	GFloat g=(GFloat)lua_tonumber(L, 3);
+	GFloat b=(GFloat)lua_tonumber(L, 4);
 	if(n<0 || n>=GOBJMAX) return 0;
 	if(World->Object[n]) {
 		World->Object[n]->Color=GFloat((int)(r*255)*256*256+(int)(g*255)*256+(int)(b*255));
@@ -494,9 +432,9 @@ int luaGetRingState(lua_State *L)
 int luaSetRingColor(lua_State *L)
 {
 	int n=(int)lua_tonumber(L, 1);
-	float r=(float)lua_tonumber(L, 2);
-	float g=(float)lua_tonumber(L, 3);
-	float b=(float)lua_tonumber(L, 4);
+	GFloat r=(GFloat)lua_tonumber(L, 2);
+	GFloat g=(GFloat)lua_tonumber(L, 3);
+	GFloat b=(GFloat)lua_tonumber(L, 4);
 	if(n>=0 && n<GRINGMAX) {
 		Ring[n].Color.x=r;
 		Ring[n].Color.y=g;
@@ -532,12 +470,12 @@ int luaCollisionRingArea(lua_State *L)
 	int n=(int)lua_tonumber(L, 2);	//チップ番号
 	int b=0;
 	if((n>=0 && n<World->ChipCount) && (rn>=0 && rn<GRINGMAX)) {
-		GMatrix m=GMatrix().rotateX(Ring[rn].Dir.x*(float)M_PI/180.0f).rotateY(Ring[rn].Dir.y*(float)M_PI/180.0f).rotateZ(Ring[rn].Dir.z*(float)M_PI/180.0f);
+		GMatrix m=GMatrix().rotateX(Ring[rn].Dir.x*(GFloat)M_PI/180.0f).rotateY(Ring[rn].Dir.y*(GFloat)M_PI/180.0f).rotateZ(Ring[rn].Dir.z*(GFloat)M_PI/180.0f);
 		GVector norm;
 		norm.x=m.elem[2][0];
 		norm.y=m.elem[2][1];
 		norm.z=m.elem[2][2];
-		float t=World->Rigid[n]->preX.distanceOnFaceAndLine(norm,Ring[rn].Point,(World->Rigid[n]->X-World->Rigid[n]->preX));
+		GFloat t=World->Rigid[n]->preX.distanceOnFaceAndLine(norm,Ring[rn].Point,(World->Rigid[n]->X-World->Rigid[n]->preX));
 		if(t>=0 && t<=1.0f) {
 			GVector p=World->Rigid[n]->preX+(World->Rigid[n]->X-World->Rigid[n]->preX)*t;
 			if((Ring[rn].Point-p).abs()<=Ring[rn].Scale) b=1;
@@ -552,12 +490,12 @@ int luaCollisionObjRingArea(lua_State *L)
 	int n=(int)lua_tonumber(L, 2);	//オブジェクト番号
 	int b=0;
 	if((n>=0 && n<GOBJMAX) && (rn>=0 && rn<GRINGMAX) && World->Object[n]!=NULL) {
-		GMatrix m=GMatrix().rotateX(Ring[rn].Dir.x*(float)M_PI/180.0f).rotateY(Ring[rn].Dir.y*(float)M_PI/180.0f).rotateZ(Ring[rn].Dir.z*(float)M_PI/180.0f);
+		GMatrix m=GMatrix().rotateX(Ring[rn].Dir.x*(GFloat)M_PI/180.0f).rotateY(Ring[rn].Dir.y*(GFloat)M_PI/180.0f).rotateZ(Ring[rn].Dir.z*(GFloat)M_PI/180.0f);
 		GVector norm;
 		norm.x=m.elem[2][0];
 		norm.y=m.elem[2][1];
 		norm.z=m.elem[2][2];
-		float t=World->Object[n]->preX.distanceOnFaceAndLine(norm,Ring[rn].Point,(World->Object[n]->X-World->Object[n]->preX));
+		GFloat t=World->Object[n]->preX.distanceOnFaceAndLine(norm,Ring[rn].Point,(World->Object[n]->X-World->Object[n]->preX));
 		if(t>=0 && t<=1.0f) {
 			GVector p=World->Object[n]->preX+(World->Object[n]->X-World->Object[n]->preX)*t;
 			if((Ring[rn].Point-p).abs()<=Ring[rn].Scale) b=1;
@@ -584,13 +522,13 @@ int luaGetRing(lua_State *L)
 int luaSetRing(lua_State *L)
 {
 	int n=(int)lua_tonumber(L, 1);
-	float x=(float)lua_tonumber(L, 2);
-	float y=(float)lua_tonumber(L, 3);
-	float z=(float)lua_tonumber(L, 4);
-	float ax=(float)lua_tonumber(L, 5);
-	float ay=(float)lua_tonumber(L, 6);
-	float az=(float)lua_tonumber(L, 7);
-	float r=(float)lua_tonumber(L, 8);
+	GFloat x=(GFloat)lua_tonumber(L, 2);
+	GFloat y=(GFloat)lua_tonumber(L, 3);
+	GFloat z=(GFloat)lua_tonumber(L, 4);
+	GFloat ax=(GFloat)lua_tonumber(L, 5);
+	GFloat ay=(GFloat)lua_tonumber(L, 6);
+	GFloat az=(GFloat)lua_tonumber(L, 7);
+	GFloat r=(GFloat)lua_tonumber(L, 8);
 	if(n>=0 && n<GRINGMAX) {
 		Ring[n].Point.x=x;
 		Ring[n].Point.y=y;
@@ -598,7 +536,7 @@ int luaSetRing(lua_State *L)
 		Ring[n].Dir.x=ax;
 		Ring[n].Dir.y=ay;
 		Ring[n].Dir.z=az;
-		Ring[n].Scale=r;
+		Ring[n].Scale=(float)r;
 	}
 	return 0;
 }
@@ -635,9 +573,9 @@ int luaHitCount(lua_State *L)
 int luaWarp(lua_State *L)
 {
 	int n=(int)lua_tonumber(L, 1);
-	float x=(float)lua_tonumber(L, 2);
-	float y=(float)lua_tonumber(L, 3);
-	float z=(float)lua_tonumber(L, 4);
+	GFloat x=(GFloat)lua_tonumber(L, 2);
+	GFloat y=(GFloat)lua_tonumber(L, 3);
+	GFloat z=(GFloat)lua_tonumber(L, 4);
 	if(n<0 || n>=World->ChipCount) return 0;
 	if(World->Rigid[n]) {
 		GVector v=GVector(x,y,z)-World->Rigid[n]->Top->X;
@@ -651,9 +589,9 @@ int luaWarp(lua_State *L)
 int luaWarpObj(lua_State *L)
 {
 	int n=(int)lua_tonumber(L, 1);
-	float x=(float)lua_tonumber(L, 2);
-	float y=(float)lua_tonumber(L, 3);
-	float z=(float)lua_tonumber(L, 4);
+	GFloat x=(GFloat)lua_tonumber(L, 2);
+	GFloat y=(GFloat)lua_tonumber(L, 3);
+	GFloat z=(GFloat)lua_tonumber(L, 4);
 	if(n<0 || n>=GOBJMAX) return 0;
 	if(World->Object[n]) {
 		GVector v=GVector(x,y,z)-World->Object[n]->X;
@@ -667,12 +605,12 @@ int luaWarpObj(lua_State *L)
 int luaRotate(lua_State *L)
 {
 	int n=(int)lua_tonumber(L, 1);
-	float x=(float)lua_tonumber(L, 2);
-	float y=(float)lua_tonumber(L, 3);
-	float z=(float)lua_tonumber(L, 4);
+	GFloat x=(GFloat)lua_tonumber(L, 2);
+	GFloat y=(GFloat)lua_tonumber(L, 3);
+	GFloat z=(GFloat)lua_tonumber(L, 4);
 	if(n<0 || n>=World->ChipCount) return 0;
 	if(World->Rigid[n]) {
-		GMatrix m=GMatrix().rotateX(x*(float)M_PI/180.0f).rotateY(y*(float)M_PI/180.0f).rotateZ(z*(float)M_PI/180.0f);
+		GMatrix m=GMatrix().rotateX(x*(GFloat)M_PI/180.0f).rotateY(y*(GFloat)M_PI/180.0f).rotateZ(z*(GFloat)M_PI/180.0f);
 		World->Rigid[n]->Top->RotateWithChild(m,World->Rigid[n]->Top->X);
 		World->Rigid[n]->Top->ResetXfWithChild();
 	}
@@ -681,12 +619,12 @@ int luaRotate(lua_State *L)
 int luaRotateObj(lua_State *L)
 {
 	int n=(int)lua_tonumber(L, 1);
-	float x=(float)lua_tonumber(L, 2);
-	float y=(float)lua_tonumber(L, 3);
-	float z=(float)lua_tonumber(L, 4);
+	GFloat x=(GFloat)lua_tonumber(L, 2);
+	GFloat y=(GFloat)lua_tonumber(L, 3);
+	GFloat z=(GFloat)lua_tonumber(L, 4);
 	if(n<0 || n>=GOBJMAX) return 0;
 	if(World->Object[n]) {
-		GMatrix m=GMatrix().rotateX(x*(float)M_PI/180.0f).rotateY(y*(float)M_PI/180.0f).rotateZ(z*(float)M_PI/180.0f);
+		GMatrix m=GMatrix().rotateX(x*(GFloat)M_PI/180.0f).rotateY(y*(GFloat)M_PI/180.0f).rotateZ(z*(GFloat)M_PI/180.0f);
 		World->Object[n]->RotateWithChild(m,World->Object[n]->X);
 		World->Object[n]->ResetXfWithChild();
 	}
@@ -695,12 +633,12 @@ int luaRotateObj(lua_State *L)
 int luaDirect(lua_State *L)
 {
 	int n=(int)lua_tonumber(L, 1);
-	float x=(float)lua_tonumber(L, 2);
-	float y=(float)lua_tonumber(L, 3);
-	float z=(float)lua_tonumber(L, 4);
+	GFloat x=(GFloat)lua_tonumber(L, 2);
+	GFloat y=(GFloat)lua_tonumber(L, 3);
+	GFloat z=(GFloat)lua_tonumber(L, 4);
 	if(n<0 || n>=World->ChipCount) return 0;
 	if(World->Rigid[n]) {
-		GMatrix m=GMatrix().rotateX(x*(float)M_PI/180.0f).rotateY(y*(float)M_PI/180.0f).rotateZ(z*(float)M_PI/180.0f);
+		GMatrix m=GMatrix().rotateX(x*(GFloat)M_PI/180.0f).rotateY(y*(GFloat)M_PI/180.0f).rotateZ(z*(GFloat)M_PI/180.0f);
 		World->Rigid[n]->Top->RotateWithChildAbs(m,World->Rigid[n]->Top->X);
 		World->Rigid[n]->Top->ResetXfWithChild();
 	}
@@ -709,12 +647,12 @@ int luaDirect(lua_State *L)
 int luaDirectObj(lua_State *L)
 {
 	int n=(int)lua_tonumber(L, 1);
-	float x=(float)lua_tonumber(L, 2);
-	float y=(float)lua_tonumber(L, 3);
-	float z=(float)lua_tonumber(L, 4);
+	GFloat x=(GFloat)lua_tonumber(L, 2);
+	GFloat y=(GFloat)lua_tonumber(L, 3);
+	GFloat z=(GFloat)lua_tonumber(L, 4);
 	if(n<0 || n>=GOBJMAX) return 0;
 	if(World->Object[n]) {
-		GMatrix m=GMatrix().rotateX(x*(float)M_PI/180.0f).rotateY(y*(float)M_PI/180.0f).rotateZ(z*(float)M_PI/180.0f);
+		GMatrix m=GMatrix().rotateX(x*(GFloat)M_PI/180.0f).rotateY(y*(GFloat)M_PI/180.0f).rotateZ(z*(GFloat)M_PI/180.0f);
 		World->Object[n]->RotateWithChildAbs(m,World->Object[n]->X);
 		World->Object[n]->ResetXfWithChild();
 	}
@@ -777,9 +715,9 @@ int luaGetSystemKeyUp(lua_State *L)
 int luaApplyTorqueObj(lua_State *L)
 {
 	int n=(int)lua_tonumber(L, 1);
-	float x=(float)lua_tonumber(L, 2);
-	float y=(float)lua_tonumber(L, 3);
-	float z=(float)lua_tonumber(L, 4);
+	GFloat x=(GFloat)lua_tonumber(L, 2);
+	GFloat y=(GFloat)lua_tonumber(L, 3);
+	GFloat z=(GFloat)lua_tonumber(L, 4);
 	if(n<0 || n>=GOBJMAX) return 0;
 	if(World->Object[n]) {
 		World->Object[n]->ApplyTorque(GVector(x,y,z));
@@ -789,9 +727,9 @@ int luaApplyTorqueObj(lua_State *L)
 int luaApplyForceObj(lua_State *L)
 {
 	int n=(int)lua_tonumber(L, 1);
-	float x=(float)lua_tonumber(L, 2);
-	float y=(float)lua_tonumber(L, 3);
-	float z=(float)lua_tonumber(L, 4);
+	GFloat x=(GFloat)lua_tonumber(L, 2);
+	GFloat y=(GFloat)lua_tonumber(L, 3);
+	GFloat z=(GFloat)lua_tonumber(L, 4);
 	if(n<0 || n>=GOBJMAX) return 0;
 	if(World->Object[n]) {
 		World->Object[n]->ApplyForce(GVector(x,y,z),World->Object[n]->X);
@@ -801,9 +739,9 @@ int luaApplyForceObj(lua_State *L)
 int luaApplyTorque(lua_State *L)
 {
 	int n=(int)lua_tonumber(L, 1);
-	float x=(float)lua_tonumber(L, 2);
-	float y=(float)lua_tonumber(L, 3);
-	float z=(float)lua_tonumber(L, 4);
+	GFloat x=(GFloat)lua_tonumber(L, 2);
+	GFloat y=(GFloat)lua_tonumber(L, 3);
+	GFloat z=(GFloat)lua_tonumber(L, 4);
 	if(n<0 || n>=World->ChipCount) return 0;
 	if(World->Rigid[n]) {
 		World->Rigid[n]->ApplyTorque(GVector(x,y,z));
@@ -813,9 +751,9 @@ int luaApplyTorque(lua_State *L)
 int luaApplyForce(lua_State *L)
 {
 	int n=(int)lua_tonumber(L, 1);
-	float x=(float)lua_tonumber(L, 2);
-	float y=(float)lua_tonumber(L, 3);
-	float z=(float)lua_tonumber(L, 4);
+	GFloat x=(GFloat)lua_tonumber(L, 2);
+	GFloat y=(GFloat)lua_tonumber(L, 3);
+	GFloat z=(GFloat)lua_tonumber(L, 4);
 	if(n<0 || n>=World->ChipCount) return 0;
 	if(World->Rigid[n]) {
 		World->Rigid[n]->ApplyForce(GVector(x,y,z),World->Rigid[n]->X);
@@ -824,43 +762,42 @@ int luaApplyForce(lua_State *L)
 }
 int luaGetH(lua_State *L)
 {
-	float x=(float)lua_tonumber(L, 1);
-	float z=(float)lua_tonumber(L, 2);
-	
 	D3DXVECTOR3 v1,v2;
-	v1.x=x;v1.y=100000.0f;v1.z=z;
+	v1.x=(FLOAT)lua_tonumber(L, 1);
+	v1.z=(FLOAT)lua_tonumber(L, 2);
+	v1.y=100000.0f;
 	v2.x=0;v2.y=-1;v2.z=0;
 	
 	int n=lua_gettop(L);
 	if(n>2){
-		v1.y=(float)lua_tonumber(L, 2);
-		v1.z=(float)lua_tonumber(L, 3);
-		v2.x=(float)lua_tonumber(L, 4);
-		v2.y=(float)lua_tonumber(L, 5);
-		v2.z=(float)lua_tonumber(L, 6);
+		v1.y=(FLOAT)lua_tonumber(L, 2);
+		v1.z=(FLOAT)lua_tonumber(L, 3);
+		v2.x=(FLOAT)lua_tonumber(L, 4);
+		v2.y=(FLOAT)lua_tonumber(L, 5);
+		v2.z=(FLOAT)lua_tonumber(L, 6);
 	}
 	
 	BOOL hit;
 	FLOAT dist;
-	LPDIRECT3DVERTEXBUFFER8 pVB;
-	LPDIRECT3DINDEXBUFFER8  pIB;
-	WORD*            pIndices;
-	D3DVERTEX*    pVertices;
+	//LPDIRECT3DVERTEXBUFFER8 pVB;
+	//LPDIRECT3DINDEXBUFFER8  pIB;
+	//WORD*            pIndices;
+	//D3DVERTEX*    pVertices;
 	if(m_pLandMesh==NULL) {
 		lua_pushnumber(L,-100000.0f);
 		return 1;
 	}
-	m_pLandMesh->GetSysMemMesh()->GetVertexBuffer( &pVB );
-	m_pLandMesh->GetSysMemMesh()->GetIndexBuffer( &pIB );
-	pIB->Lock( 0, 0, (BYTE**)&pIndices, 0 );
-	pVB->Lock( 0, 0, (BYTE**)&pVertices, 0 );
+	//m_pLandMesh->GetSysMemMesh()->GetVertexBuffer( &pVB );
+	//m_pLandMesh->GetSysMemMesh()->GetIndexBuffer( &pIB );
+	//pIB->Lock( 0, 0, (BYTE**)&pIndices, D3DLOCK_READONLY );
+	//pVB->Lock( 0, 0, (BYTE**)&pVertices, D3DLOCK_READONLY );
 	D3DXIntersect(m_pLandMesh->GetSysMemMesh(),&v1,&v2,&hit,NULL,NULL,NULL,&dist,NULL,NULL);
 	if(!hit) dist=-100000.0f;
 	else if(n<=2) dist=100000.0f-dist;
-	pVB->Unlock();
-	pIB->Unlock();
-	pVB->Release();
-	pIB->Release();
+	//pVB->Unlock();
+	//pIB->Unlock();
+	//pVB->Release();
+	//pIB->Release();
 	
 	lua_pushnumber(L,dist);
 	return 1;
@@ -877,7 +814,7 @@ int luaAddChip(lua_State *L)
 	int parentNo=(int)lua_tonumber(L, 1);
 	char *type=(char*)lua_tostring(L, 2);
 	char *news=(char*)lua_tostring(L, 3);
-	float angle=(float)lua_tonumber(L, 4);
+	GFloat angle=(GFloat)lua_tonumber(L, 4);
 
 	if(parentNo<0 || parentNo>=ChipCount) {
 		lua_pushnumber(L,-1);
@@ -1139,7 +1076,7 @@ int luaSetChip(lua_State *L)
 {	
 	int n=(int)lua_tonumber(L, 1);
 	char *name=(char*)lua_tostring(L, 2);
-	float value=(float)lua_tonumber(L, 3);
+	GFloat value=(GFloat)lua_tonumber(L, 3);
 	if(n<0 || n>=World->ChipCount) return 0;
 	if(World->Rigid[n]) {
 		if(strcmp(name,"EFFECT")==0) {
@@ -1272,8 +1209,34 @@ int luaSystemInit() {
 	SystemL = lua_open();  /* create state */
 	
 	// 関数を登録する(v1.5C)
+    lua_register(SystemL, "_GETVIEWUP", luaGetViewUp);
+    lua_register(SystemL, "_GETSPPEDLIM", luaGetSpeedLimit);
+    lua_register(SystemL, "_SETSPPEDLIM", luaSetSpeedLimit);
+    lua_register(SystemL, "_GETFOGRANGE", luaGetFogRange);
+    lua_register(SystemL, "_SETFOGRANGE", luaSetFogRange);
+    lua_register(SystemL, "_GETNAMESIZE", luaGetNameSize);
+    lua_register(SystemL, "_SETNAMESIZE", luaSetNameSize);
+    lua_register(SystemL, "_GETMAKERSIZE", luaGetMakerSize);
+    lua_register(SystemL, "_SETMAKERSIZE", luaSetMakerSize);
+    lua_register(SystemL, "_FACEDATA", luaGetFaceData);
+	lua_register(SystemL, "_RANGE",luaGetRange);
 	lua_register(SystemL, "_NTICKS",luaGetNoiseTicks);
 	lua_register(SystemL, "_SETSCLFUNC",luaSetScriptFunction);
+    lua_register(SystemL, "_PLAYEREXTTIME", luaGetPlayerExtTime);
+	lua_register(SystemL, "_PLAYERPOS",luaGetPlayerPos);
+	//ｽﾋﾟ互換用
+    lua_register(SystemL, "InitMTRand", luaRandInit);
+    lua_register(SystemL, "MTRand", luaRand);
+    lua_register(SystemL, "GetTickCount", luaGettimeGetTime);
+    lua_register(SystemL, "GetHostName", luaGetHostName);
+    lua_register(SystemL, "GetPortNumber", luaGetPortNumber);
+    lua_register(SystemL, "_SETLIMITVELOCITY", luaSetSpeedLimit);
+	//ﾀﾞﾐｰ関数
+	lua_register(SystemL, "loadlib",luaDummyFuncFunc);
+	lua_register(SystemL, "_EXFOPEN",luaDummyFunc1);
+	lua_register(SystemL, "_EXFCLOSE",luaDummyFunc1);
+	lua_register(SystemL, "_EXFPUTS",luaDummyFunc1);
+	lua_register(SystemL, "_EXFGETS",luaDummyFunc1);
 	// 関数を登録する(v1.5)
     lua_register(SystemL, "_CTRLLOCK", luaControlKeyLock);
     lua_register(SystemL, "_SENDALL", luaSendAllMessage);

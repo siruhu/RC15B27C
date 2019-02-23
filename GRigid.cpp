@@ -20,6 +20,7 @@ GVector VecZ=GVector(0,0,1);
 int GDTSTEP=10;
 int GLOOP=10;
 int LIMITFPS=30;
+extern GFloat GSPEEDLIMIT;
 extern GParticle *GroundParticle;
 extern GParticle *WaterLineParticle;
 extern GParticle *JetParticle;
@@ -629,15 +630,22 @@ void GRigid::CollisionCheck(GRigid *rigid)
 	GVector normal;
 	GFloat gr=World->G.abs()*World->Dt/2.0f;
 	if(rigid->Type==-1) { //地面データ
+				World->Land->List0up(X,Radius+gr+V.abs()*World->Dt); //World->Land->Check2と等価 +grはおそらく適当定数 0だと誤差で貫通するとは思う
 		switch (Type) {
 			case GTYPE_FACE:
 				if(MeshNo==23) {
 				}
 				else {
+					GVector v2=V*World->Dt;
+					GFloat v2_abs=v2.abs();
+					if(v2_abs*20 < CHIPSIZE/1.0f) v2=v2*20; //ﾍﾟﾗ食い軽減
+					else if(v2_abs*4 < CHIPSIZE/1.0f) v2=v2/v2_abs*CHIPSIZE/1.0f;
+					else v2=v2*4;
 					for(j=0;j<CheckShape.PointN;j++) {
 						GVector p=(CheckShape.Point[j])*TM;
-						GVector v2=V*World->Dt*20;
-						if((d=World->Land->Check(p,v2,normal,ud,us))<0) {
+						GVector v3=v2+(p-X)/2;
+						d=World->Land->Check(p,v3,v2_abs,normal,ud,us);
+						if(d<0 && (X-p).dot(normal) > -0.02f) { //-0.02: 91.15deg
 							Hit[HitN].CheckShapeNo=j;
 							Hit[HitN].Pos=p;
 							Hit[HitN].Normal=normal;
@@ -655,7 +663,7 @@ void GRigid::CollisionCheck(GRigid *rigid)
 			case GTYPE_BOX:
 				for(j=0;j<CheckShape.PointN;j++) {
 					GVector p=(CheckShape.Point[j])*TM;
-					if((d=World->Land->Check(p,(p-X).normalize2(),normal,ud,us))<0) {
+					if((d=World->Land->Check(p,(p-X).normalize2(),1.0f,normal,ud,us))<0) {
 						Hit[HitN].CheckShapeNo=j;
 						Hit[HitN].Pos=p;
 						Hit[HitN].Normal=normal;
@@ -672,11 +680,11 @@ void GRigid::CollisionCheck(GRigid *rigid)
 			case GTYPE_BALL:
 				RSet();
 				r=Param/2;
-				World->Land->Check2(X,Radius+gr);
-				for(int k=0;k<World->Land->HitListCount;k++) {
-					normal=World->Land->Face[World->Land->HitList[k]].Normal;
+				//World->Land->Check2(X,Radius+gr);
+				for(int k=0;k<World->Land->List0Count;k++) {
+					normal=World->Land->Face[World->Land->List0[k]].Normal;
 					GVector  p;
-					d=World->Land->Face[World->Land->HitList[k]].BallCheck(X,Radius,p);
+					d=World->Land->Face[World->Land->List0[k]].BallCheck(X,Radius,p);
 					//				if(v.y>0) v=-v;
 					if(d<=0) {
 //						if(d>0) continue;
@@ -685,9 +693,9 @@ void GRigid::CollisionCheck(GRigid *rigid)
 						Hit[HitN].Normal=(X-p).normalize2();
 						Hit[HitN].Distance=d;
 						Hit[HitN].Target=rigid;
-						Hit[HitN].Ud=World->Land->Face[World->Land->HitList[k]].Ud;
-						Hit[HitN].Us=World->Land->Face[World->Land->HitList[k]].Us;
-						Hit[HitN].Ux=World->Land->Face[World->Land->HitList[k]].Ux;
+						Hit[HitN].Ud=World->Land->Face[World->Land->List0[k]].Ud;
+						Hit[HitN].Us=World->Land->Face[World->Land->List0[k]].Us;
+						Hit[HitN].Ux=World->Land->Face[World->Land->List0[k]].Ux;
 						HitN++;
 						hitFlag=true;
 					}
@@ -696,25 +704,30 @@ void GRigid::CollisionCheck(GRigid *rigid)
 			case GTYPE_DISK:
 				{
 				RSet();
-				World->Land->Check2(X,Radius+gr);
+				//World->Land->Check2(X,Radius+gr);
 				GVector n=GVector(R.elem[1][0],R.elem[1][1],R.elem[1][2]);
-				GVector v2=V*World->Dt*10;
-				for(int k=0;k<World->Land->HitListCount;k++) {
+					GVector v2=V*World->Dt;
+					GFloat v2_abs=v2.abs();
+					if(v2_abs*10 < CHIPSIZE/1.0f) v2=v2*10; //ﾍﾟﾗ食い軽減
+					else if(v2_abs*4 < CHIPSIZE/1.0f) v2=v2/v2_abs*CHIPSIZE/1.0f;
+					else v2=v2*4;
+				for(int k=0;k<World->Land->List0Count;k++) {
 					
-					GVector n2=World->Land->Face[World->Land->HitList[k]].Normal;
+					GVector n2=World->Land->Face[World->Land->List0[k]].Normal;
 					GVector nr=n2.cross(n).cross(n).normalize2();
 					if(nr.dot(n2)>0) nr=-nr;
-					GVector p=X+nr*Radius;
+					GVector p=X+nr*Radius; //接触角を面法線ﾍﾞｸﾄﾙで決め打ちすると辺と接触する場合を取りこぼす
 //					GVector v2=V*World->Dt*10+W.cross(p-X)*World->Dt*10;
-					if((d=World->Land->Face[World->Land->HitList[k]].Check2(p,v2,normal))<0) {
+					GVector v3=v2+(p-X)/2;
+					if((d=World->Land->Face[World->Land->List0[k]].Check3(p,v3,0,0,normal))<0) {
 						Hit[HitN].CheckShapeNo=-1;
 						Hit[HitN].Pos=p;
 						Hit[HitN].Normal=normal;
 						Hit[HitN].Distance=d;
 						Hit[HitN].Target=rigid;
-						Hit[HitN].Ud=World->Land->Face[World->Land->HitList[k]].Ud;
-						Hit[HitN].Us=World->Land->Face[World->Land->HitList[k]].Us;
-						Hit[HitN].Ux=World->Land->Face[World->Land->HitList[k]].Ux;
+						Hit[HitN].Ud=World->Land->Face[World->Land->List0[k]].Ud;
+						Hit[HitN].Us=World->Land->Face[World->Land->List0[k]].Us;
+						Hit[HitN].Ux=World->Land->Face[World->Land->List0[k]].Ux;
 						HitN++;
 						hitFlag=true;
 					}
@@ -722,7 +735,9 @@ void GRigid::CollisionCheck(GRigid *rigid)
 				for(j=0;j<CheckShape.PointN;j++) {
 					GVector p=(CheckShape.Point[j])*TM;
 //					GVector v2=V*World->Dt*10+W.cross(p-X)*World->Dt*10;
-					if((d=World->Land->Check(p,v2,normal,ud,us))<0) {
+					GVector v3=v2+(p-X)/2;
+					d=World->Land->Check(p,v3,v2_abs,normal,ud,us);
+					if(d<0 && (X-p).dot(normal) > -0.02f) {
 						Hit[HitN].CheckShapeNo=j;
 						Hit[HitN].Pos=p;
 						Hit[HitN].Normal=normal;
@@ -744,7 +759,7 @@ void GRigid::CollisionCheck(GRigid *rigid)
 				r=Param/2;r.y=0;
 				GVector a=GVector(0,Param.y/2,0)*Rb*R;
 				GVector p=X+a;
-				if((d=World->Land->Check(p,(p-X).normalize2(),normal,ud,us))<=0) {
+				if((d=World->Land->Check(p,(p-X).normalize2(),1.0f,normal,ud,us))<=0) {
 					Hit[HitN].CheckShapeNo=-1;
 					Hit[HitN].Pos=p;
 					Hit[HitN].Normal=normal;
@@ -757,7 +772,7 @@ void GRigid::CollisionCheck(GRigid *rigid)
 					hitFlag=true;
 				}
 				p=X-a;
-				if((d=World->Land->Check(p,V.normalize2(),normal,ud,us))<=0) {
+				if((d=World->Land->Check(p,V.normalize2(),1.0f,normal,ud,us))<=0) {
 					Hit[HitN].CheckShapeNo=-1;
 					Hit[HitN].Pos=p;
 					Hit[HitN].Normal=normal;
@@ -769,7 +784,7 @@ void GRigid::CollisionCheck(GRigid *rigid)
 					HitN++;
 					hitFlag=true;
 				}
-				d=World->Land->Check((X+a),V.normalize2(),normal,ud,us);
+				d=World->Land->Check((X+a),V.normalize2(),1.0f,normal,ud,us);
 				v=(-normal*Rt*Rb.transpose()*r).normalize()*r*Rb*R;
 				//				if(v.y>0) v=-v;
 				if(d<=v.abs()+gr) {
@@ -784,7 +799,7 @@ void GRigid::CollisionCheck(GRigid *rigid)
 					HitN++;
 					hitFlag=true;
 				}
-				d=World->Land->Check((X-a),V.normalize2(),normal,ud,us);
+				d=World->Land->Check((X-a),V.normalize2(),1.0f,normal,ud,us);
 				v=(-normal*Rt*Rb.transpose()*r).normalize()*r*Rb*R;
 				if(v.y>0) v=-v;
 				if(d<=-v.y+gr) {
@@ -809,7 +824,7 @@ void GRigid::CollisionCheck(GRigid *rigid)
 			if(Child[i].RigidB) Child[i].RigidB->CollisionCheck(rigid);
 		}
 	}
-	else {
+	else { //現状はﾎﾞｰﾙとの判定用?
 		switch (Type) {
 			case GTYPE_FACE:
 				if(MeshNo==23) {
@@ -945,7 +960,7 @@ void GRigid::Impulse() {
 	if(HitN>0) {
 		GVector hitPos;
 		GVector rmax;
-		float d=0;
+		GFloat d=0;
 		int hn=HitN;
 		//if(HitN>32) hn=32;
 		for(int i=0;i<hn;i++) {
@@ -987,7 +1002,7 @@ void GRigid::Impulse() {
 				if(nv>=0) continue;
 				GFloat nv2=n.dot(VrelU.normalize2());
 				
-				float dk=fabs(Hit[i].Distance/d);
+				GFloat dk=fabs(Hit[i].Distance/d);
 				rmax=(Hit[i].Pos-X).Cut2(n);
 
 				//撃力から並進運動量と回転運動量を加える
@@ -1001,7 +1016,7 @@ void GRigid::Impulse() {
 					//衝突点の重心からの位置
 					j=1.0f/(M_+Hit[i].Target->M_+n.dot((ra.cross(n)*I_).cross(ra))+n.dot((rb.cross(n)*Hit[i].Target->I_).cross(rb)));
 				}
-				float d2=(1.0f+fabs(Hit[i].Distance));
+				GFloat d2=(1.0f+fabs(Hit[i].Distance));
 				GFloat j1=nv*j*dk*dk*d2;
 				GVector J=-(1.0f+e)*j1*n;
 				//撃力による速度,角速度の変化
@@ -1029,7 +1044,7 @@ void GRigid::Impulse() {
 				}
 				//ころがり摩擦
 				if((ChipType==4 || ChipType==5)&&ux>0) {
-					ApplyTorque(-L/Dt*ux);
+					ApplyTorque(-L/Dt*ux); //これ回転抵抗だよね  転がり抵抗じゃないよね
 				}
 				//-----------
 				GFloat ud2=0.0f;
@@ -1098,7 +1113,7 @@ void GRigid::Impulse() {
 					}
 				}
 			}
-			if(hn2>=1)ApplyImpulse(fvTotal/(float)hn2,hitPosTotal/(float)hn2);
+			if(hn2>=1)ApplyImpulse(fvTotal,hitPosTotal/(GFloat)hn2); //力を発生点の平均位置で入力してる?おかしくね?  //力を接点数で割ってる? なんで?
 
 		}
 		//めり込んだ分を戻す
@@ -1128,13 +1143,14 @@ void GRigid::Calc()
 	preV=V;
 	V=P*M_;
 	//リミッタ
-	if(V.abs()>140.0f) {
+	GFloat SPEEDLIMIT=GSPEEDLIMIT;
+	if(V.abs()>SPEEDLIMIT) {
 		if(Top->ID==0) {
-			V=V/V.abs()*140.0f;
+			V=V/V.abs()*SPEEDLIMIT;
 			P=V*M;
 		}
-		else if(V.abs()>140.0f/8*10) {
-			V=V/V.abs()*140.0f/8*10;
+		else if(V.abs()>SPEEDLIMIT/8*10) {
+			V=V/V.abs()*SPEEDLIMIT/8*10;
 			P=V*M;
 		}
 	}
@@ -1192,13 +1208,14 @@ void GRigid::CalcLight()
 	preV=V;
 	V=P*M_;
 	//リミッタ
-	if(V.abs()>140.0f) {
+	GFloat SPEEDLIMIT=GSPEEDLIMIT;
+	if(V.abs()>SPEEDLIMIT) {
 		if(Top->ID==0) {
-			V=V/V.abs()*140.0f;
+			V=V/V.abs()*SPEEDLIMIT;
 			P=V*M;
 		}
-		else if(V.abs()>140.0f/8*10) {
-			V=V/V.abs()*140.0f/8*10;
+		else if(V.abs()>SPEEDLIMIT/8*10) {
+			V=V/V.abs()*SPEEDLIMIT/8*10;
 			P=V*M;
 		}
 	}
@@ -1621,7 +1638,7 @@ void GWorld::CheckLink(GRigid* rigidA)
 {
 	if(rigidA->ChipType==GT_COWL) return;
 //	if(rigidA->Top->TotalMass<800) return;
-	float kk=(rigidA->Top->TotalMass-1000)/2000.0f;
+	GFloat kk=(rigidA->Top->TotalMass-1000)/2000.0f;
 	if(kk<0) kk=0;else if(kk>1.0f) kk=1.0;
 	GLink *l;
 	GVector v;
@@ -1631,7 +1648,7 @@ void GWorld::CheckLink(GRigid* rigidA)
 		if(l) {
 			GRigid *rigidB=l->RigidB;
 			if(rigidB && rigidB->ChipType!=GT_COWL) {
-				float d=l->DamperK;
+				GFloat d=l->DamperK;
 				if(d<0) d=0;else if(d>1.0) d=1.0;
 				GVector ax=l->Axis*rigidA->R;
 				GVector bx=l->Axis*rigidB->R;
@@ -1650,7 +1667,7 @@ void GWorld::CheckLink(GRigid* rigidA)
 					}
 				}
 				v=(rigidA->X+l->OffsetA*rigidA->R-l->OffsetB*rigidB->R-rigidB->X);
-				float fv=v.abs();
+				GFloat fv=v.abs();
 				if(fv>(CHIPSIZE/2.0f) && l->PreDestroyRatio>(CHIPSIZE/2.0f)) {
 					DeleteLink(rigidB);
 					rigidB->ByeFlag=2;
@@ -1830,7 +1847,7 @@ GFloat  GWorld::CalcShaft(GRigid* rigidA, GVector &offsetA, GRigid* rigidB, GVec
 GFloat GWorld::CalcHinge(GRigid* rigidA, GVector &offsetA, GRigid* rigidB, GVector &offsetB, GVector &axis,GFloat angle=0,GFloat k=1,GFloat damper=0)
 {
 
-	float h=10.0f/(GFloat)GLOOP*(GFloat)30.0f/(GFloat)LIMITFPS*10.0f/(GFloat)GDTSTEP;
+	GFloat h=10.0f/(GFloat)GLOOP*(GFloat)30.0f/(GFloat)LIMITFPS*10.0f/(GFloat)GDTSTEP;
 	k=k*h*0.6f/(GFloat)CHIPSIZE;if(k>1.0f*10.0f/(GFloat)GDTSTEP) k=1.0f*10.0f/(GFloat)GDTSTEP;else if(k<0) k=0.0f;
 	damper=damper*h;if(damper>0.5*10.0f/(GFloat)GDTSTEP) damper=0.5f*10.0f/(GFloat)GDTSTEP;else if(damper<0) damper=0.0f;
 	angle=angle*(GFloat)M_PI/180.0f+(GFloat)M_PI;
@@ -1882,7 +1899,7 @@ GFloat GWorld::CalcCowl(GRigid* rigidA, GVector &offsetA, GRigid* rigidB, GVecto
 void GWorld::Check(GRigid *rigid){
 	rigid->Top->TotalHitCount=0;
 	//LandRigidは地面
-	Land->List1up(rigid->Top->TotalCenter,rigid->Top->TotalRadius);
+	Land->List1up(rigid->Top->TotalCenter,rigid->Top->TotalRadius); //1つの系用の衝突判定面ﾘｽﾄ
 	rigid->CollisionCheck(LandRigid);
 }
 //************************************************
@@ -2061,10 +2078,12 @@ void GWorld::Move(bool initFlag)
 //	}
 	//移動処理
 	if(MainStepCount<=0) {
+		//MainStepCount>=1.0/StepTimeが通る前にRigid[j]->TotalRadius+7.0f/StepTimeの距離を移動しちゃうとﾎﾟﾘ抜けするはず
+		//ﾘｽﾄ更新時の速度分の距離移動したら更新掛けたほうがいい
 		Land->List3Reset();
 		for(j=0;j<ChipCount;j++) {
 			if(Rigid[j]->Parent==NULL) {
-				Land->List3up(Rigid[j]->TotalCenter,Rigid[j]->TotalRadius+7.0f/StepTime);
+				Land->List3up(Rigid[j]->TotalCenter+Rigid[j]->V/2,Rigid[j]->TotalRadius+7.0f/StepTime+Rigid[j]->V.abs()/2); //固定ﾊﾞｲｱｽはやめて、速度ﾊﾞｲｱｽを掛けるべき  1.0f/StepTime==加速度許容値
 			}
 		}
 //		if(ObjectBallFlag) {
@@ -2079,7 +2098,7 @@ void GWorld::Move(bool initFlag)
 	for(j=0;j<ChipCount;j++) {
 		Rigid[j]->preX=Rigid[j]->X;
 		if(Rigid[j]->Parent==NULL) {
-			Land->List2up(Rigid[j]->TotalCenter,Rigid[j]->TotalRadius+7.0f);
+			Land->List2up(Rigid[j]->TotalCenter+Rigid[j]->V/2*StepTime,Rigid[j]->TotalRadius+7.0f+Rigid[j]->V.abs()/2*StepTime);
 		}
 	}
 //	if(ObjectBallFlag) {
@@ -2264,18 +2283,24 @@ void GWorld::Move(bool initFlag)
 //************************************************
 // 世界：表示処理
 //************************************************
-void GWorld::Disp(BOOL net)
+void GWorld::Disp(BOOL net,BOOL bDrawOpaqueSubsets,BOOL bDrawAlphaSubsets,BOOL bDrawShadow)
 {
 	int j;
-	if(net!=TRUE) for(j=0;j<ChipCount;j++) Rigid[j]->DispShadow();
-	for(j=0;j<ObjectCount;j++) Object[j]->DispObject();
-	if(net!=TRUE) for(j=0;j<ObjectCount;j++) Object[j]->DispShadow();
-	if(net!=TRUE) {
-		for(j=0;j<ChipCount;j++) {
-			if(!(Rigid[j]->ChipType==GT_COWL && (((int)Rigid[j]->Effect)&0xf000))) Rigid[j]->Disp();
+	if(bDrawOpaqueSubsets) for(j=0;j<ObjectCount;j++) Object[j]->DispObject();
+	if(net!=TRUE){
+		if(bDrawOpaqueSubsets){
+			for(j=0;j<ChipCount;j++) {
+				if(!(Rigid[j]->ChipType==GT_COWL && (((int)Rigid[j]->Effect)&0xf000))) Rigid[j]->Disp();
+			}
 		}
-		for(j=0;j<ChipCount;j++) {
-			if(Rigid[j]->ChipType==GT_COWL && (((int)Rigid[j]->Effect)&0xf000)) Rigid[j]->Disp();
+		if(bDrawShadow){
+			for(j=0;j<ChipCount;j++) Rigid[j]->DispShadow();
+			for(j=0;j<ObjectCount;j++) Object[j]->DispShadow();
+		}
+		if(bDrawAlphaSubsets){
+			for(j=0;j<ChipCount;j++) {
+				if(Rigid[j]->ChipType==GT_COWL && (((int)Rigid[j]->Effect)&0xf000)) Rigid[j]->Disp();
+			}
 		}
 	}
 

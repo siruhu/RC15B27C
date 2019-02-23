@@ -14,22 +14,33 @@
 #endif 
 //--メモリリーク検出用
 
+extern CD3DMesh*	m_pLandMesh;	// XMeshデータ
+
+
 extern CMyD3DApplication* g_pApp;
-extern int ViewUpdate;
 extern GDPlay *DPlay;
 extern GPLAYERDATA PlayerData[];
 extern GMYDATA MyPlayerData;
+extern GFloat GSPEEDLIMIT;
+extern GFloat GFARMAX;
+extern GFloat GMARKERSIZE;
+extern GFloat GNAMESIZE;
 
 extern lua_State *ScriptL;
 extern lua_State *SystemL;
 
+extern int ViewUpdate;
+extern GFloat Zoom;
 
-float luaL3dx,luaL3dy,luaL3dz;
-float luaL2dx,luaL2dy;
+GFloat luaL3dx,luaL3dy,luaL3dz;
+GFloat luaL2dx,luaL2dy;
 int luaGraColor;
 extern int randTime;
 extern DWORD frameGetTime;
 extern DWORD frameElapsedTime;
+extern TCHAR HostName[];
+extern DWORD PortNo;
+extern char LastChatData[];
 void Line(GVector &p1,GVector &p2,unsigned int col);
 void Line2D(GFloat x0,GFloat y0,GFloat x1,GFloat y1,int col);
 
@@ -122,7 +133,7 @@ int luaSetTicks(lua_State *L)
 }
 int luaSetCCDZoom(lua_State *L)
 {
-	float v=(float)lua_tonumber(L, 1);
+	GFloat v=(GFloat)lua_tonumber(L, 1);
 	if(v>=1 && v<=100) CCDZoom=v;
     lua_pushnumber(L, CCDZoom );
 	return 1;
@@ -381,6 +392,7 @@ int luaPosz(lua_State *L)
 int luaGetY(lua_State *L)
 {
 	int no=(int)lua_tonumber(L, 1);
+	if(no<0 || no>=ChipCount) {lua_pushnumber(L,-100000.0f);return 1;}
 	double h=World->Land->GetY2(Chip[(int)no]->X.x,Chip[(int)no]->X.y,Chip[(int)no]->X.z);
 	if(h<0) lua_pushnumber(L,h);
 	else  lua_pushnumber(L,Chip[(int)no]->X.y-h);
@@ -389,6 +401,7 @@ int luaGetY(lua_State *L)
 int luaUnLinkBye(lua_State *L)
 {
 	int no=(int)lua_tonumber(L, 1);
+	if(no<0 || no>=ChipCount) {lua_pushnumber(L,0);return 1;}
 	if(Chip[(int)no]->Parent==NULL) {lua_pushnumber(L,0);return 1;}
 	World->DeleteLink(Chip[(int)no]);
 	Chip[(int)no]->ByeFlag=1;
@@ -399,6 +412,7 @@ int luaUnLinkBye(lua_State *L)
 int luaUnLink(lua_State *L)
 {
 	int no=(int)lua_tonumber(L, 1);
+	if(no<0 || no>=ChipCount) {lua_pushnumber(L,0);return 1;}
 	if(Chip[(int)no]->Parent==NULL) {lua_pushnumber(L,0);return 1;}
 	World->DeleteLink(Chip[(int)no]);
 	Chip[(int)no]->ByeFlag=0;
@@ -826,7 +840,12 @@ int luaGetBase(lua_State *L)
 }
 int luaGetFaces(lua_State *L)
 {
-	lua_pushnumber(L,(double)NumFace);
+	int no=(int)lua_tonumber(L, 1);
+	if(no==1){
+		lua_pushnumber(L,(double)NumVertice);
+	}else{
+		lua_pushnumber(L,(double)NumFace);
+	}
 	return 1;
 }
 int luaGetTolerant(lua_State *L)
@@ -838,46 +857,46 @@ int luaGetTolerant(lua_State *L)
 }
 int luaMove3D(lua_State *L)
 {
-	luaL3dx=(float)lua_tonumber(L, 1);
-	luaL3dy=(float)lua_tonumber(L, 2);
-	luaL3dz=(float)lua_tonumber(L, 3);
+	luaL3dx=(GFloat)lua_tonumber(L, 1);
+	luaL3dy=(GFloat)lua_tonumber(L, 2);
+	luaL3dz=(GFloat)lua_tonumber(L, 3);
 	lua_pushnumber(L,0);
 	return 1;
 }
 int luaLine3D(lua_State *L)
 {
-	float x=(float)lua_tonumber(L, 1);
-	float y=(float)lua_tonumber(L, 2);
-	float z=(float)lua_tonumber(L, 3);
+	GFloat x=(GFloat)lua_tonumber(L, 1);
+	GFloat y=(GFloat)lua_tonumber(L, 2);
+	GFloat z=(GFloat)lua_tonumber(L, 3);
 	if(ViewUpdate)	{
 		g_pApp->ViewSet();
 		ViewUpdate=0;
 	}
 	Line(GVector(luaL3dx,luaL3dy,luaL3dz),GVector(x,y,z),luaGraColor);
-	luaL3dx=(float)x;
-	luaL3dy=(float)y;
-	luaL3dz=(float)z;
+	luaL3dx=(GFloat)x;
+	luaL3dy=(GFloat)y;
+	luaL3dz=(GFloat)z;
 	lua_pushnumber(L,0);
 	return 1;
 }
 int luaMove2D(lua_State *L)
 {
-	luaL2dx=(float)lua_tonumber(L, 1);
-	luaL2dy=(float)lua_tonumber(L, 2);
+	luaL2dx=(GFloat)lua_tonumber(L, 1);
+	luaL2dy=(GFloat)lua_tonumber(L, 2);
 	lua_pushnumber(L,0);
 	return 1;
 }
 int luaLine2D(lua_State *L)
 {
-	float x=(float)lua_tonumber(L, 1);
-	float y=(float)lua_tonumber(L, 2);
+	GFloat x=(GFloat)lua_tonumber(L, 1);
+	GFloat y=(GFloat)lua_tonumber(L, 2);
 	if(ViewUpdate)	{
 		g_pApp->ViewSet();
 		ViewUpdate=0;
 	}
 	Line2D(luaL2dx,luaL2dy,x,y,luaGraColor);
-	luaL2dx=(float)x;
-	luaL2dy=(float)y;
+	luaL2dx=(GFloat)x;
+	luaL2dy=(GFloat)y;
 	lua_pushnumber(L,0);
 
 	return 1;
@@ -1133,28 +1152,143 @@ void luaUpdateVal() {
 int luaGetPlayerPos(lua_State *L)
 {
 	int n=(int)lua_tonumber(L, 1);
+	int chipNo=(int)lua_tonumber(L, 2);
 	if(n<0 || n>=DPlay->GetNumPlayers()) {
 		lua_pushnumber(L,0.0);
-		lua_pushnumber(L,-100000.0);
+		lua_pushnumber(L,-100000.0f);
 		lua_pushnumber(L,0.0);
 		return 3;
 	}
 	if(DPlay->GetLocalPlayerDPNID()==PlayerData[n].ReceiveData.info.dpnidPlayer) {
-		lua_pushnumber(L,(double)Chip[0]->X.x);
-		lua_pushnumber(L,(double)Chip[0]->X.y);
-		lua_pushnumber(L,(double)Chip[0]->X.z);
+		if(chipNo<0 || chipNo>=ChipCount) chipNo=0;
+		lua_pushnumber(L,(double)Chip[chipNo]->X.x);
+		lua_pushnumber(L,(double)Chip[chipNo]->X.y);
+		lua_pushnumber(L,(double)Chip[chipNo]->X.z);
 		return 3;
 	}
+	//if(chipNo<0 || chipNo>=PlayerData[n].ChipCount) chipNo=0;
+	if(chipNo<0 || chipNo>=PlayerData[n].ChipCount){
+		lua_pushnumber(L,0.0);
+		lua_pushnumber(L,-100000.0);
+		lua_pushnumber(L,0.0);
+	}
 	double a=pow((double)PlayerData[n].ChipCount,1.0/3.0)/2.0;
-	double x=PlayerData[n].x+(rand()%10000-5000)/1000.0*a+sin(randTime/150.0)*a-sin(randTime/350.0)*a;
-	double y=PlayerData[n].y+(rand()%10000-5000)/1000.0*a+sin(randTime/160.0)*a-sin(randTime/360.0)*a;
-	double z=PlayerData[n].z+(rand()%10000-5000)/1000.0*a+sin(randTime/140.0)*a-sin(randTime/340.0)*a;
+	double x=PlayerData[n].X[chipNo].x+(rand()%10000-5000)/1000.0*a+sin(randTime/150.0)*a-sin(randTime/350.0)*a;
+	double y=PlayerData[n].X[chipNo].y+(rand()%10000-5000)/1000.0*a+sin(randTime/160.0)*a-sin(randTime/360.0)*a;
+	double z=PlayerData[n].X[chipNo].z+(rand()%10000-5000)/1000.0*a+sin(randTime/140.0)*a-sin(randTime/340.0)*a;
 	lua_pushnumber(L,x);
 	lua_pushnumber(L,y);
 	lua_pushnumber(L,z);
 	return 3;
 }
 //---------------------
+//--------
+static unsigned long xorShift_data[4]={123456789,362436069,521288629,88675123};
+static unsigned long xorShift(){ 
+	unsigned long temp; 
+	temp=(xorShift_data[0]^(xorShift_data[0]<<11));
+	xorShift_data[0]=xorShift_data[1];
+	xorShift_data[1]=xorShift_data[2];
+	xorShift_data[2]=xorShift_data[3];
+	return( xorShift_data[3]=(xorShift_data[3]^(xorShift_data[3]>>19))^(temp^(temp>>8)) ); 
+}
+static void init_xorShift(unsigned long seed){
+	xorShift_data[0]=seed;
+	xorShift_data[1]=!seed;
+	xorShift_data[2]=seed^(seed<<13);
+	xorShift_data[3]=seed^(seed<<3);
+	for(int i=0;i<40;i++) xorShift();
+}
+//--------
+int luaRand(lua_State *L)
+{
+	lua_pushnumber(L,xorShift());
+	return 1;
+}
+int luaRandInit(lua_State *L)
+{
+	init_xorShift((unsigned long)lua_tonumber(L, 1));
+	return 1;
+}
+int luaGetHostName(lua_State *L)
+{
+	lua_pushstring(L,HostName);
+	return 1;
+}
+int luaGetPortNumber(lua_State *L)
+{
+	lua_pushnumber(L,PortNo);
+	return 1;
+}
+int luaGetVertices(lua_State *L)
+{
+	lua_pushnumber(L,NumVertice);
+	return 1;
+}
+int luaGettimeGetTime(lua_State *L)
+{
+	lua_pushnumber(L,timeGetTime());
+	return 1;
+}
+int luaGetFaceData(lua_State *L) //({面番号...}) return {{faceNum,vertex[3][3],normal[3],friction{Ux,Us,Ud},matrial}...}
+{
+	lua_newtable(L); //lua_createtable使いたいが引数で来たﾃｰﾌﾞﾙの長さが取れぬ それ以前にLua5.0にcratetable無かった
+	if(lua_istable(L, 1)){
+		for(unsigned int i=1;i<=NumFace;i++){
+			lua_newtable(L);
+			//---------------
+			lua_pushstring(L,"faceNum");
+			lua_rawgeti(L,1,i);
+			int isnumber=lua_isnumber (L, -1);
+			unsigned int faces=(unsigned int)lua_tonumber(L, -1);
+			if(!isnumber || faces<0 || faces>=NumFace){
+				lua_settop(L,-4);
+				break;
+			}
+			lua_settable(L,-3);
+			//---------------
+			lua_pushstring(L,"vertex");
+			lua_newtable(L);
+			for(int j=0;j<3;j++){
+				lua_newtable(L);
+				for(int k=0;k<3;k++){
+					lua_pushnumber(L,(double)World->Land->Face[faces].Vertex[j][k]);
+					lua_rawseti(L,-2,k+1);
+				}
+				lua_rawseti(L,-2,j+1);
+			}
+			lua_settable(L,-3);
+			//---------------
+			lua_pushstring(L,"normal");
+			lua_newtable(L);
+			for(int j=0;j<3;j++){
+				lua_pushnumber(L,(double)World->Land->Face[faces].Normal[j]);
+				lua_rawseti(L,-2,j+1);
+			}
+			lua_settable(L,-3);
+			//---------------
+			lua_pushstring(L,"friction");
+			lua_newtable(L);
+			lua_pushstring(L,"Ux");
+			lua_pushnumber(L,(double)World->Land->Face[faces].Ux);
+			lua_settable(L,-3);
+			lua_pushstring(L,"Us");
+			lua_pushnumber(L,(double)World->Land->Face[faces].Us);
+			lua_settable(L,-3);
+			lua_pushstring(L,"Ud");
+			lua_pushnumber(L,(double)World->Land->Face[faces].Ud);
+			lua_settable(L,-3);
+			lua_settable(L,-3);
+			//---------------
+			lua_pushstring(L,"material");
+			lua_pushnumber(L,(double)World->Land->Face[faces].AttribNo);
+			lua_settable(L,-3);
+			//---------------
+			lua_rawseti(L,-2,i);
+		}
+	}
+	return 1;
+}
 int luaGetPlayerExtTime(lua_State *L) //補完時間
 {
 	int n=(int)lua_tonumber(L, 1);
@@ -1163,6 +1297,66 @@ int luaGetPlayerExtTime(lua_State *L) //補完時間
 		return 1;
 	}
 	lua_pushnumber(L,(double)frameGetTime-PlayerData[n].rtime2);
+	return 1;
+}
+int luaGetRange(lua_State *L) //地形までの距離
+{
+	int no=(int)lua_tonumber(L, 1);
+	if(no<0 || no>=ChipCount){
+		lua_pushnumber(L,-100000.0f);
+		return 1;
+	}
+	GVector vec;
+	int n=lua_gettop(L);
+	static DWORD LastFrameTime=0;
+	if(n>1 && frameGetTime!=LastFrameTime && Chip[no]->ChipType==GT_CORE){
+		LastFrameTime=frameGetTime;
+		vec=GVector((GFloat)lua_tonumber(L, 2),(GFloat)lua_tonumber(L, 3),(GFloat)lua_tonumber(L, 4));
+	}else if(Chip[no]->ChipType!=GT_COWL){
+		switch(Chip[no]->Dir) {
+			case 1:vec=GVector(1,0,0);break;
+			case 2:vec=GVector(0,0,-1);break;
+			case 3:vec=GVector(-1,0,0);break;
+			default:vec=GVector(0,0,1);break;
+		}
+	}else{
+		lua_pushnumber(L,-100000.0f);
+		return 1;
+	}
+	vec=vec*Chip[no]->R;
+	D3DXVECTOR3 v1,v2;
+	v1.x=(FLOAT)Chip[no]->X.x;
+	v1.y=(FLOAT)Chip[no]->X.y;
+	v1.z=(FLOAT)Chip[no]->X.z;
+	v2.x=(FLOAT)vec.x;
+	v2.y=(FLOAT)vec.y;
+	v2.z=(FLOAT)vec.z;
+	
+	if(m_pLandMesh==NULL) {
+		lua_pushnumber(L,-100000.0f);
+		return 1;
+	}
+	BOOL hit;
+	FLOAT dist;
+	D3DXIntersect(m_pLandMesh->GetSysMemMesh(),&v1,&v2,&hit,NULL,NULL,NULL,&dist,NULL,NULL);
+	if(!hit) dist=-100000.0f;
+	
+	lua_pushnumber(L,dist);
+	return 1;
+}
+//---------------------ｽﾋﾟ誤魔化し用ﾀﾞﾐｰ関数
+int luaDummyFunc0(lua_State *L)
+{
+	return 0;
+}
+int luaDummyFunc1(lua_State *L)
+{
+	lua_pushnumber(L, 0 );
+	return 1;
+}
+int luaDummyFuncFunc(lua_State *L)
+{
+	lua_pushcfunction (L, luaDummyFunc0 );
 	return 1;
 }
 //---------------------ｼﾅﾘｵ関数
@@ -1178,5 +1372,115 @@ int luaSetScriptFunction(lua_State *L)
 	
 	if((name==NULL) | (func==NULL) | (ScriptL==NULL))return 1;
 	lua_register(ScriptL, name, func);
+	return 1;
+}
+int luaGetLastChat(lua_State *L)
+{
+	lua_pushstring(L,LastChatData);
+	return 1;
+}
+int luaGetView(lua_State *L)
+{
+	lua_pushnumber(L,UserEyePos.x);
+	lua_pushnumber(L,UserEyePos.y);
+	lua_pushnumber(L,UserEyePos.z);
+	lua_pushnumber(L,UserRefPos.x);
+	lua_pushnumber(L,UserRefPos.y);
+	lua_pushnumber(L,UserRefPos.z);
+	return 6;
+}
+int luaGetViewUp(lua_State *L)
+{
+	lua_pushnumber(L,UserUpVec.x);
+	lua_pushnumber(L,UserUpVec.y);
+	lua_pushnumber(L,UserUpVec.z);
+	return 3;
+}
+int luaGetViewType(lua_State *L)
+{
+	lua_pushnumber(L,ViewType);
+	return 1;
+}
+int luaGetViewZoom(lua_State *L)
+{
+	lua_pushnumber(L,Zoom);
+	return 1;
+}
+int luaSetView(lua_State *L)
+{
+	UserEyePos.x=(GFloat)lua_tonumber(L, 1);
+	UserEyePos.y=(GFloat)lua_tonumber(L, 2);
+	UserEyePos.z=(GFloat)lua_tonumber(L, 3);
+	UserRefPos.x=(GFloat)lua_tonumber(L, 4);
+	UserRefPos.y=(GFloat)lua_tonumber(L, 5);
+	UserRefPos.z=(GFloat)lua_tonumber(L, 6);
+	UserUpVec=GVector(0,1,0);
+	GVector u=(UserRefPos-UserEyePos).cross(UserUpVec).cross(UserRefPos-UserEyePos).normalize2();
+	if(u.abs()!=0) UserUpVec=u;
+	else UserUpVec=GVector(0,0,-1);
+	ViewType=-1;
+	ViewUpdate=1;
+	return 0;
+}
+int luaSetViewUp(lua_State *L)
+{
+	UserUpVec.x=(GFloat)lua_tonumber(L, 1);
+	UserUpVec.y=(GFloat)lua_tonumber(L, 2);
+	UserUpVec.z=(GFloat)lua_tonumber(L, 3);
+	ViewType=-1;
+	ViewUpdate=1;
+	return 0;
+}
+int luaSetViewType(lua_State *L)
+{
+	ViewType=(int)lua_tonumber(L,1);
+	return 0;
+}
+int luaSetViewZoom(lua_State *L)
+{
+	Zoom=(GFloat)lua_tonumber(L,1);
+	ViewUpdate=1;
+	return 0;
+}
+int luaSetSpeedLimit(lua_State *L)
+{
+	int n=lua_gettop(L);
+	if(n==1) GSPEEDLIMIT=lua_tonumber(L, 1);
+	else if(n==2) GSPEEDLIMIT=lua_tonumber(L, 2); //ｽﾋﾟ互換用
+	return 0;
+}
+int luaGetSpeedLimit(lua_State *L)
+{
+	lua_pushnumber(L,GSPEEDLIMIT);
+	return 1;
+}
+int luaSetFogRange(lua_State *L)
+{
+	GFARMAX=lua_tonumber(L, 1);
+	return 0;
+}
+int luaGetFogRange(lua_State *L)
+{
+	lua_pushnumber(L,GFARMAX);
+	return 1;
+}
+int luaSetMakerSize(lua_State *L)
+{
+	GMARKERSIZE=lua_tonumber(L, 1);
+	return 0;
+}
+int luaGetMakerSize(lua_State *L)
+{
+	lua_pushnumber(L,GMARKERSIZE);
+	return 1;
+}
+int luaSetNameSize(lua_State *L)
+{
+	GNAMESIZE=lua_tonumber(L, 1);
+	return 0;
+}
+int luaGetNameSize(lua_State *L)
+{
+	lua_pushnumber(L,GNAMESIZE);
 	return 1;
 }

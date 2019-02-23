@@ -42,7 +42,7 @@ extern int LIMITFPS;
 
 int GNETSPAN=190; //200msはﾌﾚｰﾑ間隔*6(=199.8)に近すぎてまずい
 
-float ARMSPEED=20.0f;
+GFloat ARMSPEED=20.0f;
 
 //燃料からの変換効率(大きいほど効率がよい)
 double ARM_EFF=1.0;
@@ -65,10 +65,10 @@ UINT	m_ShockMess;
 ---------------------------------------------*/
 typedef struct{
 	int type;
-	float x,y,z;
-	float size;
-	float alpha;
-	float r,g,b;
+	GFloat x,y,z;
+	GFloat size;
+	GFloat alpha;
+	GFloat r,g,b;
 	int id;
 }DustData;
 
@@ -80,15 +80,16 @@ typedef struct _D3DPOINTVERTEX_ {
 //#define D3DFVF_POINTVERTEX 		(D3DFVF_XYZ | D3DFVF_DIFFUSE | D3DFVF_TEX1| D3DFVF_PSIZE)
 #define D3DFVF_POINTVERTEX 		(D3DFVF_XYZ | D3DFVF_DIFFUSE)
 
-#define GMODELMAX 38
+#define GMODELMAX 39
 #define GTEXMAX 23
 #define GCHECKPOINTMAX 100
 
 inline DWORD FtoDW( FLOAT f ) { return *((DWORD*)&f); }
 
-float GFARMAX=600.0f;
-float GMARKERSIZE=1.0f;
-float GNAMESIZE=1.0f;
+GFloat GSPEEDLIMIT=140.0f;
+GFloat GFARMAX=600.0f;
+GFloat GMARKERSIZE=1.0f;
+GFloat GNAMESIZE=1.0f;
 
 //int Size;
 D3DLIGHT8 light;
@@ -119,10 +120,10 @@ typedef struct {
 	bool ScriptFlag;
 	bool EfficientFlag;
 	GVector StartPoint;
-	float StartAngleY;
+	GFloat StartAngleY;
 	GVector Point[GCHECKPOINTMAX];
 	GVector Dir[GCHECKPOINTMAX];
-	float Scale[GCHECKPOINTMAX];
+	GFloat Scale[GCHECKPOINTMAX];
 	int Count;
 } GCheckPoint;
 
@@ -155,7 +156,7 @@ HWND g_hWnd=NULL;              // The main app window
 
 DWORD SoundType;
 
-float CCDZoom=0.3f*180.0f/(GFloat)M_PI;
+GFloat CCDZoom=0.3f*180.0f/(GFloat)M_PI;
 
 GVector AirSpeed;//風
 
@@ -247,6 +248,8 @@ DWORD ShowExtra=FALSE;
 DWORD ShowNetwork=FALSE;
 DWORD ShowVariable=TRUE;
 DWORD ShowPower=FALSE;
+DWORD ShowLandNormal=FALSE;
+DWORD ShowHitMesh=FALSE;
 DWORD ShowCowl=TRUE;
 DWORD ShowGhost=FALSE;
 DWORD TextureAlpha=TRUE;
@@ -288,15 +291,17 @@ BOOL WindTyphoon=FALSE;
 unsigned long TitleAlpha =0x00ffffff;
 
 int ResetCount=90;
-int NumFace;
+unsigned int NumVertice;
+unsigned int NumFace;
 
 GFloat TotalPower=0;
 GFloat WaterLine=-0.45f;
 
 int DataCheck=0;
-GVector lightColor;
-GVector FogColor;
+D3DXVECTOR3 lightColor;
+D3DXVECTOR3 FogColor;
 GVector EyePos,RefPos,UpVec;
+GVector EyePos2; //KL<>移動分含む視点
 GVector UserEyePos;
 GVector UserRefPos;
 GVector UserUpVec;
@@ -795,7 +800,7 @@ HRESULT MyReceiveFunc( MYAPP_PLAYER_INFO* playerInfo,DWORD size,BYTE *stream ) {
 			GSTREAM strm2;
 			strm2.code=1;
 			char *str=(char*)strm2.data;
-			sprintf(str,"Version=1.5 C8");
+			sprintf(str,"Version=1.5 C9");
 			DWORD size=strlen(str)+1+sizeof(short);
 			DPlay->SendTo(playerInfo->dpnidPlayer,(BYTE*)&strm2,size,180,DPNSEND_NOLOOPBACK|DPNSEND_NOCOMPLETE);
 		}
@@ -1323,7 +1328,7 @@ void Text3D(CD3DFont*font,GVector &pos,GVector &rot,float s,char *str,DWORD col)
 	G3dDevice->SetRenderState( D3DRS_AMBIENT,0xFFFFFFFF );
 	D3DXMATRIX tm;
 	D3DXMatrixIdentity( &tm );
-	D3DXMatrixTranslation(&tm,pos.x,pos.y,pos.z);
+	D3DXMatrixTranslation(&tm,(FLOAT)pos.x,(FLOAT)pos.y,(FLOAT)pos.z);
  	G3dDevice->SetTransform( D3DTS_WORLD, &tm );
      // Establish colors for selected vs. normal menu items
 	D3DMATERIAL8 mtrlText;
@@ -1351,13 +1356,9 @@ void Text3Dm(CD3DFont*font,D3DXMATRIX &m,char *str,DWORD col) {
 
 
 
-struct line2dVerex{
-	float x, y, z;
-	DWORD color;
-};
-#define line2dVerexMax 200 //奇数が始点 偶数が終点の線
-line2dVerex line2dVerexTable[line2dVerexMax]; //頂点ﾊﾞｯﾌｧ 埋まったら描画
-int line2dVerexTable_n=0;
+#define line2dVertexMax 2000 //奇数が始点 偶数が終点の線
+D3DPOINTVERTEX line2dVertexTable[line2dVertexMax]; //頂点ﾊﾞｯﾌｧ 埋まったら描画
+int line2dVertexTable_n=0;
 
 void Line2D(GFloat x0,GFloat y0,GFloat x1,GFloat y1,int col)
 {
@@ -1366,13 +1367,13 @@ void Line2D(GFloat x0,GFloat y0,GFloat x1,GFloat y1,int col)
 	else t=(float)tan(Zoom*M_PI/360.0);
 	float t2=(t+1)/t;
 	
-	line2dVerexTable[line2dVerexTable_n]={(float)x0*t,(float)y0*t,1,col|0xff000000};
-	line2dVerexTable[line2dVerexTable_n+1]={(float)x1*t,(float)y1*t,1,col|0xff000000};
-	line2dVerexTable_n=line2dVerexTable_n+2;
+	line2dVertexTable[line2dVertexTable_n]={(float)x0*t,(float)y0*t,1,col|0xff000000};
+	line2dVertexTable[line2dVertexTable_n+1]={(float)x1*t,(float)y1*t,1,col|0xff000000};
+	line2dVertexTable_n=line2dVertexTable_n+2;
 	
-	if(line2dVerexTable_n>=line2dVerexMax || col&0xFF000000){ //colが0x01000000以上の時ﾊﾞｯﾌｧ分強制描画
-		int Verex_num=line2dVerexTable_n;
-		line2dVerexTable_n=0;
+	if(line2dVertexTable_n>=line2dVertexMax || col&0xFF000000){ //colが0x01000000以上の時ﾊﾞｯﾌｧ分強制描画
+		int Vertex_num=line2dVertexTable_n;
+		line2dVertexTable_n=0;
 		D3DXMATRIX mat1;
 		//D3DXMATRIX matV,mat2;
 		//G3dDevice->GetTransform(D3DTS_VIEW,&matV);
@@ -1381,15 +1382,23 @@ void Line2D(GFloat x0,GFloat y0,GFloat x1,GFloat y1,int col)
 		//D3DXMatrixMultiply(&mat2,&mat1,&GMatWorld);
 		G3dDevice->SetTransform(D3DTS_VIEW,&mat1);
 
+		/*	G3dDevice->SetRenderState( D3DRS_ALPHAREF, 0x00000008);
+			G3dDevice->SetRenderState( D3DRS_ALPHAFUNC, D3DCMP_GREATEREQUAL);
+			G3dDevice->SetRenderState( D3DRS_ALPHATESTENABLE, TRUE); 
+			G3dDevice->SetRenderState( D3DRS_ALPHABLENDENABLE,TRUE );*/
 		G3dDevice->SetRenderState( D3DRS_LIGHTING, FALSE );
 		G3dDevice->SetRenderState( D3DRS_AMBIENT,0xFFFFFFFF );
 		G3dDevice->SetTexture(0,NULL);
 		G3dDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);	// カリングモード
 		
 		//G3dDevice->SetRenderState( D3DRS_ZENABLE, FALSE );
-		G3dDevice->SetVertexShader(D3DFVF_XYZ | D3DFVF_DIFFUSE);
-		G3dDevice->DrawPrimitiveUP(D3DPT_LINELIST,Verex_num/2,line2dVerexTable,sizeof (line2dVerex));
+		G3dDevice->SetVertexShader(D3DFVF_POINTVERTEX);
+		G3dDevice->DrawPrimitiveUP(D3DPT_LINELIST,Vertex_num/2,line2dVertexTable,sizeof (D3DPOINTVERTEX)); //_MOVEと_LINE分けてDrawIndexedPrimitiveUPで一つにまとめたほうが頂点数が半分近くに減らせるね
 		
+		/*	G3dDevice->SetRenderState( D3DRS_ALPHAREF, 0x00000000);
+			G3dDevice->SetRenderState( D3DRS_ALPHAFUNC, D3DCMP_ALWAYS);
+			G3dDevice->SetRenderState( D3DRS_ALPHATESTENABLE, FALSE); 
+			G3dDevice->SetRenderState( D3DRS_ALPHABLENDENABLE,FALSE );*/
 		G3dDevice->SetRenderState( D3DRS_LIGHTING, TRUE );
 		G3dDevice->SetRenderState( D3DRS_AMBIENT,0x000F0F0F );
 		G3dDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_CCW);	// カリングモード
@@ -1397,32 +1406,28 @@ void Line2D(GFloat x0,GFloat y0,GFloat x1,GFloat y1,int col)
 	}
 }
 
-struct line3dVerex{
-	float x, y, z;
-	DWORD color;
-};
-#define line3dVerexMax 200 //奇数が始点 偶数が終点の線
-line3dVerex line3dVerexTable[line3dVerexMax]; //頂点ﾊﾞｯﾌｧ 埋まったら描画
-int line3dVerexTable_n=0;
+#define line3dVertexMax 2000 //奇数が始点 偶数が終点の線
+D3DPOINTVERTEX line3dVertexTable[line3dVertexMax]; //頂点ﾊﾞｯﾌｧ 埋まったら描画
+int line3dVertexTable_n=0;
 
 void Line(GVector &p1,GVector &p2,unsigned int col)
 {
 	
-	line3dVerexTable[line3dVerexTable_n]={(float)p1.x,(float)p1.y,(float)p1.z,col|0xff000000};
-	line3dVerexTable[line3dVerexTable_n+1]={(float)p2.x,(float)p2.y,(float)p2.z,col|0xff000000};
-	line3dVerexTable_n=line3dVerexTable_n+2;
+	line3dVertexTable[line3dVertexTable_n]={(float)p1.x,(float)p1.y,(float)p1.z,col|0xff000000};
+	line3dVertexTable[line3dVertexTable_n+1]={(float)p2.x,(float)p2.y,(float)p2.z,col|0xff000000};
+	line3dVertexTable_n=line3dVertexTable_n+2;
 	
-	if(line3dVerexTable_n>=line3dVerexMax || col&0xFF000000){ //colが0x01000000以上の時ﾊﾞｯﾌｧ分強制描画
-		int Verex_num=line3dVerexTable_n;
-		line3dVerexTable_n=0;
+	if(line3dVertexTable_n>=line3dVertexMax || col&0xFF000000){ //colが0x01000000以上の時ﾊﾞｯﾌｧ分強制描画
+		int Vertex_num=line3dVertexTable_n;
+		line3dVertexTable_n=0;
 	
 		G3dDevice->SetRenderState( D3DRS_LIGHTING, FALSE );
 		G3dDevice->SetRenderState( D3DRS_AMBIENT,0xFFFFFFFF );
 		G3dDevice->SetTexture(0,NULL);
 		G3dDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);	// カリングモード
 		
-		G3dDevice->SetVertexShader(D3DFVF_XYZ | D3DFVF_DIFFUSE);
-		G3dDevice->DrawPrimitiveUP(D3DPT_LINELIST,Verex_num/2,line3dVerexTable,sizeof (line3dVerex));
+		G3dDevice->SetVertexShader(D3DFVF_POINTVERTEX);
+		G3dDevice->DrawPrimitiveUP(D3DPT_LINELIST,Vertex_num/2,line3dVertexTable,sizeof (D3DPOINTVERTEX));
 		
 		G3dDevice->SetRenderState( D3DRS_LIGHTING, TRUE );
 		G3dDevice->SetRenderState( D3DRS_AMBIENT,0x000F0F0F );
@@ -1494,30 +1499,37 @@ int CALLBACK DlgExtraProc(HWND hDlg,UINT uMsg,WPARAM wParam,LPARAM lParam)
 	HDC hDC=GetDC(hDlg);
 	switch(uMsg) {
 		case WM_INITDIALOG:
-			SendMessage(GetDlgItem(hDlg,IDC_FARSLIDER), TBM_SETRANGE, 0, MAKELPARAM(0, 4));
+			SendMessage(GetDlgItem(hDlg,IDC_SPEEDLIMITSLIDER), TBM_SETRANGE, 0, MAKELPARAM(0, 9));
+			SendMessage(GetDlgItem(hDlg,IDC_SPEEDLIMITSLIDER), TBM_SETTICFREQ, (WPARAM)1, 0);
+			SendMessage(GetDlgItem(hDlg,IDC_FARSLIDER), TBM_SETRANGE, 0, MAKELPARAM(0, 7));
 			SendMessage(GetDlgItem(hDlg,IDC_FARSLIDER), TBM_SETTICFREQ, (WPARAM)1, 0);
 			SendMessage(GetDlgItem(hDlg,IDC_FASTSHADOWCHECK), BM_SETCHECK,(WPARAM)FastShadow,0);
 			SendMessage(GetDlgItem(hDlg,IDC_MARKERSLIDER), TBM_SETRANGE, 0, MAKELPARAM(0, 4));
 			SendMessage(GetDlgItem(hDlg,IDC_MARKERSLIDER), TBM_SETTICFREQ, (WPARAM)1, 0);
 			SendMessage(GetDlgItem(hDlg,IDC_NAMESLIDER), TBM_SETRANGE, 0, MAKELPARAM(0, 4));
 			SendMessage(GetDlgItem(hDlg,IDC_NAMESLIDER), TBM_SETTICFREQ, (WPARAM)1, 0);
-			if(GFARMAX<=300.0f) p=0;
-			else if(GFARMAX<=600.0f) p=1;
-			else if(GFARMAX<=1200.0f) p=2;
-			else if(GFARMAX<=2400.0f) p=3;
-			else if(GFARMAX<=4800.0f) p=4;
+			//-----------
+			p=(int)log2((double)GSPEEDLIMIT/(140.0f/4));
+			SendMessage(GetDlgItem(hDlg,IDC_SPEEDLIMITSLIDER), TBM_SETPOS, 1, p);
+			sprintf(str,"%.0lfkm/h",GSPEEDLIMIT*3.6);
+			SendDlgItemMessage(hDlg,IDC_SPEEDLIMITSTATIC,WM_SETTEXT,0,(LPARAM)str);
+			//-----------
+			p=(int)log2((double)GFARMAX/300.0f);
 			SendMessage(GetDlgItem(hDlg,IDC_FARSLIDER), TBM_SETPOS, 1, p);
+			sprintf(str,"%.1lfkm",GFARMAX/1000);
+			SendDlgItemMessage(hDlg,IDC_FARSTATIC,WM_SETTEXT,0,(LPARAM)str);
+			//-----------
 			r=(((int)FogColor.z)<<16)+(((int)FogColor.y)<<8)+(int)FogColor.x;
 			sprintf(str,"%06X",r);
 			SendDlgItemMessage(hDlg,IDC_COLORSTATIC,WM_SETTEXT,0,(LPARAM)str);
-
+			//-----------
 			if(GMARKERSIZE<=0.0f) p=0;
 			else if(GMARKERSIZE<=0.5f) p=1;
 			else if(GMARKERSIZE<=0.75f) p=2;
 			else if(GMARKERSIZE<=1.0f) p=3;
 			else if(GMARKERSIZE<=2.0f) p=4;
 			SendMessage(GetDlgItem(hDlg,IDC_MARKERSLIDER), TBM_SETPOS, 1, p);
-
+			//-----------
 			if(GNAMESIZE<=0.0f) p=0;
 			else if(GNAMESIZE<=0.5f) p=1;
 			else if(GNAMESIZE<=0.75f) p=2;
@@ -1533,20 +1545,25 @@ int CALLBACK DlgExtraProc(HWND hDlg,UINT uMsg,WPARAM wParam,LPARAM lParam)
 			break;
 			
 		case WM_HSCROLL:
+			p=(int)SendMessage(GetDlgItem(hDlg,IDC_SPEEDLIMITSLIDER), TBM_GETPOS, 0, 0);
+			GSPEEDLIMIT=(140.0f/4)*(1<<p);
+			if(p>=32) GSPEEDLIMIT=140.0f;
+			sprintf(str,"%.0lfkm/h",GSPEEDLIMIT*3.6);
+			SendDlgItemMessage(hDlg,IDC_SPEEDLIMITSTATIC,WM_SETTEXT,0,(LPARAM)str);
+			//-----------
 			p=(int)SendMessage(GetDlgItem(hDlg,IDC_FARSLIDER), TBM_GETPOS, 0, 0);
-			if(p==0) GFARMAX=300.0f;
-			else if(p==1) GFARMAX=600.0f;
-			else if(p==2) GFARMAX=1200.0f;
-			else if(p==3) GFARMAX=2400.0f;
-			else  GFARMAX=4800.0f;
-
+			GFARMAX=300.0f*(1<<p);
+			if(p>=32) GFARMAX=0.0f;
+			sprintf(str,"%.1lfkm",GFARMAX/1000);
+			SendDlgItemMessage(hDlg,IDC_FARSTATIC,WM_SETTEXT,0,(LPARAM)str);
+			//-----------
 			p=(int)SendMessage(GetDlgItem(hDlg,IDC_MARKERSLIDER), TBM_GETPOS, 0, 0);
 			if(p==0) GMARKERSIZE=0.0f;
 			else if(p==1) GMARKERSIZE=0.5f;
 			else if(p==2) GMARKERSIZE=0.75f;
 			else if(p==3) GMARKERSIZE=1.0f;
 			else  GMARKERSIZE=2.0f;
-
+			//-----------
 			p=(int)SendMessage(GetDlgItem(hDlg,IDC_NAMESLIDER), TBM_GETPOS, 0, 0);
 			if(p==0) GNAMESIZE=0.0f;
 			else if(p==1) GNAMESIZE=0.5f;
@@ -2045,10 +2062,11 @@ int CALLBACK DlgNetworkProc(HWND hDlg,UINT uMsg,WPARAM wParam,LPARAM lParam)
 void GRigid::AddViewModel()
 {
 }
-void GRigid::Disp()
+void GRigid::Disp(BOOL bDrawOpaqueSubsets,BOOL bDrawAlphaSubsets) //透明半透明ﾌﾗｸﾞはとりあえずLand描画のみ対応
 {
 	if(MeshNo==23 && !ShowCowl) return;
 	if(Ghost>=1 && !ShowGhost) return;
+	G3dDevice->SetRenderState(D3DRS_SPECULARENABLE, TRUE );
 	CD3DMesh* mesh=NULL;
 	GMatrix m(TM);
 	D3DXMATRIX mat1,mat2;
@@ -2145,7 +2163,7 @@ void GRigid::Disp()
 			}
 			else mesh->Render(G3dDevice);
 			if((MeshNo==2||MeshNo==3)) {
-				float e=Effect;if(e<1.0) e=1.0;else if(e>10) e=10.0f;
+				float e=(float)Effect;if(e<1.0) e=1.0;else if(e>10) e=10.0f;
 				if(Option==1 || Option==2 || (e>1.0)) {
 					if(Option==2) D3DXMatrixScaling( &mat2, (FLOAT)1.0f,(FLOAT)e,(FLOAT)1.0f);
 					if(Option==1) D3DXMatrixScaling( &mat2, (FLOAT)0.75f,(FLOAT)e,(FLOAT)0.75f);
@@ -2155,37 +2173,64 @@ void GRigid::Disp()
 					m_pXMesh[22]->Render(G3dDevice);
 				}
 			}
+			G3dDevice->SetRenderState( D3DRS_ZWRITEENABLE,TRUE );
+			G3dDevice->SetRenderState( D3DRS_ALPHABLENDENABLE,FALSE );
 		}
 		else {
-		G3dDevice->SetRenderState( D3DRS_ALPHABLENDENABLE,FALSE );
-		G3dDevice->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE); 
 			G3dDevice->SetTransform( D3DTS_WORLD, &mat1 );
 			if(TextureAlpha) {
-				G3dDevice->SetRenderState(D3DRS_ALPHAREF, 0x00000066);
-				G3dDevice->SetRenderState(D3DRS_ALPHATESTENABLE, TRUE); 
-				G3dDevice->SetRenderState(D3DRS_ALPHAFUNC, D3DCMP_GREATEREQUAL);
-
+				G3dDevice->SetRenderState( D3DRS_ALPHAREF, 0x00000066);
+				G3dDevice->SetRenderState( D3DRS_ALPHATESTENABLE, TRUE); 
+				G3dDevice->SetRenderState( D3DRS_ALPHAFUNC, D3DCMP_GREATEREQUAL);
 			}
-			G3dDevice->SetRenderState( D3DRS_ZWRITEENABLE, TRUE );
-			G3dDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_CCW);	// カリングモード
-			mesh->Render(G3dDevice);
-			if(BackFaces)  {
-				G3dDevice->SetRenderState( D3DRS_ZWRITEENABLE, FALSE );
-				G3dDevice->SetRenderState( D3DRS_ALPHABLENDENABLE,TRUE );
-				G3dDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_CW);	// カリングモード
-				mesh->Render(G3dDevice);
+			if(bDrawOpaqueSubsets){
+				mesh->Render(G3dDevice,1,0);
 			}
+			if(bDrawAlphaSubsets){ //半透明ﾎﾟﾘの描画
+				if(TextureAlpha) {
+					G3dDevice->SetRenderState( D3DRS_ZWRITEENABLE, FALSE );
+					G3dDevice->SetRenderState( D3DRS_ALPHABLENDENABLE,TRUE );
+				}
+				mesh->Render(G3dDevice,0,1);
+				if(BackFaces)  {
+					if(TextureAlpha) {
+						G3dDevice->SetRenderState( D3DRS_ALPHAREF, 0x0000001F);
+						G3dDevice->SetRenderState( D3DRS_ALPHATESTENABLE, TRUE); 
+						G3dDevice->SetRenderState( D3DRS_ALPHAFUNC, D3DCMP_GREATEREQUAL);
+					}
+					G3dDevice->SetRenderState( D3DRS_ZWRITEENABLE, FALSE );
+					G3dDevice->SetRenderState( D3DRS_ALPHABLENDENABLE,TRUE );
+					G3dDevice->SetRenderState( D3DRS_CULLMODE, D3DCULL_CW);	// カリングモード
+					for( DWORD i=0; i<mesh->m_dwNumMaterials; i++ ){
+						D3DMATERIAL8 tempMaterial=mesh->m_pMaterials[i];
+						tempMaterial.Diffuse.a = tempMaterial.Diffuse.a/2;
+						//if( mesh->m_pMaterials[i].Diffuse.a == 1.0f ) continue;
+						// Set the material and texture
+						G3dDevice->SetMaterial( &tempMaterial );
+						G3dDevice->SetTexture( 0, mesh->m_pTextures[i] );
+						mesh->GetLocalMesh()->DrawSubset( i );
+					}
+				}
+			}
+			G3dDevice->SetRenderState( D3DRS_ZWRITEENABLE,TRUE );
+			G3dDevice->SetRenderState( D3DRS_ALPHAREF, 0x00000000);
+			G3dDevice->SetRenderState( D3DRS_ALPHAFUNC, D3DCMP_ALWAYS);
+			G3dDevice->SetRenderState( D3DRS_ALPHATESTENABLE, FALSE); 
 			G3dDevice->SetRenderState( D3DRS_ALPHABLENDENABLE,FALSE );
-			G3dDevice->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE); 
+			G3dDevice->SetRenderState( D3DRS_CULLMODE, D3DCULL_CCW);
 		}
 		
 	}
+	G3dDevice->SetRenderState(D3DRS_SPECULARENABLE, FALSE );
 	
 }
 void GWorld::DispNetChip(int n)
 {
 	if(PlayerData[n].ReceiveData.info.dpnidPlayer==0) return;
 //	if(PrePlayerData[n].ReceiveData.size!=PlayerData[n].ReceiveData.size) return;
+	
+	G3dDevice->SetRenderState(D3DRS_SPECULARENABLE, TRUE );
+	
 	int size;
 
 	PlayerData[n].haveArm=0;
@@ -2341,7 +2386,6 @@ void GWorld::DispNetChip(int n)
 			D3DXMatrixScaling( &mat2, s,s,s );
 			D3DXMatrixMultiply( &mat1 , &mat2, &mat1);
 			G3dDevice->SetTransform( D3DTS_WORLD, &mat1 );
-			G3dDevice->SetRenderState( D3DRS_ALPHABLENDENABLE,FALSE );
 			if(type>=GT_CHIP2) {
 				if(chip->data.option>=1 &&!ShowGhost) {PlayerData[n].ChipCount++;continue;} 
 			}
@@ -2363,7 +2407,7 @@ void GWorld::DispNetChip(int n)
 				else if(opt==4) mesh=m_pXMesh[27];
 				else if(opt==5) mesh=m_pXMesh[28];
 				if(alpha<1.0f) 	{
-					G3dDevice->SetRenderState( D3DRS_ALPHABLENDENABLE,TRUE );
+					//G3dDevice->SetRenderState( D3DRS_ALPHABLENDENABLE,TRUE );
 				}
 				mesh->m_pMaterials[0].Emissive.r=r1*emi;
 				mesh->m_pMaterials[0].Emissive.g=g1*emi;
@@ -2420,6 +2464,8 @@ void GWorld::DispNetChip(int n)
 		PlayerData[n].ChipCount++;
 	}
 	//透明カウルを表示
+	G3dDevice->SetRenderState( D3DRS_ALPHABLENDENABLE,TRUE );
+	G3dDevice->SetRenderState( D3DRS_ZWRITEENABLE,FALSE );
 	if(ShowCowl) {
 		PlayerData[n].ChipCount=0;
 		for(int i=0;i<size;i++) {
@@ -2492,8 +2538,6 @@ void GWorld::DispNetChip(int n)
 				D3DXMatrixScaling( &mat2, s,s,s );
 				D3DXMatrixMultiply( &mat1 , &mat2, &mat1);
 				G3dDevice->SetTransform( D3DTS_WORLD, &mat1 );
-				G3dDevice->SetRenderState( D3DRS_ALPHABLENDENABLE,TRUE );
-				G3dDevice->SetRenderState( D3DRS_ZWRITEENABLE,FALSE );
 				float r1=(((int)chip->color)>>10)/32.0f;
 				float g1=((((int)chip->color)&0x3e0)>>5)/32.0f;
 				float b1=(((int)chip->color)&0x1f)/32.0f;
@@ -2524,6 +2568,8 @@ void GWorld::DispNetChip(int n)
 		}
 	}
 	G3dDevice->SetRenderState( D3DRS_ZWRITEENABLE,TRUE );
+	G3dDevice->SetRenderState( D3DRS_ALPHABLENDENABLE,FALSE );
+	G3dDevice->SetRenderState( D3DRS_SPECULARENABLE, FALSE );
 	for(int i=0;i<PlayerData[n].ChipCount;i++) {
 		GVector X1=PlayerData[n].X[i];
 		GVector X2=PrePlayerData[n].X[i];
@@ -2534,10 +2580,10 @@ void GWorld::DispNetJetAll()
 {
 	for(int i=0;i<DPlay->GetNumPlayers();i++) {
 		if(PlayerData[i].ReceiveData.info.dpnidPlayer==0) continue;
-		float w1=PlayerData[i].w1;
-		float w2=PlayerData[i].w2;
-		float ww1=PlayerData[i].ww1;
-		float ww2=PlayerData[i].ww2;
+		GFloat w1=PlayerData[i].w1;
+		GFloat w2=PlayerData[i].w2;
+		GFloat ww1=PlayerData[i].ww1;
+		GFloat ww2=PlayerData[i].ww2;
 
 		for(int j=0;j<PlayerData[i].ChipCount;j++) {
 			if(PlayerData[i].Jet[j]>0) {
@@ -2573,7 +2619,7 @@ void GWorld::DispNetJetAll()
 				q.matrix(r);
 				GMatrix tm=r.translate(p);
 
-				float f=chip->data.option/50.0f;
+				GFloat f=chip->data.option/50.0f;
 				if(chip->data.type&GT_OPTION2) f=-f; 
 				DispNetJet(0,tm,f,dir);
 			}
@@ -2581,17 +2627,14 @@ void GWorld::DispNetJetAll()
 	}
 }
 
-void GWorld::DispNetJet(int type,GMatrix tm,float f,int dir)
+void GWorld::DispNetJet(int type,GMatrix tm,GFloat f,int dir)
 {
 	//ジェットの表示
 	//	G3dDevice->SetTexture(0,NULL);
-	G3dDevice->SetRenderState( D3DRS_LIGHTING, TRUE );
-	G3dDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);	// カリングモード
-	G3dDevice->SetRenderState(D3DRS_SPECULARENABLE, FALSE );
+	G3dDevice->SetRenderState( D3DRS_CULLMODE, D3DCULL_NONE);	// カリングモード
 	G3dDevice->SetRenderState( D3DRS_ALPHABLENDENABLE,TRUE );
     G3dDevice->SetRenderState( D3DRS_ZWRITEENABLE, FALSE );
-	G3dDevice->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);   //SRCの設定
-	G3dDevice->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_ONE);  //DESTの設定
+	G3dDevice->SetRenderState( D3DRS_DESTBLEND, D3DBLEND_ONE);  //DESTの設定
 	//G3dDevice->SetTextureStageState( 0, D3DTSS_ALPHAOP, D3DTOP_MODULATE);// 引数の成分を乗算する
 	if(type==0 && JetFlag && f!=0) {
 		D3DXMATRIX mat1;
@@ -2629,25 +2672,28 @@ void GWorld::DispNetJet(int type,GMatrix tm,float f,int dir)
 		G3dDevice->SetTransform( D3DTS_WORLD, &matLocal );
 		m_pXMesh[31]->Render(G3dDevice);
 	}
-	G3dDevice->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);  //DESTの設定
+	G3dDevice->SetRenderState( D3DRS_CULLMODE, D3DCULL_CCW);	// カリングモード
+	G3dDevice->SetRenderState( D3DRS_ALPHABLENDENABLE, FALSE );
+    G3dDevice->SetRenderState( D3DRS_ZWRITEENABLE, TRUE );
+	G3dDevice->SetRenderState( D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);  //DESTの設定
 }
-void GWorld::DispNetChipInfo(int n,float zz)
+void GWorld::DispNetChipInfo(int n,GFloat zz)
 {
 	if(PlayerData[n].ReceiveData.info.dpnidPlayer==0) return;
 	if(PlayerData[n].ReceiveData.size==0) return;
 	if(zz<=0) return;
 	D3DXMATRIX smat,mat,vmat,vmat2;
+	G3dDevice->SetRenderState( D3DRS_SPECULARENABLE, TRUE );
 	G3dDevice->SetRenderState( D3DRS_ALPHABLENDENABLE,TRUE );
 	G3dDevice->SetRenderState( D3DRS_ZWRITEENABLE, FALSE );
-	G3dDevice->SetRenderState( D3DRS_LIGHTING, TRUE );
 	GVector e=EyePos;
-	float x=PlayerData[n].x;
-	float hy=PlayerData[n].y+(float)pow((double)PlayerData[n].ChipCount,0.3333)/3.0f;
+	GFloat x=PlayerData[n].x;
+	GFloat hy=PlayerData[n].y+(GFloat)pow((double)PlayerData[n].ChipCount,0.3333)/3.0f;
 
-	float y=hy+1.2f;
-	float z=PlayerData[n].z;
+	GFloat y=hy+1.2f;
+	GFloat z=PlayerData[n].z;
 	GVector infoV=GVector(x,y,z);
-	float l;
+	GFloat l;
 	if(GMARKERSIZE!=0.0f) {
 		if(GMARKERSIZE<1.5) {
 			l=zz*0.1f*GMARKERSIZE;
@@ -2656,16 +2702,16 @@ void GWorld::DispNetChipInfo(int n,float zz)
 			l=zz;
 			if(l<50.0f) l=1.0f;else l=l/50.0f;
 		}
-		D3DXMatrixScaling(&smat,l,l,l);
+		D3DXMatrixScaling(&smat,(FLOAT)l,(FLOAT)l,(FLOAT)l);
 		vmat=GMatView;
 		vmat._41 = 0.0f; vmat._42 = 0.0f; vmat._43 = 0.0f;
 		D3DXMatrixInverse(&vmat,NULL,&vmat);
 		vmat2=vmat;
-		D3DXMatrixTranslation(&mat,x,y+0.5f*l,z);
+		D3DXMatrixTranslation(&mat,(FLOAT)x,(FLOAT)(y+0.5f*l),(FLOAT)z);
 		D3DXMatrixMultiply( &vmat , &vmat, &mat);
 		D3DXMatrixMultiply( &vmat , &vmat, &GMatWorld);
 
-		D3DXMatrixTranslation(&mat,x,y+0.3f*l,z);
+		D3DXMatrixTranslation(&mat,(FLOAT)x,(FLOAT)(y+0.3f*l),(FLOAT)z);
 		D3DXMatrixMultiply( &vmat2 , &vmat2, &mat);
 		D3DXMatrixMultiply( &vmat2 , &vmat2, &GMatWorld);
 
@@ -2699,7 +2745,7 @@ void GWorld::DispNetChipInfo(int n,float zz)
 				if(l<50.0f) l=1.0f;else l=l/50.0f;
 			}
 			l=l*0.25f;
-			D3DXMatrixScaling(&smat,l,l,l);
+			D3DXMatrixScaling(&smat,(FLOAT)l,(FLOAT)l,(FLOAT)l);
 			D3DXMatrixMultiply( &mat , &smat, &vmat2);
 			G3dDevice->SetTransform( D3DTS_WORLD, &mat );
 
@@ -2719,6 +2765,9 @@ void GWorld::DispNetChipInfo(int n,float zz)
 			g_pApp->m_pFont3D->Render3DText(PlayerData[n].ReceiveData.info.strPlayerName,D3DFONT_CENTERED|D3DFONT_FILTERED);
 		}
 	}
+	G3dDevice->SetRenderState( D3DRS_SPECULARENABLE, FALSE );
+	G3dDevice->SetRenderState( D3DRS_ALPHABLENDENABLE,FALSE );
+	G3dDevice->SetRenderState( D3DRS_ZWRITEENABLE, TRUE );
 }
 void GRigid::DispObject()
 {
@@ -2747,20 +2796,16 @@ void GRigid::DispObject()
 	mesh->m_pMaterials[0].Diffuse.b=mesh->m_pMaterials[1].Diffuse.b*0.5f;
 	mesh->m_pMaterials[0].Diffuse.a=1.0f;
 	mesh->m_pMaterials[0].Ambient=mesh->m_pMaterials[0].Diffuse;
-	G3dDevice->SetRenderState( D3DRS_ALPHABLENDENABLE,FALSE );
 	mesh->Render(G3dDevice);
 }
 void GRigid::DispJet()
 {
 	//ジェットの表示
 	//	G3dDevice->SetTexture(0,NULL);
-	G3dDevice->SetRenderState( D3DRS_LIGHTING, TRUE );
-	G3dDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);	// カリングモード
-	G3dDevice->SetRenderState(D3DRS_SPECULARENABLE, FALSE );
+	G3dDevice->SetRenderState( D3DRS_CULLMODE, D3DCULL_NONE);	// カリングモード
 	G3dDevice->SetRenderState( D3DRS_ALPHABLENDENABLE,TRUE );
     G3dDevice->SetRenderState( D3DRS_ZWRITEENABLE, FALSE );
-	G3dDevice->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);   //SRCの設定
-	G3dDevice->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_ONE);  //DESTの設定
+	G3dDevice->SetRenderState( D3DRS_DESTBLEND, D3DBLEND_ONE);  //DESTの設定
 	//G3dDevice->SetTextureStageState( 0, D3DTSS_ALPHAOP, D3DTOP_MODULATE);// 引数の成分を乗算する
 	if(JetFlag && MeshNo==10 && PowerByFuel!=0 && Top!=NULL &&  Option==0 ) {
 		GMatrix m(TM);
@@ -2807,7 +2852,10 @@ void GRigid::DispJet()
 		G3dDevice->SetTransform( D3DTS_WORLD, &matLocal );
 		m_pXMesh[31]->Render(G3dDevice);
 	}
-	G3dDevice->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);  //DESTの設定
+	G3dDevice->SetRenderState( D3DRS_CULLMODE, D3DCULL_CCW);	// カリングモード
+	G3dDevice->SetRenderState( D3DRS_ALPHABLENDENABLE, FALSE );
+    G3dDevice->SetRenderState( D3DRS_ZWRITEENABLE, TRUE );
+	G3dDevice->SetRenderState( D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);  //DESTの設定
 }
 void GWorld::DispNetShadow()
 {
@@ -2838,24 +2886,26 @@ void GRigid::DispShadow()
 	if(ShowShadowFlag && (Type==GTYPE_DISK || Type==GTYPE_FACE|| Type==GTYPE_BALL)) {
 		static GVector sv1[GCHIPMAX*2],sv2[GCHIPMAX*2];
 		int sn2;
-		G3dDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);	// カリングモード
 		G3dDevice->SetStreamSource(0,pPointVB,sizeof(D3DPOINTVERTEX));
 		G3dDevice->SetVertexShader(D3DFVF_POINTVERTEX);
 		G3dDevice->SetTexture(0,NULL);
+		G3dDevice->SetRenderState( D3DRS_CULLMODE, D3DCULL_NONE);	// カリングモード
 		G3dDevice->SetRenderState( D3DRS_LIGHTING, FALSE );
 		G3dDevice->SetRenderState( D3DRS_ALPHABLENDENABLE,TRUE );
 		G3dDevice->SetRenderState( D3DRS_ZWRITEENABLE, FALSE );
 		G3dDevice->SetRenderState( D3DRS_ZFUNC, D3DCMP_LESS);
-		D3DPOINTVERTEX* p2V;
+		#define ShadowVertexMax 200 //Shape.PointNの最大値だけあれば足りる気はする(30くらい?)
+		D3DPOINTVERTEX ShadowVertexTable[ShadowVertexMax]; //頂点ﾊﾞｯﾌｧ
+		int ShadowVertexTable_n=0;
 		G3dDevice->SetTransform( D3DTS_WORLD, &GMatWorld );
 		GVector n=GVector(0,1,0.5f).normalize2();
-		int lc=World->Land->List2Count;
-		int *list=World->Land->List2;
+		
+		World->Land->List1up(X-GVector(0,10.0f/2,0),Radius+10.0f/2);
+		int *list=World->Land->List1;
+		int lc=World->Land->List1Count; //ほんとは参照型にすべき
 		if(FastShadow) {
-			World->Land->List1up(Top->TotalCenter,Top->TotalRadius);
+			World->Land->List1up(X-GVector(0,3.0f/2,0),Radius+3.0f/2);
 			lc=World->Land->List1Count;
-			list=World->Land->List1;
-
 		}
 		FLOAT f=(FLOAT)(pow((double)fabs((double)Power),1.0/3.0)/5.0);
 		if(f<0.5f) f=0.5f;
@@ -2925,20 +2975,18 @@ void GRigid::DispShadow()
 			if(tmin>=0.9999) continue;
 			World->Land->ClipShadow(sv1,jj,list[i],sv2,&sn2);
 			if(sn2>2) {
-				pPointVB->Lock(0,0,(BYTE**)&p2V,0);
 				int col=0x00111111+(long)((1.0-tmin*tmin)*0x88)*0x01000000;
 				for(j=0;j<sn2;j++) {
-					p2V[j].x=(float)sv2[j].x;
-					p2V[j].y=(float)sv2[j].y;
-					p2V[j].z=(float)sv2[j].z;
-					p2V[j].color=col;
+					ShadowVertexTable[j].x=(float)sv2[j].x;
+					ShadowVertexTable[j].y=(float)sv2[j].y;
+					ShadowVertexTable[j].z=(float)sv2[j].z;
+					ShadowVertexTable[j].color=col;
 				}
-				p2V[j].x=(float)sv2[0].x;
-				p2V[j].y=(float)sv2[0].y;
-				p2V[j].z=(float)sv2[0].z;
-				p2V[j].color=col;
-				pPointVB->Unlock();
-				G3dDevice->DrawPrimitive(D3DPT_TRIANGLEFAN,0,sn2-2);
+				ShadowVertexTable[j].x=(float)sv2[0].x;
+				ShadowVertexTable[j].y=(float)sv2[0].y;
+				ShadowVertexTable[j].z=(float)sv2[0].z;
+				ShadowVertexTable[j].color=col;
+				G3dDevice->DrawPrimitiveUP(D3DPT_TRIANGLEFAN,sn2-2,ShadowVertexTable,sizeof (D3DPOINTVERTEX));  //ﾎﾝﾄはDrawIndexedPrimitiveUPとD3DPT_TRIANGLELISTでまとめたほうがいいね
 			}
 		}
 		//水面の影の表示
@@ -2950,7 +2998,7 @@ void GRigid::DispShadow()
 		GFloat tmin=0.1f;
 		int jj=0;
 		sn2=0;
-		float ndot=n.dot(GVector(0,-1,0));
+		GFloat ndot=n.dot(GVector(0,-1,0));
 		for(int j=0;j<Shape.PointN-1;j++) {
 			if(Type==GTYPE_DISK) {
 				GVector v=(Shape.Point[j]*TM);
@@ -2989,24 +3037,22 @@ void GRigid::DispShadow()
 				tmin=tmin/10.0f;
 			}
 			if(flag==false && tmin>-1.0) {
-				pPointVB->Lock(0,0,(BYTE**)&p2V,0);
 				int col=0x00111111+(long)((1.0-tmin*tmin)*0x88)*0x01000000;
 				for(j=0;j<sn2;j++) {
-					p2V[j].x=(float)sv2[j].x;
-					p2V[j].y=(float)sv2[j].y;
-					p2V[j].z=(float)sv2[j].z;
-					p2V[j].color=col;
+					ShadowVertexTable[j].x=(float)sv2[j].x;
+					ShadowVertexTable[j].y=(float)sv2[j].y;
+					ShadowVertexTable[j].z=(float)sv2[j].z;
+					ShadowVertexTable[j].color=col;
 				}
-				p2V[j].x=(float)sv2[0].x;
-				p2V[j].y=(float)sv2[0].y;
-				p2V[j].z=(float)sv2[0].z;
-				p2V[j].color=col;
-				pPointVB->Unlock();
-				G3dDevice->DrawPrimitive(D3DPT_TRIANGLEFAN,0,sn2-2);
+				ShadowVertexTable[j].x=(float)sv2[0].x;
+				ShadowVertexTable[j].y=(float)sv2[0].y;
+				ShadowVertexTable[j].z=(float)sv2[0].z;
+				ShadowVertexTable[j].color=col;
+				G3dDevice->DrawPrimitiveUP(D3DPT_TRIANGLEFAN,sn2-2,ShadowVertexTable,sizeof (D3DPOINTVERTEX));
 			}
 		}
 	}
-	G3dDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_CCW);	// カリングモード
+	G3dDevice->SetRenderState( D3DRS_CULLMODE, D3DCULL_CCW);	// カリングモード
 	G3dDevice->SetRenderState( D3DRS_ZFUNC, D3DCMP_LESSEQUAL );
 	G3dDevice->SetRenderState( D3DRS_ALPHABLENDENABLE,FALSE );
     G3dDevice->SetRenderState( D3DRS_ZWRITEENABLE, TRUE );
@@ -3016,15 +3062,15 @@ void GRigid::DispShadow()
 
 void GRigid::ApplyExtForce()
 {
-	float cd=Cd;
+	GFloat cd=Cd;
 	int type=Type;
-	float px=Param.x;
-	float pz=Param.z;
-	float volume=Volume;
+	GFloat px=Param.x;
+	GFloat pz=Param.z;
+	GFloat volume=Volume;
 	if(ChipType==7 && (Option==1||Option==2)) {
 		cd=0.1f;
 		type=GTYPE_BALL;
-		float f=(float)(pow((double)fabs((double)PowerByFuel*(float)GDTSTEP/6.0),1.0/3.0)/5.0);
+		GFloat f=(GFloat)(pow((double)fabs((double)PowerByFuel*(GFloat)GDTSTEP/6.0),1.0/3.0)/5.0);
 		if(f<0.5f) f=0.5f;
 		px=pz=CHIPSIZE*f/2;
 		volume=(GFloat)((px/2)*(px/2)*(px/2)*4/3.0*M_PI);
@@ -3059,7 +3105,7 @@ void GRigid::ApplyExtForce()
 	}
 	if(X.y<=WaterLine+0.3 && X.y>=WaterLine-0.3){ //水表面
 			if((rand()%200+2)<(int)V.abs()) {
-				float a=1.0f+(rand()%100)/5000.0f-0.01f;
+				GFloat a=1.0f+(rand()%100)/5000.0f-0.01f;
 				if(a>2.0f) a=2.0f;else if(a<=0.0f) a=0.0f;
 				GVector w=GVector(V.x/100.0f,0.02f+fabs(V.y)/60.0f,V.z/100.0f);
 				//if(v.abs()>0.1f) v=v.normalize()/10.0f;
@@ -3080,8 +3126,8 @@ void GRigid::ApplyExtForce()
 		L-=L*0.01f;
 	}
 	else {
-		float a=X.y-WaterLine;
-		float hk=1.0f;
+		GFloat a=X.y-WaterLine;
+		GFloat hk=1.0f;
 		if(X.y>300) hk=1.0f-(X.y-300)/10000.0f;if(hk<=0) hk=0.0f;
 		hk=hk*hk;
 		if(V.y<0.0 && a<=1){
@@ -3272,7 +3318,7 @@ CMyD3DApplication::CMyD3DApplication()
 
 	m_dwCreationWidth           = 640;
     m_dwCreationHeight          = 480;
-    m_strWindowTitle            = TEXT( "RigidChips 1.5.B27C8" );
+    m_strWindowTitle            = TEXT( "RigidChips 1.5.B27C9" );
     m_bUseDepthBuffer           = TRUE;
 
 	m_dLimidFPS=1000/LIMITFPS;
@@ -3421,10 +3467,10 @@ HRESULT CMyD3DApplication::OneTimeSceneInit()
 	TorqueFlag=true;
 	JetFlag=true;
 	CCDFlag=true;
-	lightColor=GVector(1.00f,1.00f,1.00f);	
-	FogColor=GVector(200.0f,230.0f,255.0f);	
+	lightColor=D3DXVECTOR3(1.00f,1.00f,1.00f);	
+	FogColor=D3DXVECTOR3(200.0f,230.0f,255.0f);	
 	
-	World=new GWorld(1/(float)LIMITFPS,GDTSTEP);	//ステップ・サブステップ
+	World=new GWorld(1/(GFloat)LIMITFPS,GDTSTEP);	//ステップ・サブステップ
 	GroundParticle=new GParticle(1200);
 	WaterLineParticle=new GParticle(300);
 	JetParticle=new GParticle(2000);
@@ -3539,15 +3585,18 @@ VOID CMyD3DApplication::ReadSettings()
         DXUtil_ReadIntRegKey( hkey, TEXT("ShowShadowFlag"), &ShowShadowFlag, ShowShadowFlag );
         DXUtil_ReadIntRegKey( hkey, TEXT("ShowDustFlag"), &ShowDustFlag, ShowDustFlag );
         DXUtil_ReadIntRegKey( hkey, TEXT("DitherFlag"), &DitherFlag, DitherFlag );
-		DWORD v=(DWORD)GFARMAX;
+		DWORD v=(DWORD)GSPEEDLIMIT;
+        DXUtil_ReadIntRegKey( hkey, TEXT("SpeedLimit"), &v, v );
+		GSPEEDLIMIT=(GFloat)v;
+		v=(DWORD)GFARMAX;
         DXUtil_ReadIntRegKey( hkey, TEXT("FogLevel"), &v, v );
-		GFARMAX=(float)v;
+		GFARMAX=(GFloat)v;
 		v=(DWORD)(GMARKERSIZE*1000);
         DXUtil_ReadIntRegKey( hkey, TEXT("MarkerSize"), &v, v );
-		GMARKERSIZE=(float)(v/1000.0f);
+		GMARKERSIZE=(GFloat)(v/1000.0f);
 		v=(DWORD)(GNAMESIZE*1000);
         DXUtil_ReadIntRegKey( hkey, TEXT("NameSize"), &v, v );
-		GNAMESIZE=(float)(v/1000.0f);
+		GNAMESIZE=(GFloat)(v/1000.0f);
 
 		DXUtil_ReadStringRegKey( hkey, TEXT("CurrWorkDir"), CurrDataDir,MAX_PATH, DataDir );
 
@@ -3604,7 +3653,9 @@ VOID CMyD3DApplication::WriteSettings()
         DXUtil_WriteIntRegKey( hkey, TEXT("ShowShadowFlag"), ShowShadowFlag );
         DXUtil_WriteIntRegKey( hkey, TEXT("ShowDustFlag"), ShowDustFlag );
         DXUtil_WriteIntRegKey( hkey, TEXT("DitherFlag"), DitherFlag );
-		DWORD v=(DWORD)GFARMAX;
+		DWORD v=(DWORD)GSPEEDLIMIT;
+        DXUtil_WriteIntRegKey( hkey, TEXT("SpeedLimit"),  v );
+		v=(DWORD)GFARMAX;
         DXUtil_WriteIntRegKey( hkey, TEXT("FogLevel"),  v );
 		v=(DWORD)(GMARKERSIZE*1000);
         DXUtil_WriteIntRegKey( hkey, TEXT("MarkerSize"),  v );
@@ -4155,6 +4206,7 @@ HRESULT LoadLand(LPDIRECT3DDEVICE8 Device,char *fname)
 	unsigned int i;
 	if(m_pLandMesh) {
 		m_pLandMesh->Destroy();
+		m_pLandMesh->InvalidateDeviceObjects(); //LocalMesh削除は要らないのかな?
 		delete m_pLandMesh;
 	}
 	
@@ -4164,30 +4216,43 @@ HRESULT LoadLand(LPDIRECT3DDEVICE8 Device,char *fname)
 	
 	m_pLandMesh=new CD3DMesh();
 	if(FAILED(hr=m_pLandMesh->Create(Device, fname))) return E_FAIL;
+	//FVF読んで適当に変換
+	DWORD tempFVF=m_pLandMesh->GetSysMemMesh()->GetFVF();
+	if(tempFVF!= (D3DFVF_XYZ | D3DFVF_NORMAL | D3DFVF_TEX1)){
+		m_pLandMesh->SetFVF(Device, D3DFVF_XYZ | D3DFVF_NORMAL | D3DFVF_TEX1); //UV無しや頂点ｶﾗｰ有りでも無理やり座標,法線,UVに変換(つまりD3DVERTEX型)
+	}
+	if(!(tempFVF & D3DFVF_NORMAL)){
+		D3DXComputeNormals( m_pLandMesh->GetSysMemMesh(), NULL );
+	}
+	//	D3DXComputeNormals( m_pLandMesh->GetSysMemMesh(), m_pLandMesh->m_pAdjacency ); //D3D8時点ではD3DXComputeTangentFrameEx()が存在しないかなしみ
+	
 	//	m_pLandMesh->InvalidateDeviceObjects();
 	//	m_pLandMesh->RestoreDeviceObjects(Device);
 	LPDIRECT3DVERTEXBUFFER8 pMeshVB;
 	LPDIRECT3DINDEXBUFFER8 pMeshIB;
-	D3DVERTEX             *pVertex;
-	struct {unsigned short p1,p2,p3;} *pIndex;
+	D3DVERTEX             *pVertex; //本来はpMeshVB->GetDesc()掛けてFVFから型を定義すべき
+	struct {unsigned int p1,p2,p3;} *pIndex; //本来はpMeshIB->GetDesc()掛けてFormatから型を定義すべき
 	
-	for(i=0;i<(signed int)m_pLandMesh->m_dwNumMaterials;i++) {
-		m_pLandMesh->m_pMaterials[i].Diffuse.a=0.5;
-	}
+	//for(i=0;i<(signed int)m_pLandMesh->m_dwNumMaterials;i++) { //裏面ﾎﾟﾘ用に全部半透明設定にしてたらしい
+	//	m_pLandMesh->m_pMaterials[i].Diffuse.a=0.5;
+	//}
 	
-	int v=m_pLandMesh->GetSysMemMesh()->GetNumVertices();
-	int f=m_pLandMesh->GetSysMemMesh()->GetNumFaces();
+	unsigned int v=m_pLandMesh->GetSysMemMesh()->GetNumVertices();
+	unsigned int f=m_pLandMesh->GetSysMemMesh()->GetNumFaces();
+	NumVertice=v;
 	NumFace=f;
 	World->AddLand(v,f);
 	World->LandRigid->MeshNo=-1;
 	
-    m_pLandMesh->GetSysMemMesh()->GetVertexBuffer( &pMeshVB );
+    m_pLandMesh->GetSysMemMesh()->GetVertexBuffer( &pMeshVB ); //これをlpMeshCから取らないのはなんでだ?
 
 	// テーブルサイズ
 	LPD3DXMESH lpMeshC;
 	m_pLandMesh->GetSysMemMesh()->Optimize( D3DXMESHOPT_ATTRSORT, NULL, NULL, NULL, NULL, &lpMeshC );
+	//D3DXMESHOPT_ATTRSORTはCreate()内で掛けてくれてあるしﾒｯｼｭ複製する必要なくね?ただのｺﾋﾟｰだよねｺﾚ しかも必須なはずの隣接性ﾃﾞｰﾀ指定してないし 複製作りたいならCloneMesh()使うべきだし
 	lpMeshC->GetAttributeTable( NULL, &(World->Land->AttribTableSize) );
-	D3DXATTRIBUTERANGE AttribTable[1000];
+	//D3DXATTRIBUTERANGE AttribTable[1000]; //ほんとはWorld->Land->AttribTableSizeで動的確保すべき
+	D3DXATTRIBUTERANGE *AttribTable = new D3DXATTRIBUTERANGE[World->Land->AttribTableSize];
 	lpMeshC->GetAttributeTable( AttribTable, &(World->Land->AttribTableSize) );
     pMeshVB->Lock( 0, 0, (BYTE**)&pVertex, D3DLOCK_READONLY  );
 	landCode=0;
@@ -4195,6 +4260,9 @@ HRESULT LoadLand(LPDIRECT3DDEVICE8 Device,char *fname)
 		World->Land->Vertex[i].Pos.x=pVertex[i].x;
 		World->Land->Vertex[i].Pos.y=pVertex[i].y;
 		World->Land->Vertex[i].Pos.z=pVertex[i].z;
+		//World->Land->Vertex[i].Normal.x=pVertex[i].nx;
+		//World->Land->Vertex[i].Normal.y=pVertex[i].ny;
+		//World->Land->Vertex[i].Normal.z=pVertex[i].nz;
 		landCode+=(int)(World->Land->Vertex[i].Pos.x+World->Land->Vertex[i].Pos.y+World->Land->Vertex[i].Pos.z);
 	}
     pMeshVB->Unlock();
@@ -4226,8 +4294,29 @@ HRESULT LoadLand(LPDIRECT3DDEVICE8 Device,char *fname)
 	}
     pMeshIB->Unlock();
     pMeshIB->Release();
+	SAFE_DELETE_ARRAY( AttribTable );
     if ( lpMeshC != NULL ) lpMeshC->Release();
 
+	/* 
+	for(unsigned int m=0;m<NumFace;m++) {
+		for(int i=0;i<3;i++){ //i:面fの隣接面3つ
+			DWORD adjFace = m_pLandMesh->m_pAdjacency[m*3+i];
+			if(adjFace!=0xFFFFFFFF){
+				for(int j=0;j<3;j++){ //j:隣接面iの頂点3つ
+					for(int k=0;k<3;k++){ //k:面fの頂点3つ
+						int VertIndex1=World->Land->Face[m].Index[j];
+						int VertIndex2=World->Land->Face[adjFace].Index[k];
+						if(World->Land->Vertex[VertIndex1].Pos==World->Land->Vertex[VertIndex2].Pos && VertIndex1!=VertIndex2){
+							World->Land->Vertex[VertIndex1].Normal+=World->Land->Vertex[VertIndex2].Normal0;
+						}
+					}
+				}
+			}
+		}
+	}
+	for(unsigned int i=0;i<NumVertice;i++){
+		World->Land->Vertex[i].Normal=(World->Land->Vertex[i].Normal).normalize2();
+	}*/
 	for(unsigned int j=0;j<World->Land->AttribTableSize;j++) {
 		m_pLandMesh->m_pMaterials[j].Emissive.r=0.0f;
 		m_pLandMesh->m_pMaterials[j].Emissive.g=0.0f;
@@ -4235,6 +4324,17 @@ HRESULT LoadLand(LPDIRECT3DDEVICE8 Device,char *fname)
 	}
 	World->Land->Set();	
 	World->MainStepCount=-1;
+	
+	/*m_pLandMesh->GetSysMemMesh()->GetVertexBuffer( &pMeshVB ); //自前で計算した頂点法線ﾍﾞｸﾄﾙを書き戻し
+    pMeshVB->Lock( 0, 0, (BYTE**)&pVertex, 0L  );
+	for(i=0;i<(unsigned int)v;i++) {
+		pVertex[i].nx=World->Land->Vertex[i].Normal.x;
+		pVertex[i].ny=World->Land->Vertex[i].Normal.y;
+		pVertex[i].nz=World->Land->Vertex[i].Normal.z;
+	}
+    pMeshVB->Unlock();
+    pMeshVB->Release();*/
+	
 	if(SetCurrentDirectory(CurrDataDir)==0) return  E_FAIL;
 
 	return S_OK;
@@ -4267,7 +4367,12 @@ char *LoadGame(char *fname)
 		}while(ch!='"');
 		Course[c].Name[j-1]='\0';
 		if(strcmp(Course[c].Name,"END")==0) break;
-		fscanf(fp,"%g,%g,%g,%g",&Course[c].StartPoint.x,&Course[c].StartPoint.y,&Course[c].StartPoint.z,&Course[c].StartAngleY);
+		double x,y,z,ang;
+		fscanf(fp,"%lf,%lf,%lf,%lf",&x,&y,&z,&ang);
+		Course[c].StartPoint.x=(GFloat)x;
+		Course[c].StartPoint.y=(GFloat)y;
+		Course[c].StartPoint.z=(GFloat)z;
+		Course[c].StartAngleY=(GFloat)ang;
 		int a1,a2,a3,a4,a5,a6,a7,a8;
 		fscanf(fp,"%d,%d,%d,%d,%d,%d,%d,%d",&a1,&a2,&a3,&a4,&a5,&a6,&a7,&a8);
 		Course[c].GravityFlag=(a1!=0)?true:false;
@@ -4278,14 +4383,20 @@ char *LoadGame(char *fname)
 		Course[c].CCDFlag=(a6!=0)?true:false;
 		Course[c].ScriptFlag=(a7!=0)?true:false;
 		Course[c].EfficientFlag=(a8!=0)?true:false;
-		float fuel;
-		fscanf(fp,"%g",&fuel);
+		double fuel;
+		fscanf(fp,"%lf",&fuel);
 
 		j=0;
 		do {
-			fscanf(fp,"%g,%g,%g,%g,%g,%g,%g"
-				,&Course[c].Point[j].x,&Course[c].Point[j].y,&Course[c].Point[j].z
-				,&Course[c].Dir[j].x,&Course[c].Dir[j].y,&Course[c].Dir[j].z,&Course[c].Scale[j]);
+			double x,y,z,x2,y2,z2,scale;
+			fscanf(fp,"%lf,%lf,%lf,%lf,%lf,%lf,%lf",&x,&y,&z,&x2,&y2,&z2,&scale);
+			Course[c].Point[j].x=(GFloat)x;
+			Course[c].Point[j].y=(GFloat)y;
+			Course[c].Point[j].z=(GFloat)z;
+			Course[c].Dir[j].x=(GFloat)x2;
+			Course[c].Dir[j].y=(GFloat)y2;
+			Course[c].Dir[j].z=(GFloat)z2;
+			Course[c].Scale[j]=(GFloat)scale;
 			j++;
 		}while(Course[c].Point[j-1].x>-9999);
 		Course[c].Count=j;
@@ -4388,6 +4499,7 @@ HFONT hFont = CreateFont(
 	if(FAILED(hr=m_pXMesh[35]->Create(m_pd3dDevice, _T("Explosion.X")))) return E_FAIL;
 	if(FAILED(hr=m_pXMesh[36]->Create(m_pd3dDevice, _T("Explosion2.X")))) return E_FAIL;
 	if(FAILED(hr=m_pXMesh[37]->Create(m_pd3dDevice, _T("userArm.X")))) return E_FAIL;
+	if(FAILED(hr=m_pXMesh[38]->Create(m_pd3dDevice, _T("Bullet2.X")))) return E_FAIL;
 	
 	if(FAILED(hr=LoadLand(m_pd3dDevice,szLandFileName))) return E_FAIL;
 	for(int i=0;i<VarCount;i++) {
@@ -4404,7 +4516,7 @@ HFONT hFont = CreateFont(
 	for(int c=0;c<ChipCount;c++) {
 		if(Chip[c]->ChipType==0) {
 			Chip[c]->X.y=World->Land->GetY(0,0);
-			float a=-(GVector(0,0,1)*Chip[c]->R).Cut2(GVector(0,1,0)).angle2(GVector(0,0,1),GVector(0,1,0));
+			GFloat a=-(GVector(0,0,1)*Chip[c]->R).Cut2(GVector(0,1,0)).angle2(GVector(0,0,1),GVector(0,1,0));
 			if(Chip[c]->X.y<=-100000.0f)Chip[c]->X.y=0.0f;
 			ResetChip(c,a);
 		}
@@ -4433,7 +4545,7 @@ HRESULT CMyD3DApplication::RestoreDeviceObjects()
 //	SAFE_RELEASE(pPointVB);
 	SAFE_RELEASE(pPointVB);
 //	m_pd3dDevice->CreateVertexBuffer(sizeof(D3DPOINTVERTEX) * GPARTMAX,0  ,D3DFVF_POINTVERTEX,D3DPOOL_DEFAULT,&pPointVB);
-	m_pd3dDevice->CreateVertexBuffer(sizeof(D3DPOINTVERTEX) * 100,D3DUSAGE_POINTS  ,D3DFVF_POINTVERTEX,D3DPOOL_DEFAULT,&pPointVB);
+	m_pd3dDevice->CreateVertexBuffer(sizeof(D3DPOINTVERTEX) * 100, D3DUSAGE_POINTS | D3DUSAGE_DYNAMIC | D3DUSAGE_WRITEONLY ,D3DFVF_POINTVERTEX,D3DPOOL_DEFAULT,&pPointVB); //D3DUSAGE_WRITEONLY | D3DUSAGE_DYNAMICを指定してD3DLOCK_DISCARDを使うべき
 	SAFE_RELEASE(pPointTexture);
 //	D3DXCreateTextureFromFile(m_pd3dDevice,"dustw.png",&pPointTexture);
 	// Setup a material
@@ -4479,7 +4591,7 @@ HRESULT CMyD3DApplication::RestoreDeviceObjects()
     // Set the projection matrix
     D3DXMATRIX matProj;
     FLOAT fAspect = ((FLOAT)m_d3dsdBackBuffer.Width) / m_d3dsdBackBuffer.Height;
-    D3DXMatrixPerspectiveFovLH( &matProj, Zoom*(GFloat)M_PI/180.0f, fAspect, 1.0f, GFARMAX);
+    D3DXMatrixPerspectiveFovLH( &matProj, (FLOAT)(Zoom*(GFloat)M_PI/180.0f), fAspect, 1.0f, (FLOAT)GFARMAX);
     m_pd3dDevice->SetTransform( D3DTS_PROJECTION, &matProj );
 	
     // Set up lighting states
@@ -4500,7 +4612,7 @@ HRESULT CMyD3DApplication::RestoreDeviceObjects()
 	//    m_pd3dDevice->SetLight( 1, &light1 );
 	//    m_pd3dDevice->LightEnable( 1, FALSE );
     m_pd3dDevice->SetRenderState( D3DRS_LIGHTING, TRUE );
-	m_pd3dDevice->SetRenderState(D3DRS_NORMALIZENORMALS , TRUE );
+	m_pd3dDevice->SetRenderState( D3DRS_NORMALIZENORMALS , TRUE );
 	
 
 	g_pFont->OnResetDevice();
@@ -4615,7 +4727,7 @@ BOOL CMyD3DApplication::ConfigureInputDevicesCB( IUnknown* pUnknown )
 
 
 
-HRESULT CMyD3DApplication::ResetChips(float x,float z,float a)
+HRESULT CMyD3DApplication::ResetChips(GFloat x,GFloat z,GFloat a)
 {
 	KeyRecordMax=0;
 	KeyRecordCount=0;
@@ -4654,7 +4766,7 @@ HRESULT CMyD3DApplication::ResetChips(float x,float z,float a)
 
 	return 0;
 }
-HRESULT CMyD3DApplication::ResetChips(float y,float a)
+HRESULT CMyD3DApplication::ResetChips(GFloat y,GFloat a)
 {
 	KeyRecordMax=0;
 	KeyRecordCount=0;
@@ -4682,7 +4794,7 @@ HRESULT CMyD3DApplication::ResetChips(float y,float a)
 	if(ScriptType==1 && ScriptL!=NULL) luaScriptRun(ScriptL,"OnReset");
 	return 0;
 }
-HRESULT CMyD3DApplication::InitChips(float a,int hereFlag)
+HRESULT CMyD3DApplication::InitChips(GFloat a,int hereFlag)
 {
 	KeyRecordMax=0;
 	KeyRecordCount=0;
@@ -4976,13 +5088,13 @@ if( win == FALSE )
 		j=0;
 		for(i=0;i<Bullet->MaxVertex;i++) {
 			if(Bullet->Vertex[i].Net!=0) {
-				float v=Bullet->Vertex[i].Vec.abs()*(Bullet->Vertex[i].Net-1);
-				stream.data[j].Dist=Bullet->Vertex[i].Dist2;
-				stream.data[j].Pos=Bullet->Vertex[i].Pos2;
-				stream.data[j].Power=Bullet->Vertex[i].Power;
-				stream.data[j].Size=Bullet->Vertex[i].Size;
-				stream.data[j].Tar=Bullet->Vertex[i].Tar;
-				stream.data[j].Vec=Bullet->Vertex[i].Vec;
+				//float v=Bullet->Vertex[i].Vec.abs()*(Bullet->Vertex[i].Net-1);
+				stream.data[j].Dist=(GFloat_32)Bullet->Vertex[i].Dist2;
+				stream.data[j].Pos=(GVector_32)Bullet->Vertex[i].Pos2;
+				stream.data[j].Power=(GFloat_32)Bullet->Vertex[i].Power;
+				stream.data[j].Size=(GFloat_32)Bullet->Vertex[i].Size;
+				stream.data[j].Tar=(GVector_32)Bullet->Vertex[i].Tar;
+				stream.data[j].Vec=(GVector_32)Bullet->Vertex[i].Vec;
 				Bullet->Vertex[i].Net=0;
 				j++;
 				if(j>=GBULLETDATAMAX) break;
@@ -5005,8 +5117,8 @@ if( win == FALSE )
 			for(i=0;i<JetParticle->MaxVertex;i++) {
 				if(JetParticle->Vertex[i].Net!=0) {
 					stream.data[j].Type=JetParticle->Vertex[i].Type;
-					stream.data[j].Pos=JetParticle->Vertex[i].Pos;
-					stream.data[j].Power=JetParticle->Vertex[i].Power;
+					stream.data[j].Pos=(GVector_32)JetParticle->Vertex[i].Pos;
+					stream.data[j].Power=(GFloat_32)JetParticle->Vertex[i].Power;
 					stream.data[j].dpnid=JetParticle->Vertex[i].dpnid;
 					JetParticle->Vertex[i].Net=0;
 
@@ -5026,8 +5138,8 @@ if( win == FALSE )
 			for(i=0;i<JetParticle->MaxVertex;i++) {
 				if(JetParticle->Vertex[i].Net!=0) {
 					stream.data[j].Type=JetParticle->Vertex[i].Type;
-					stream.data[j].Pos=JetParticle->Vertex[i].Pos;
-					stream.data[j].Power=JetParticle->Vertex[i].Power;
+					stream.data[j].Pos=(GVector_32)JetParticle->Vertex[i].Pos;
+					stream.data[j].Power=(GFloat_32)JetParticle->Vertex[i].Power;
 					JetParticle->Vertex[i].Net=0;
 					j++;
 					if(j>=GEXPDATAMAX) break;
@@ -5046,8 +5158,8 @@ if( win == FALSE )
 			for(i=0;i<JetParticle->MaxVertex;i++) {
 				if(JetParticle->Vertex[i].Net!=0) {
 					stream.data[j].Type=JetParticle->Vertex[i].Type;
-					stream.data[j].Pos=JetParticle->Vertex[i].Pos;
-					stream.data[j].Power=JetParticle->Vertex[i].Power;
+					stream.data[j].Pos=(GVector_32)JetParticle->Vertex[i].Pos;
+					stream.data[j].Power=(GFloat_32)JetParticle->Vertex[i].Power;
 					stream.data[j].dpnid=JetParticle->Vertex[i].dpnid;
 					JetParticle->Vertex[i].Net=0;
 
@@ -5089,9 +5201,9 @@ if( win == FALSE )
 			if(World->Rigid[j]->Parent==NULL) {
 				stream.data[i].id=j+512;
 				stream.data[i].color=(unsigned short)t; //ほんとはｺｱ分だけでいい
-				stream.data[i].data.f[0]=World->Rigid[j]->X.x;
-				stream.data[i].data.f[1]=World->Rigid[j]->X.y;
-				stream.data[i].data.f[2]=World->Rigid[j]->X.z;
+				stream.data[i].data.f[0]=(float)World->Rigid[j]->X.x;
+				stream.data[i].data.f[1]=(float)World->Rigid[j]->X.y;
+				stream.data[i].data.f[2]=(float)World->Rigid[j]->X.z;
 				i++;
 			}
 			GRigid *r=World->Rigid[j];
@@ -5161,9 +5273,9 @@ if( win == FALSE )
 			if(World->Rigid[i]->Parent==NULL) {
 				stream.data[j].id=i+512;
 				stream.data[j].color=(unsigned short)t; //ほんとはｺｱ分だけでいい 以降は他のﾃﾞｰﾀ入れてもいいけど系の数不定だし･･･
-				stream.data[j].data.f[0]=World->Rigid[i]->X.x;
-				stream.data[j].data.f[1]=World->Rigid[i]->X.y;
-				stream.data[j].data.f[2]=World->Rigid[i]->X.z;
+				stream.data[j].data.f[0]=(float)World->Rigid[i]->X.x;
+				stream.data[j].data.f[1]=(float)World->Rigid[i]->X.y;
+				stream.data[j].data.f[2]=(float)World->Rigid[i]->X.z;
 				j++;
 			}
 		}
@@ -5327,7 +5439,7 @@ if( win == FALSE )
 	
 	if( m_UserInput.bDoUpdateChip ){
 		if(ControlKeysLock[3]==false) {
-			float a=-(GVector(0,0,1)*Chip[0]->R).Cut2(GVector(0,1,0)).angle2(GVector(0,0,1),GVector(0,1,0));
+			GFloat a=-(GVector(0,0,1)*Chip[0]->R).Cut2(GVector(0,1,0)).angle2(GVector(0,0,1),GVector(0,1,0));
 			ClearInput(&m_UserInput);
 			InputCancel=true;
 			if(KeyRecordMode==1) KeyRecordMax=KeyRecordCount;
@@ -5536,7 +5648,7 @@ if( win == FALSE )
 	}
 	if( m_UserInput.bDoCloseScenario )
 	{
-		float a=-(GVector(0,0,1)*Chip[0]->R).Cut2(GVector(0,1,0)).angle2(GVector(0,0,1),GVector(0,1,0));
+		GFloat a=-(GVector(0,0,1)*Chip[0]->R).Cut2(GVector(0,1,0)).angle2(GVector(0,0,1),GVector(0,1,0));
 		InputCancel=true;
 		m_UserInput.bDoCloseScenario=FALSE;
 
@@ -5558,7 +5670,7 @@ if( win == FALSE )
 	}
 	if( m_UserInput.bDoOpenScenario )
 	{
-		float a=-(GVector(0,0,1)*Chip[0]->R).Cut2(GVector(0,1,0)).angle2(GVector(0,0,1),GVector(0,1,0));
+		GFloat a=-(GVector(0,0,1)*Chip[0]->R).Cut2(GVector(0,1,0)).angle2(GVector(0,0,1),GVector(0,1,0));
 		InputCancel=true;
 		m_UserInput.bDoOpenScenario=FALSE;
 		int win=m_bWindowed;
@@ -5932,16 +6044,16 @@ if( win == FALSE )
 		TurnUD=0.0f;
 	}
 	if (m_UserInput.bButtonOneShotTurnLeft) {
-		TurnLR+=10.0f*(float)M_PI/180.0f;
+		TurnLR+=10.0f*(GFloat)M_PI/180.0f;
 	}
 	if (m_UserInput.bButtonOneShotTurnRight) {
-		TurnLR-=10.0f*(float)M_PI/180.0f;
+		TurnLR-=10.0f*(GFloat)M_PI/180.0f;
 	}
 	if (m_UserInput.bButtonOneShotTurnUp) {
-		TurnUD+=5.0f*(float)M_PI/180.0f;
+		TurnUD+=5.0f*(GFloat)M_PI/180.0f;
 	}
 	if (m_UserInput.bButtonOneShotTurnDown) {
-		TurnUD-=5.0f*(float)M_PI/180.0f;
+		TurnUD-=5.0f*(GFloat)M_PI/180.0f;
 	}
 	if (m_UserInput.bButtonOneShotReset) {
 		if(ControlKeysLock[1]==false) {
@@ -6110,18 +6222,18 @@ if( win == FALSE )
 				if(fabs(Chip[i]->PowerSave)<1.0) Chip[i]->PowerSave=0;
 			}
 			if(Chip[i]->Top!=NULL) {
-				float s=(float)GDTSTEP/6.0f;
+				GFloat s=(GFloat)GDTSTEP/6.0f;
 				//ホイールのトルク
 				if(TorqueFlag && (Chip[i]->MeshNo==2 || Chip[i]->MeshNo==3) && Chip[i]->Power!=0) {
 					if(!EfficientFlag) {
 						double f=Chip[i]->CheckFuel(Chip[i]->Power/WHL_EFF);
-						Chip[i]->PowerByFuel=Chip[i]->Power=f*WHL_EFF;
+						Chip[i]->PowerByFuel=Chip[i]->Power=(GFloat)(f*WHL_EFF);
 						Chip[i]->Top->UseFuel(f*30.0/LIMITFPS);
 						Chip[i]->Top->CalcTotalFuel();
 
 					}
 					else Chip[i]->PowerByFuel=Chip[i]->Power;
-					float po=Chip[i]->PowerByFuel*s;
+					GFloat po=Chip[i]->PowerByFuel*s;
 					Chip[i]->ApplyLocalTorque(GVector(0,1,0)*po/(1+Chip[i]->W.abs()/100));
 					if(Chip[i]->MeshNo==2 && Chip[i]->Parent) Chip[i]->Parent->ApplyTorque(-GVector(0,1,0)*Chip[i]->R*(po/(1+Chip[i]->W.abs()/100)));
 					TotalPower+=(GFloat)fabs(po/(1+Chip[i]->W.abs()/100));
@@ -6138,35 +6250,51 @@ if( win == FALSE )
 					GVector d=dir*Chip[i]->R;
 					Chip[i]->ApplyForce(-d*Chip[i]->ArmEnergy*s,Chip[i]->X);
 					TotalPower+=(GFloat)fabs(Chip[i]->ArmEnergy*s);
-					Chip[i]->Energy=(float)-5000*30/LIMITFPS;
+					Chip[i]->Energy=(GFloat)-5000*30/LIMITFPS;
 					double f=sqrt(fabs(Chip[i]->ArmEnergy/125000.0));if(f>2.5) f=2.5;
 					BOOL hit;
 					FLOAT dist;
-					LPDIRECT3DVERTEXBUFFER8 pVB;
-					LPDIRECT3DINDEXBUFFER8  pIB;
-					WORD*            pIndices;
-					D3DVERTEX*    pVertices;
-					m_pLandMesh->GetSysMemMesh()->GetVertexBuffer( &pVB );
-					m_pLandMesh->GetSysMemMesh()->GetIndexBuffer( &pIB );
-					pIB->Lock( 0, 0, (BYTE**)&pIndices, 0 );
-					pVB->Lock( 0, 0, (BYTE**)&pVertices, 0 );
+					//LPDIRECT3DVERTEXBUFFER8 pVB;
+					//LPDIRECT3DINDEXBUFFER8  pIB;
+					//WORD*            pIndices;
+					//D3DVERTEX*    pVertices;
+					//m_pLandMesh->GetSysMemMesh()->GetVertexBuffer( &pVB );
+					//m_pLandMesh->GetSysMemMesh()->GetIndexBuffer( &pIB );
+					//pIB->Lock( 0, 0, (BYTE**)&pIndices, D3DLOCK_READONLY );
+					//pVB->Lock( 0, 0, (BYTE**)&pVertices, D3DLOCK_READONLY );
 					D3DXVECTOR3 v1,v2;
-					float as=ARMSPEED;
+					GFloat as=ARMSPEED;
 					if(Chip[i]->X.y<WaterLine) as=as/10;
 					GVector dir2=(d*as*30.0f/(GFloat)LIMITFPS+Chip[i]->V*Chip[i]->World->Dt*(GFloat)GDTSTEP).normalize2();
-					v1.x=Chip[i]->X.x;v1.y=Chip[i]->X.y;v1.z=Chip[i]->X.z;
-					v2.x=dir2.x;v2.y=dir2.y;v2.z=dir2.z;
-					D3DXIntersect(m_pLandMesh->GetSysMemMesh(),&v1,&v2,&hit,NULL,NULL,NULL,&dist,NULL,NULL);
+					v1.x=(FLOAT)Chip[i]->X.x;
+					v1.y=(FLOAT)Chip[i]->X.y;
+					v1.z=(FLOAT)Chip[i]->X.z;
+					v2.x=(FLOAT)dir2.x;
+					v2.y=(FLOAT)dir2.y;
+					v2.z=(FLOAT)dir2.z;
+					LPD3DXBUFFER pAllHitsBuffer = NULL;
+					DWORD CountOfHits;
+					D3DXIntersect(m_pLandMesh->GetSysMemMesh(),&v1,&v2,&hit,NULL,NULL,NULL,&dist,&pAllHitsBuffer,&CountOfHits);
 					if(!hit) dist=100000.0f;
+					else{ //Ux<=0の時の当たり判定無視
+						dist=100000.0f;
+						D3DXINTERSECTINFO* d3dxAllHits = (D3DXINTERSECTINFO*)pAllHitsBuffer->GetBufferPointer();
+						for(DWORD i=0;i<CountOfHits;i++){
+							if(World->Land->Face[d3dxAllHits[i].FaceIndex].Ux>=0 && dist > d3dxAllHits[i].Dist){
+								dist= d3dxAllHits[i].Dist;
+							}
+						}
+					}
+					SAFE_RELEASE( pAllHitsBuffer );
 					GVector p=Chip[i]->X+dir2*dist;
 					GBulletVertex *bul=Bullet->Add(Chip[i],Chip[i]->X,d*as*30.0f/(GFloat)LIMITFPS+Chip[i]->V*Chip[i]->World->Dt*(GFloat)GDTSTEP,Chip[i]->ArmEnergy,(GFloat)f*0.3f,dist,p,-1);
 					if(Chip[i]->X.y<WaterLine) bul->Life=150.0f;
 
-					pVB->Unlock();
-					pIB->Unlock();
+					//pVB->Unlock();
+					//pIB->Unlock();
 
-					pVB->Release();
-					pIB->Release();
+					//pVB->Release();
+					//pIB->Release();
 
 
 				}
@@ -6174,12 +6302,12 @@ if( win == FALSE )
 				else if(Chip[i]->ChipType==7) {
 					if(!EfficientFlag) {
 						double f=Chip[i]->CheckFuel(Chip[i]->Power/JET_EFF);
-						Chip[i]->PowerByFuel=Chip[i]->Power=f*JET_EFF;
+						Chip[i]->PowerByFuel=Chip[i]->Power=(GFloat)(f*JET_EFF);
 						Chip[i]->Top->UseFuel(f*30.0/LIMITFPS);
 						Chip[i]->Top->CalcTotalFuel();
 					}
 					else Chip[i]->PowerByFuel=Chip[i]->Power;
-					float po=Chip[i]->PowerByFuel*s;
+					GFloat po=Chip[i]->PowerByFuel*s;
 					if(Chip[i]->Option==1){
 						if(JetFlag) Chip[i]->ApplyForce(GVector(0,1,0)*po,Chip[i]->X);
 						if(JetFlag) TotalPower+=(GFloat)fabs(po);
@@ -6196,7 +6324,7 @@ if( win == FALSE )
 						if(Chip[i]->Effect==1) {
 							int nn=(int)((fabs(po)+7900)/8000);
 							if(nn>0) {
-								float a=0.5f+(rand()%100)/5000.0f;
+								GFloat a=0.5f+(rand()%100)/5000.0f;
 								if(a>2.0f) a=2.0f;else if(a<=0.0f) a=0.0f;
 								GVector vv=-GVector(0,1,0)*Chip[i]->R*po/50000.0f;
 								//if(v.abs()>0.1f) v=v.normalize()/10.0f;
@@ -6208,7 +6336,7 @@ if( win == FALSE )
 						if(Chip[i]->Effect==2) {
 							int nn=(int)((fabs(po)+7900)/8000);
 							if(nn>0) {
-								float a=0.7f+(rand()%1000)/5000.0f;
+								GFloat a=0.7f+(rand()%1000)/5000.0f;
 								if(a>1.0f) a=1.0f;else if(a<=0.0f) a=0.0f;
 								GVector vv=-GVector(0,1,0)*Chip[i]->R*po/50000.0f;
 		//						double f=fabs(Power/2000.0);if(f>2.5) f=2.5;
@@ -6221,7 +6349,7 @@ if( win == FALSE )
 						if(Chip[i]->Effect==3) {
 							int nn=(int)((fabs(po)+7900)/8000);
 							if(nn>0) {
-								float a=1.0f+(rand()%100)/5000.0f;
+								GFloat a=1.0f+(rand()%100)/5000.0f;
 								if(a>2.0f) a=2.0f;else if(a<=0.0f) a=0.0f;
 								GVector vv=-GVector(0,1,0)*Chip[i]->R*po/50000.0f;
 								//if(v.abs()>0.1f) v=v.normalize()/10.0f;
@@ -6233,7 +6361,7 @@ if( win == FALSE )
 						if(Chip[i]->Effect==4) {
 							int nn=(int)((fabs(po)+7900)/8000);
 							if(nn>0) {
-								float a=1.0f;
+								GFloat a=1.0f;
 								GVector vv=-GVector(0,1,0)*Chip[i]->R*po/50000.0f;
 								//if(v.abs()>0.1f) v=v.normalize()/10.0f;
 								for(int ii=0;ii<nn;ii++) {
@@ -6341,7 +6469,7 @@ HRESULT CMyD3DApplication::ViewSet() {
 	else if(ViewType==1)
 	{
 		UpVec=GVector(0,1,0);
-		float v=Chip[LastBye]->V.abs()/2.0f;
+		GFloat v=Chip[LastBye]->V.abs()/2.0f;
 		if(v<15) v=15;
 		if(((EyePos-Chip[LastBye]->TotalCenter).abs()>=v*5 || vcount>=v*10)&& vcount>=v) {
 			vcount=0;
@@ -6393,7 +6521,7 @@ HRESULT CMyD3DApplication::ViewSet() {
 	else if(ViewType==6)
 	{
 		UpVec=GVector(0,1,0);
-		float v=Chip[LastBye]->V.abs()/2.0f;
+		GFloat v=Chip[LastBye]->V.abs()/2.0f;
 		if(v<15) v=15;
 		if(((EyePos-Chip[LastBye]->TotalCenter).abs()>=v*5 || vcount>=v*10)&& vcount>=v) {
 			vcount=0;
@@ -6438,7 +6566,7 @@ HRESULT CMyD3DApplication::ViewSet() {
 		GVector v=(EyePos-RefPos)*(GMatrix().rotate(r,TurnUD).rotate(UpVec,TurnLR));
 		eye=RefPos+v;
 	}
-	
+	EyePos2=eye;
 	//	light1.Position.x= (float)EyePos.x;
 	//	light1.Position.y= (float)EyePos.y;
 	//	light1.Position.z= (float)EyePos.z;
@@ -6448,8 +6576,8 @@ HRESULT CMyD3DApplication::ViewSet() {
     // Set the projection matrix
     D3DXMATRIX matProj;
     FLOAT fAspect = ((FLOAT)m_d3dsdBackBuffer.Width) / m_d3dsdBackBuffer.Height;
-	if(ViewType==7) D3DXMatrixPerspectiveFovLH( &matProj, CCDZoom*(GFloat)M_PI/180.0f, fAspect, 1.0f, GFARMAX);
-    else D3DXMatrixPerspectiveFovLH( &matProj, Zoom*(GFloat)M_PI/180.0f, fAspect, 1.0f, GFARMAX);
+	if(ViewType==7) D3DXMatrixPerspectiveFovLH( &matProj, (FLOAT)(CCDZoom*(GFloat)M_PI/180.0f), fAspect, 1.0f, (FLOAT)GFARMAX);
+    else D3DXMatrixPerspectiveFovLH( &matProj, (FLOAT)(Zoom*(GFloat)M_PI/180.0f), fAspect, 1.0f, (FLOAT)GFARMAX);
     m_pd3dDevice->SetTransform( D3DTS_PROJECTION, &matProj );
 	
 	
@@ -6545,7 +6673,11 @@ void CMyD3DApplication::UpdateInput( UserInput* pUserInput )
         InputDeviceState* pInputDeviceState = (InputDeviceState*) pDeviceInfos[i].pParam;
 		
         hr = pdidDevice->Acquire();
+        if( FAILED(hr) )
+            continue;
         hr = pdidDevice->Poll();
+        if( FAILED(hr) )
+            continue;
         hr = pdidDevice->GetDeviceData( sizeof(DIDEVICEOBJECTDATA),
 			rgdod, &dwItems, 0 );
         if( FAILED(hr) )
@@ -6762,15 +6894,15 @@ void CMyD3DApplication::UpdateInput( UserInput* pUserInput )
 
 
 typedef struct {
-	float z;
+	GFloat z;
 	int	n;
 } UserData;
 
 int UserCompare( const void *arg1, const void *arg2 )
 {
 	/* 2つの文字列を最後まで比較します。 */
-	float z1=((UserData*)arg1)->z;
-	float z2=((UserData*)arg2)->z;
+	GFloat z1=((UserData*)arg1)->z;
+	GFloat z2=((UserData*)arg2)->z;
 	if(z1<z2) return 1;
 	if(z1>z2) return -1;
 
@@ -6803,7 +6935,9 @@ void CMyD3DApplication::RenderSky() {
 		if(lr<=0) lr=0;
 	}
 
- 	lightColor.x=lr;lightColor.y=lg;lightColor.z=lb;
+	lightColor.x=(FLOAT)lr;
+	lightColor.y=(FLOAT)lg;
+	lightColor.z=(FLOAT)lb;
 	light.Diffuse=D3DXCOLOR(lightColor.x,lightColor.y,lightColor.z,1.0f);
 	light.Specular=D3DXCOLOR(lightColor.x*0.7f,lightColor.y*0.7f,lightColor.z*0.7f,1.0f);
 	for(unsigned int i=0;i<m_pSkyMesh->m_dwNumMaterials;i++) {
@@ -6828,16 +6962,14 @@ void CMyD3DApplication::RenderSky() {
 	D3DXMATRIX matView;
 	matView=GMatView;
 //		m_pd3dDevice->GetTransform( D3DTS_VIEW, &matView );
-	float a=0.0f;
+	GFloat a=0.0f;
 	if(ChipCount>0) {
 		a=-Chip[0]->X.y/1000.0f; if(a<-0.1) a=-0.1f; if(a>0.5f) a=0.5f;
 		if(EyePos.y<-3.0) m_pd3dDevice->SetTextureStageState( 0, D3DTSS_COLOROP,D3DTOP_DISABLE );
 
 	}
-	matView._41 = 0.0f; matView._42 = a; matView._43 = 0.0f;
+	matView._41 = 0.0f; matView._42 = (FLOAT)a; matView._43 = 0.0f;
 	m_pd3dDevice->SetTransform( D3DTS_VIEW,      &matView );
-	m_pd3dDevice->SetRenderState( D3DRS_LIGHTING,TRUE );
-	m_pd3dDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_CCW);	// カリングモード
 	m_pd3dDevice->SetRenderState( D3DRS_AMBIENT,        0xb0b0b0 );
 	m_pd3dDevice->SetRenderState( D3DRS_ZENABLE, FALSE );
 	m_pd3dDevice->SetRenderState( D3DRS_ZWRITEENABLE, FALSE );
@@ -6846,13 +6978,13 @@ void CMyD3DApplication::RenderSky() {
 	
 	m_pSkyMesh->Render(m_pd3dDevice);
 	// Restore the render states
+	m_pd3dDevice->SetRenderState( D3DRS_AMBIENT,0x000F0F0F );
 	m_pd3dDevice->SetRenderState( D3DRS_ZENABLE, TRUE );
 	m_pd3dDevice->SetRenderState( D3DRS_ZWRITEENABLE, TRUE);
 	m_pd3dDevice->SetTextureStageState( 0, D3DTSS_ADDRESSU,  D3DTADDRESS_WRAP );
 	m_pd3dDevice->SetTextureStageState( 0, D3DTSS_ADDRESSV,  D3DTADDRESS_WRAP );
     m_pd3dDevice->SetTextureStageState( 0, D3DTSS_COLOROP,   D3DTOP_MODULATE );
 	m_pd3dDevice->SetTransform( D3DTS_VIEW, &GMatView );
-	m_pd3dDevice->SetRenderState( D3DRS_AMBIENT,0x000F0F0F );
 }
 HRESULT CMyD3DApplication::Render()
 {
@@ -6880,11 +7012,30 @@ HRESULT CMyD3DApplication::Render()
 	float h=(FLOAT) m_d3dsdBackBuffer.Height;
 //    m_pd3dDevice->Clear( 0, NULL, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, D3DCOLOR_XRGB(200, 230, 255), 1.0f, 0 );
     // Clear the viewport
-    m_pd3dDevice->Clear( 0L, NULL, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, 0x00000000, 1.0f, 0L );
+	m_pd3dDevice->Clear( 0L, NULL, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, 0x00000000, 1.0f, 0L );
 	if(World->NetStop) return S_OK;
-    m_pd3dDevice->SetRenderState( D3DRS_DITHERENABLE,   DitherFlag );
-    if( SUCCEEDED( m_pd3dDevice->BeginScene() ) )
-    {
+	if( SUCCEEDED( m_pd3dDevice->BeginScene() ) )
+	{
+		// Restore the render states
+		m_pd3dDevice->SetRenderState( D3DRS_ZENABLE, TRUE );
+		m_pd3dDevice->SetRenderState( D3DRS_ZWRITEENABLE, TRUE);
+		m_pd3dDevice->SetRenderState( D3DRS_SRCBLEND,D3DBLEND_SRCALPHA );
+		m_pd3dDevice->SetRenderState( D3DRS_DESTBLEND,D3DBLEND_INVSRCALPHA );
+		
+		m_pd3dDevice->SetRenderState( D3DRS_DITHERENABLE,   DitherFlag );
+		m_pd3dDevice->SetRenderState( D3DRS_AMBIENT,0x000F0F0F );
+		m_pd3dDevice->SetRenderState( D3DRS_RANGEFOGENABLE, TRUE);
+		m_pd3dDevice->SetRenderState( D3DRS_FOGTABLEMODE, D3DFOG_NONE);
+		m_pd3dDevice->SetRenderState( D3DRS_FOGVERTEXMODE, D3DFOG_LINEAR );
+		m_pd3dDevice->SetRenderState( D3DRS_FOGCOLOR, D3DCOLOR_XRGB((int)(FogColor.x*lightColor.x), (int)(FogColor.y*lightColor.y), (int)(FogColor.z*lightColor.z)));
+		m_pd3dDevice->SetRenderState( D3DRS_FOGSTART,FtoDW((float)(20.0f)));
+		m_pd3dDevice->SetRenderState( D3DRS_FOGEND, FtoDW((float)(GFARMAX-10.0f)));
+		m_pd3dDevice->SetRenderState( D3DRS_FOGDENSITY, FtoDW(0.2f) );
+		m_pd3dDevice->SetRenderState( D3DRS_FOGENABLE, TRUE);
+		m_pd3dDevice->SetTextureStageState( 0, D3DTSS_ADDRESSU,  D3DTADDRESS_WRAP );
+		m_pd3dDevice->SetTextureStageState( 0, D3DTSS_ADDRESSV,  D3DTADDRESS_WRAP );
+		m_pd3dDevice->SetTextureStageState( 0, D3DTSS_COLOROP,   D3DTOP_MODULATE );
+		m_pd3dDevice->SetTransform( D3DTS_VIEW, &GMatView );
 		//スクリプトの呼び出し
 		// TODO: update world
 		FPS=m_fFPS;
@@ -6900,8 +7051,8 @@ HRESULT CMyD3DApplication::Render()
 		for(i=0;i<GVALMAX;i++) {
 			ValList[i].Updated=false;
 		}
-    	Line(GVector(0,0,0),GVector(0,0,0),0xff000000); //Lineﾊﾞｯﾌｧ強制描画 ｼﾅﾘｵ分
-    	Line2D(0,0,0,0,0xff000000); //Lineﾊﾞｯﾌｧ強制描画
+		Line(GVector(0,0,0),GVector(0,0,0),0xff000000); //Lineﾊﾞｯﾌｧ強制描画 ｼﾅﾘｵ分
+		Line2D(0,0,0,0,0xff000000); //Lineﾊﾞｯﾌｧ強制描画
 		if(ViewUpdate)	{
 			ViewSet();
 			//ViewUpdate=0; //なぜかここでﾌﾗｸﾞ倒しちゃうとLINE2Dの描画が狂う
@@ -6929,18 +7080,10 @@ HRESULT CMyD3DApplication::Render()
 			CheckMenuItem(hMenu,IDM_CHANGEVIEWX,MF_CHECKED);
 			viewFlag=1;
 		}
-		// Restore the render states
-		m_pd3dDevice->SetRenderState( D3DRS_ZENABLE, TRUE );
-		m_pd3dDevice->SetRenderState( D3DRS_ZWRITEENABLE, TRUE);
-		m_pd3dDevice->SetTextureStageState( 0, D3DTSS_ADDRESSU,  D3DTADDRESS_WRAP );
-		m_pd3dDevice->SetTextureStageState( 0, D3DTSS_ADDRESSV,  D3DTADDRESS_WRAP );
-		m_pd3dDevice->SetTextureStageState( 0, D3DTSS_COLOROP,   D3DTOP_MODULATE );
-		m_pd3dDevice->SetTransform( D3DTS_VIEW, &GMatView );
-		m_pd3dDevice->SetRenderState( D3DRS_AMBIENT,0x000F0F0F );
 		// チップごとの力の表示
 		if(ShowPower) {
 //			Line2D(0,0,0.1,0.1,0x33DDDDDD);
-			float v;
+			GFloat v;
 			//重心の表示-----------------------------------------
 //			v=Chip[0]->TotalRadius+0.3f;
 //			Line(Chip[0]->TotalCenterOfGravity-GVector(v,0,0)*Chip[0]->R,Chip[0]->TotalCenterOfGravity+GVector(v,0,0)*Chip[0]->R,0xffDDDDDD);
@@ -6951,139 +7094,127 @@ HRESULT CMyD3DApplication::Render()
 				//if(Chip[i]->Top!=Chip[0]) continue;
 				if(Chip[i]->Parent==NULL) {
 					v=Chip[i]->TotalRadius+0.3f;
-					Line(Chip[i]->TotalCenterOfGravity-GVector(v,0,0)*Chip[i]->R,Chip[i]->TotalCenterOfGravity+GVector(v,0,0)*Chip[i]->R,0xffDDDDDD);
-					Line(Chip[i]->TotalCenterOfGravity-GVector(0,v,0)*Chip[i]->R,Chip[i]->TotalCenterOfGravity+GVector(0,v,0)*Chip[i]->R,0xffDDDDDD);
-					Line(Chip[i]->TotalCenterOfGravity-GVector(0,0,v)*Chip[i]->R,Chip[i]->TotalCenterOfGravity+GVector(0,0,v)*Chip[i]->R,0xffDDDDDD);
+					Line(Chip[i]->TotalCenterOfGravity-GVector(v,0,0)*Chip[i]->R,Chip[i]->TotalCenterOfGravity+GVector(v,0,0)*Chip[i]->R,0x00DDDDDD);
+					Line(Chip[i]->TotalCenterOfGravity-GVector(0,v,0)*Chip[i]->R,Chip[i]->TotalCenterOfGravity+GVector(0,v,0)*Chip[i]->R,0x00DDDDDD);
+					Line(Chip[i]->TotalCenterOfGravity-GVector(0,0,v)*Chip[i]->R,Chip[i]->TotalCenterOfGravity+GVector(0,0,v)*Chip[i]->R,0x00DDDDDD);
 				}
 				v=(GFloat)Chip[i]->Ext.abs()+1.0f;
 				v=log(v)*0.5f;
-				Line(Chip[i]->X,Chip[i]->X+Chip[i]->Ext.normalize2()*v,0xff0000ff);
+				Line(Chip[i]->X,Chip[i]->X+Chip[i]->Ext.normalize2()*v,0x000000ff);
 
 				GVector na;
 				int ht=Chip[i]->HitN;
 				if(ht>=1){
 					for(int j=0;j<ht;j++) {
 						na=-(Chip[i]->Hit[j].Pos-Chip[i]->X).cross(Chip[i]->Hit[j].Normal).cross(Chip[i]->Hit[j].Normal);
-						if(j==0) Line(Chip[i]->Hit[j].Pos,Chip[i]->Hit[j].Pos+Chip[i]->Hit[j].FricV/(GFloat)GDTSTEP*0.08f,0xffff0000);
-						else Line(Chip[i]->Hit[j].Pos,Chip[i]->Hit[j].Pos+Chip[i]->Hit[j].FricV*0.08f,0xffff0000);
+						if(j==0) Line(Chip[i]->Hit[j].Pos,Chip[i]->Hit[j].Pos+Chip[i]->Hit[j].FricV/(GFloat)GDTSTEP*0.08f,0x00ff0000);
+						else Line(Chip[i]->Hit[j].Pos,Chip[i]->Hit[j].Pos+Chip[i]->Hit[j].FricV*0.08f,0x00ff0000);
 						v=(GFloat)Chip[i]->Hit[j].J.abs()+1.0f;
 						v=(GFloat)log(v)*0.5f;
-						Line(Chip[i]->Hit[j].Pos,Chip[i]->Hit[j].Pos+Chip[i]->Hit[j].J.normalize2()*v,0xff00ff00);
+						Line(Chip[i]->Hit[j].Pos,Chip[i]->Hit[j].Pos+Chip[i]->Hit[j].J.normalize2()*v,0x0000ff00);
 					}
 				}
 			}
 		}
-    	Line(GVector(0,0,0),GVector(0,0,0),0xff000000); //Lineﾊﾞｯﾌｧ強制描画
-    	Line2D(0,0,0,0,0xff000000); //Lineﾊﾞｯﾌｧ強制描画
+		if(ShowLandNormal){
+			for(i=0;i<NumVertice;i++){
+				Line(World->Land->Vertex[i].Pos,World->Land->Vertex[i].Pos+World->Land->Vertex[i].Normal,0x00FFFFFF);
+			}
+		}
+		if(ShowHitMesh){ //当たり判定ﾘｽﾄ表示
+			for(int i=0;i<World->Land->List2Count;i++){
+				GLandFace *face= &World->Land->Face[World->Land->List2[i]];
+				for(int j=0;j<3;j++){
+					GVector norm=(*face).Normal*0.1f;
+					Line((*face).Vertex[j]+norm,(*face).Vertex[(j+1)%3]+norm,0x0000FF00);
+				}
+			}
+			for(int i=0;i<World->Land->List3Count;i++){
+				GLandFace *face= &World->Land->Face[World->Land->List3[i]];
+				for(int j=0;j<3;j++){
+					GVector norm=(*face).Normal*0.08f;
+					Line((*face).Vertex[j]+norm,(*face).Vertex[(j+1)%3]+norm,0x000000FF);
+				}
+			}
+		}
+		Line(GVector(0,0,0),GVector(0,0,0),0xff000000); //Lineﾊﾞｯﾌｧ強制描画
+		Line2D(0,0,0,0,0xff000000); //Lineﾊﾞｯﾌｧ強制描画
 
 		if(ViewType>=0) viewFlag=0;
 
-		//チップの表示
-		 
-		m_pd3dDevice->SetRenderState(D3DRS_SPECULARENABLE, TRUE );
-		m_pd3dDevice->SetRenderState(D3DRS_RANGEFOGENABLE, TRUE);
-		m_pd3dDevice->SetRenderState(D3DRS_FOGTABLEMODE, D3DFOG_NONE);
-		m_pd3dDevice->SetRenderState(D3DRS_FOGVERTEXMODE, D3DFOG_LINEAR );
-		m_pd3dDevice->SetRenderState(D3DRS_FOGCOLOR, D3DCOLOR_XRGB((int)(FogColor.x*lightColor.x), (int)(FogColor.y*lightColor.y), (int)(FogColor.z*lightColor.z)));
-		m_pd3dDevice->SetRenderState(D3DRS_FOGSTART,FtoDW((float)(20.0f)));
-		m_pd3dDevice->SetRenderState(D3DRS_FOGEND, FtoDW((float)(GFARMAX-10.0f)));
-		m_pd3dDevice->SetRenderState( D3DRS_FOGDENSITY, FtoDW(0.2f) );
-		m_pd3dDevice->SetRenderState(D3DRS_FOGENABLE, TRUE);
-		World->LandRigid->Disp();
+		//チップの表示----------------------
+		
+		World->LandRigid->Disp(TRUE,FALSE); //Land不透明部分描画
 //		World->Disp(DPlay->GetNumPlayers()!=0);
-		m_pd3dDevice->SetRenderState( D3DRS_LIGHTING,TRUE );
-		m_pd3dDevice->SetRenderState( D3DRS_ALPHABLENDENABLE,TRUE );
-		m_pd3dDevice->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);  //DESTの設定
 
-		G3dDevice->SetRenderState( D3DRS_LIGHTING, TRUE );
+		World->Disp(0,FALSE,FALSE,TRUE); //影描画 ほんとは不透明部分より後ろで描画すべきだけど、ﾁｯﾌﾟが地面にめり込んだ時影が上に出てきちゃうのを誤魔化すために手前で描画して上書き
+		World->Disp(0,TRUE,FALSE,FALSE); //ﾁｯﾌﾟ、ｵﾌﾞｼﾞｪｸﾄ不透明分描画
 		if(DPlay->GetNumPlayers()!=0) {
-			m_pd3dDevice->SetRenderState(D3DRS_SPECULARENABLE, TRUE );
-			m_pd3dDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_CCW);	// カリングモード
-			m_pd3dDevice->SetRenderState( D3DRS_LIGHTING,TRUE );
-			m_pd3dDevice->SetRenderState( D3DRS_ALPHABLENDENABLE,TRUE );
-			m_pd3dDevice->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);  //DESTの設定
-			m_pd3dDevice->SetRenderState( D3DRS_ZWRITEENABLE, TRUE );
-			FLOAT *f=(float*)GMatView;
+			FLOAT *f=(FLOAT*)GMatView;
 			GMatrix vm(f);
 			for(i=0;i<(unsigned int)DPlay->GetMaxPlayers();i++) {
-				float hy=PlayerData[i].y+(float)pow((double)PlayerData[i].ChipCount,0.3333)/3.0f;
+				GFloat hy=PlayerData[i].y+(GFloat)pow((double)PlayerData[i].ChipCount,0.3333)/3.0f;
 				GVector infoV=GVector(PlayerData[i].x,hy+1.2f,PlayerData[i].z)*vm;
 				data[i].z=infoV.z;
 				data[i].n=i;
 			}
-			//ソートする
-			qsort((void*)data,GPLAYERMAX,sizeof(UserData),UserCompare);
+			qsort((void*)data,GPLAYERMAX,sizeof(UserData),UserCompare);//近い順にソートする
+			//ﾏｰｶの表示 //この位置だとLand半透明ﾎﾟﾘの後ろにﾏｰｶが隠れるけどどうしようもない気がする
 			for(i=0;i<(unsigned int)DPlay->GetMaxPlayers();i++) {
 				World->DispNetChipInfo(data[i].n,data[i].z);
 			}
-		}
-		if(DPlay->GetNumPlayers()!=0) {
 			//ネットチップの表示
-			m_pd3dDevice->SetRenderState(D3DRS_SPECULARENABLE, TRUE );
-			m_pd3dDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_CCW);	// カリングモード
-			m_pd3dDevice->SetRenderState( D3DRS_LIGHTING,TRUE );
-			m_pd3dDevice->SetRenderState( D3DRS_ALPHABLENDENABLE,TRUE );
-			m_pd3dDevice->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);  //DESTの設定
-			m_pd3dDevice->SetRenderState( D3DRS_ZWRITEENABLE, TRUE );
 			for(i=0;i<(unsigned int)DPlay->GetNumPlayers();i++) {
-				World->DispNetChip(i);
+				World->DispNetChip(i); //不透明部分と半透明部分を分離すべきだけどﾃﾞｰﾀ取り出しとかと融合しすぎてて死ぬ 死んだ
 			}
 		}
-		World->Disp(0);
-
-		m_pd3dDevice->SetRenderState( D3DRS_LIGHTING,TRUE );
-		m_pd3dDevice->SetRenderState( D3DRS_ALPHABLENDENABLE,TRUE );
-		m_pd3dDevice->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);  //DESTの設定
-		{	//水面の表示
-			G3dDevice->SetRenderState( D3DRS_LIGHTING, FALSE );
-			G3dDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);	// カリングモード
-			G3dDevice->SetRenderState(D3DRS_SPECULARENABLE, FALSE );
-			G3dDevice->SetRenderState( D3DRS_ALPHABLENDENABLE,TRUE );
-			G3dDevice->SetRenderState( D3DRS_ZWRITEENABLE, FALSE );
-			D3DXMATRIX mat1;
-			D3DXMATRIX mat2;
-			float x,z;
-			int ii=(int)(GFARMAX/10);
-			int s=(int)(GFARMAX/600);
-			if(s==0) {
-				x=(int)(EyePos.x/60)*60.0f;
-				z=(int)(EyePos.z/60)*60.0f;
-				D3DXMatrixTranslation(&mat1,x+(GFloat)sin(count/90.0*M_PI),WaterLine,z);
-				D3DXMatrixScaling(&mat2,2.0,1.0f,2.0);
-				D3DXMatrixMultiply( &mat1 , &mat2, &mat1);
-				D3DXMatrixMultiply( &mat1 , &mat1, &GMatWorld);
-				m_pd3dDevice->SetTransform( D3DTS_WORLD, &mat1 );
-				m_pXMesh[14]->Render(G3dDevice);
-			}
-			else {
-				int xx=(int)(EyePos.x/60)*60;
-				int zz=(int)(EyePos.z/60)*60;
-				float si=(GFloat)sin(count/88.0*M_PI)-30;
-				D3DXMatrixScaling(&mat2,2.0f,1.0f,2.0f);
-				for(int i=0;i<s;i++) {
-					for(int j=0;j<s;j++) {
-						x=(float)(xx+i*1200-(s-1)*600);
-						z=(float)(zz+j*1200-(s-1)*600);
-						D3DXMatrixTranslation(&mat1,x+si,WaterLine,z-30);
-						D3DXMatrixMultiply( &mat1 , &mat2, &mat1);
-						D3DXMatrixMultiply( &mat1 , &mat1, &GMatWorld);
-						m_pd3dDevice->SetTransform( D3DTS_WORLD, &mat1 );
-						m_pXMesh[14]->Render(G3dDevice);
-					}
-				}
-			}
+		
+		//World->Disp(0,FALSE,FALSE,TRUE); //影描画 本来影描画があるべき位置
+		World->LandRigid->Disp(FALSE,TRUE); //Land半透明部分描画
+		
+		{	//水面の表示----------------------
+			m_pd3dDevice->SetRenderState( D3DRS_LIGHTING, FALSE );
+			m_pd3dDevice->SetRenderState( D3DRS_CULLMODE, D3DCULL_NONE);	// カリングモード
+			m_pd3dDevice->SetRenderState( D3DRS_ALPHABLENDENABLE,TRUE );
+			m_pd3dDevice->SetRenderState( D3DRS_ZWRITEENABLE, FALSE );
+			m_pd3dDevice->SetTextureStageState( 0, D3DTSS_TEXTURETRANSFORMFLAGS, D3DTTFF_COUNT2 );
+			//m_pd3dDevice->SetTextureStageState(0, D3DTSS_MIPFILTER, D3DTEXF_POINT);
+			D3DXMATRIX mat1,mat2;
+			FLOAT s=(FLOAT)(GFARMAX/600);
+			if(GFARMAX<=0) s=64;
+			GFloat si=(GFloat)sin(count/88.0*M_PI)-30;
+			
+			D3DXMatrixScaling(&mat2,2.0f*s,1.0f,2.0f*s);
+			D3DXMatrixTranslation(&mat1,(FLOAT)(EyePos.x+si),(FLOAT)WaterLine,(FLOAT)(EyePos.z-30));
+			D3DXMatrixMultiply( &mat1 , &mat2, &mat1);
+			D3DXMatrixMultiply( &mat1 , &mat1, &GMatWorld);
+			m_pd3dDevice->SetTransform( D3DTS_WORLD, &mat1 );
+			
+			D3DXMatrixScaling(&mat1,(FLOAT)(s),(FLOAT)(s),1);
+			mat1._31 = (FLOAT)fmod(EyePos.x/60,1.0); mat1._32 = (FLOAT)fmod(EyePos.z/60,1.0);
+			m_pd3dDevice->SetTransform( D3DTS_TEXTURE0, &mat1);
+			m_pXMesh[14]->Render(G3dDevice);
+			
 			count++;
+			m_pd3dDevice->SetRenderState( D3DRS_LIGHTING, TRUE );
+			m_pd3dDevice->SetRenderState( D3DRS_CULLMODE, D3DCULL_CCW);	// カリングモード
+			m_pd3dDevice->SetRenderState( D3DRS_ALPHABLENDENABLE,FALSE );
+			m_pd3dDevice->SetRenderState( D3DRS_ZWRITEENABLE, TRUE );
+			m_pd3dDevice->SetTextureStageState( 0, D3DTSS_TEXTURETRANSFORMFLAGS, D3DTTFF_DISABLE );
+			//m_pd3dDevice->SetTextureStageState(0, D3DTSS_MIPFILTER, D3DTEXF_NONE);
 		}
-		G3dDevice->SetRenderState( D3DRS_LIGHTING, TRUE );
-		World->JetDisp();
-		World->DispNetJetAll();
-
-//		m_pd3dDevice->SetRenderState( D3DRS_ZWRITEENABLE, FALSE );
+		
+		
+		//m_pd3dDevice->SetRenderState( D3DRS_ZWRITEENABLE, FALSE );
 		int i,j=0;
-//		for(int i=CurrentCheckPoint;i<Course[CurrentCourse].Count;i++) CheckPointWork[j++]=i;
-//		if(CurrentCheckPoint<Course[CurrentCourse].Count) qsort(CheckPointWork,Course[CurrentCourse].Count-CurrentCheckPoint,sizeof(int),CheckPointCompare);
-
-		for(int ii=0;ii<GRINGMAX;ii++) {	//リングの表示
+		//for(int i=CurrentCheckPoint;i<Course[CurrentCourse].Count;i++) CheckPointWork[j++]=i;
+		//if(CurrentCheckPoint<Course[CurrentCourse].Count) qsort(CheckPointWork,Course[CurrentCourse].Count-CurrentCheckPoint,sizeof(int),CheckPointCompare);
+		
+		//リングの表示----------------------
+		m_pd3dDevice->SetRenderState( D3DRS_CULLMODE, D3DCULL_NONE);
+		m_pd3dDevice->SetRenderState( D3DRS_ZWRITEENABLE, FALSE );
+		m_pd3dDevice->SetRenderState( D3DRS_ALPHABLENDENABLE,TRUE );
+		for(int ii=0;ii<GRINGMAX;ii++) {
 			if(Ring[ii].State==0) continue;
 			D3DXMATRIX mat1,mat2;
 			float s=Ring[ii].Scale/5.0f;
@@ -7099,16 +7230,16 @@ HRESULT CMyD3DApplication::Render()
 			D3DXMatrixMultiply( &mat1 , &mat1, &GMatWorld);
 			m_pd3dDevice->SetTransform( D3DTS_WORLD, &mat1 );
 			if(Ring[ii].State==1) {
-				m_pXMesh[15]->m_pMaterials[0].Diffuse.r=Ring[ii].Color.x;
-				m_pXMesh[15]->m_pMaterials[0].Diffuse.g=Ring[ii].Color.y;
-				m_pXMesh[15]->m_pMaterials[0].Diffuse.b=Ring[ii].Color.z;
+				m_pXMesh[15]->m_pMaterials[0].Diffuse.r=(FLOAT)Ring[ii].Color.x;
+				m_pXMesh[15]->m_pMaterials[0].Diffuse.g=(FLOAT)Ring[ii].Color.y;
+				m_pXMesh[15]->m_pMaterials[0].Diffuse.b=(FLOAT)Ring[ii].Color.z;
 				m_pXMesh[15]->m_pMaterials[0].Diffuse.a=0.2f;
 				m_pXMesh[15]->m_pMaterials[0].Ambient=m_pXMesh[15]->m_pMaterials[0].Diffuse;
 			}
 			else {
-				m_pXMesh[15]->m_pMaterials[0].Diffuse.r=Ring[ii].Color.x;
-				m_pXMesh[15]->m_pMaterials[0].Diffuse.g=Ring[ii].Color.y;
-				m_pXMesh[15]->m_pMaterials[0].Diffuse.b=Ring[ii].Color.z;
+				m_pXMesh[15]->m_pMaterials[0].Diffuse.r=(FLOAT)Ring[ii].Color.x;
+				m_pXMesh[15]->m_pMaterials[0].Diffuse.g=(FLOAT)Ring[ii].Color.y;
+				m_pXMesh[15]->m_pMaterials[0].Diffuse.b=(FLOAT)Ring[ii].Color.z;
 				m_pXMesh[15]->m_pMaterials[0].Diffuse.a=0.7f;
 				m_pXMesh[15]->m_pMaterials[0].Ambient=m_pXMesh[15]->m_pMaterials[0].Diffuse;
 			}
@@ -7116,7 +7247,7 @@ HRESULT CMyD3DApplication::Render()
 		}
 		for(int ii=0;ii<Course[CurrentCourse].Count;ii++) {	//チェックポイントの表示
 			D3DXMATRIX mat1,mat2;
-			float s=Course[CurrentCourse].Scale[ii]/5.0f;
+			float s=(FLOAT)Course[CurrentCourse].Scale[ii]/5.0f;
 			D3DXMatrixScaling( &mat1, s,s,s );
 			D3DXMatrixRotationX( &mat2, (FLOAT)D3DXToRadian(Course[CurrentCourse].Dir[ii].x) );
 			D3DXMatrixMultiply( &mat1 , &mat1, &mat2);
@@ -7144,17 +7275,21 @@ HRESULT CMyD3DApplication::Render()
 			}
 			m_pXMesh[15]->Render(m_pd3dDevice);
 		}
+		m_pd3dDevice->SetRenderState( D3DRS_CULLMODE, D3DCULL_CCW);	// カリングモード
 		m_pd3dDevice->SetRenderState( D3DRS_ZWRITEENABLE, TRUE );
 		m_pd3dDevice->SetRenderState( D3DRS_ALPHABLENDENABLE,FALSE );
-		m_pd3dDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_CCW);	// カリングモード
+		
+		
+		//-----------------以降の描画はFog無し---------------------
 		m_pd3dDevice->SetRenderState(D3DRS_FOGENABLE, FALSE);
-		m_pd3dDevice->SetRenderState(D3DRS_SPECULARENABLE, FALSE );
 		
-		
+		//砂煙、水しぶき、飛行機雲のSetRenderState----------------------
+		m_pd3dDevice->SetVertexShader(D3DFVF_POINTVERTEX);
+		m_pd3dDevice->SetRenderState( D3DRS_ALPHABLENDENABLE,TRUE );
+		m_pd3dDevice->SetRenderState( D3DRS_ZWRITEENABLE, FALSE );
 		
 		int k=0;
 		//砂塵の表示
-		m_pd3dDevice->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);  //DESTの設定
 		soundCount--;
 		if(soundCount<0) soundCount=0;
 		if(ShowDustFlag) {
@@ -7168,7 +7303,7 @@ HRESULT CMyD3DApplication::Render()
 					pV[k].z=(float)GroundParticle->Vertex[i].Pos.z;
 					pV[k].id=i;
 					
-					float a=GroundParticle->Vertex[i].Life;
+					GFloat a=GroundParticle->Vertex[i].Life;
 					if(GroundParticle->Vertex[i].Life<0) a=0.0f;
 					pV[k].size=GroundParticle->Vertex[i].Size;
 					pV[k].alpha=a;
@@ -7199,10 +7334,7 @@ HRESULT CMyD3DApplication::Render()
 				}
 			}
 			if(k>0) {
-				m_pd3dDevice->SetRenderState( D3DRS_ALPHABLENDENABLE,TRUE );
-				m_pd3dDevice->SetRenderState( D3DRS_AMBIENT,        0x444444 );
-				m_pd3dDevice->SetVertexShader(D3DFVF_POINTVERTEX);
-				m_pd3dDevice->SetRenderState( D3DRS_ZWRITEENABLE, FALSE );
+				m_pd3dDevice->SetRenderState( D3DRS_AMBIENT, 0x444444 );
 				m_pXMesh[18]->m_pMaterials[0].Ambient.r=(float)lightColor.x;
 				m_pXMesh[18]->m_pMaterials[0].Ambient.g=(float)lightColor.y;
 				m_pXMesh[18]->m_pMaterials[0].Ambient.b=(float)lightColor.z;
@@ -7226,14 +7358,14 @@ HRESULT CMyD3DApplication::Render()
 				D3DXMATRIX mat1,mat2;
 				for(i=0;i<k;i++) {
 					m_pXMesh[18]->m_pMaterials[0].Diffuse.a=(float)pV[i].alpha*0.3f;
-					D3DXMatrixRotationZ(&mat1,pV[i].alpha*2.0f+pV[i].id);
-					D3DXMatrixScaling(&mat2,pV[i].size,pV[i].size,pV[i].size);
+					D3DXMatrixRotationZ(&mat1,(FLOAT)(pV[i].alpha*2.0f+pV[i].id));
+					D3DXMatrixScaling(&mat2,(FLOAT)pV[i].size,(FLOAT)pV[i].size,(FLOAT)pV[i].size);
 					D3DXMatrixMultiply( &mat1 , &mat1, &mat2);
 					mat2=GMatView;
 					mat2._41 = 0.0f; mat2._42 = 0.0f; mat2._43 = 0.0f;
 					D3DXMatrixInverse(&mat2,NULL,&mat2);
 					D3DXMatrixMultiply( &mat1 , &mat1, &mat2);
-					D3DXMatrixTranslation(&mat2,pV[i].x,pV[i].y,pV[i].z);
+					D3DXMatrixTranslation(&mat2,(FLOAT)pV[i].x,(FLOAT)pV[i].y,(FLOAT)pV[i].z);
 					D3DXMatrixMultiply( &mat1 , &mat1, &mat2);
 					D3DXMatrixMultiply( &mat1 , &mat1, &GMatWorld);
 					m_pd3dDevice->SetTransform( D3DTS_WORLD, &mat1 );
@@ -7252,7 +7384,7 @@ HRESULT CMyD3DApplication::Render()
 					pV[k].b=(float)WaterLineParticle->Vertex[i].Color.z;
 					pV[k].id=i;
 					
-					float a=WaterLineParticle->Vertex[i].Life;
+					GFloat a=WaterLineParticle->Vertex[i].Life;
 					if(WaterLineParticle->Vertex[i].Life<0) a=0.0f;
 					pV[k].size=WaterLineParticle->Vertex[i].Size;
 					pV[k].alpha=a;
@@ -7267,28 +7399,25 @@ HRESULT CMyD3DApplication::Render()
 				}
 			}
 			if(k>0) {
-				m_pd3dDevice->SetRenderState( D3DRS_ALPHABLENDENABLE,TRUE );
-				m_pd3dDevice->SetRenderState( D3DRS_AMBIENT,        0xffffffff );
-				m_pd3dDevice->SetVertexShader(D3DFVF_POINTVERTEX);
-				m_pd3dDevice->SetRenderState( D3DRS_ZWRITEENABLE, FALSE );
+				m_pd3dDevice->SetRenderState( D3DRS_AMBIENT, 0xffffffff );
 
 				D3DXMATRIX mat1,mat2;
 				for(i=0;i<k;i++) {
 					m_pXMesh[19]->m_pMaterials[0].Diffuse.a=(float)pV[i].alpha*0.3f;
 					D3DXMatrixRotationZ(&mat1,(FLOAT)pV[i].id);
-					D3DXMatrixScaling(&mat2,pV[i].size,pV[i].size,pV[i].size);
+					D3DXMatrixScaling(&mat2,(FLOAT)pV[i].size,(FLOAT)pV[i].size,(FLOAT)pV[i].size);
 					D3DXMatrixMultiply( &mat1 , &mat1, &mat2);
 					mat2=GMatView;
 					mat2._41 = 0.0f; mat2._42 = 0.0f; mat2._43 = 0.0f;
 					D3DXMatrixInverse(&mat2,NULL,&mat2);
 					D3DXMatrixMultiply( &mat1 , &mat1, &mat2);
-					D3DXMatrixTranslation(&mat2,pV[i].x,pV[i].y,pV[i].z);
+					D3DXMatrixTranslation(&mat2,(FLOAT)pV[i].x,(FLOAT)pV[i].y,(FLOAT)pV[i].z);
 					D3DXMatrixMultiply( &mat1 , &mat1, &mat2);
 					D3DXMatrixMultiply( &mat1 , &mat1, &GMatWorld);
 					m_pd3dDevice->SetTransform( D3DTS_WORLD, &mat1 );
-					m_pXMesh[19]->m_pMaterials[0].Ambient.r=(float)pV[i].r;
-					m_pXMesh[19]->m_pMaterials[0].Ambient.g=(float)pV[i].g;
-					m_pXMesh[19]->m_pMaterials[0].Ambient.b=(float)pV[i].b;
+					m_pXMesh[19]->m_pMaterials[0].Ambient.r=(FLOAT)pV[i].r;
+					m_pXMesh[19]->m_pMaterials[0].Ambient.g=(FLOAT)pV[i].g;
+					m_pXMesh[19]->m_pMaterials[0].Ambient.b=(FLOAT)pV[i].b;
 					m_pXMesh[19]->Render(m_pd3dDevice);
 				}
 			}
@@ -7307,7 +7436,7 @@ HRESULT CMyD3DApplication::Render()
 				pV[k].b=(float)JetParticle->Vertex[i].Color.z;
 				pV[k].id=i;
 				
-				float a=JetParticle->Vertex[i].Life;
+				GFloat a=JetParticle->Vertex[i].Life;
 				if(JetParticle->Vertex[i].Life<0) a=0.0f;
 				pV[k].size=JetParticle->Vertex[i].Size;
 				pV[k].alpha=a*a;
@@ -7316,10 +7445,7 @@ HRESULT CMyD3DApplication::Render()
 			}
 		}
 		if(k>0) {
-			m_pd3dDevice->SetRenderState( D3DRS_ALPHABLENDENABLE,TRUE );
-			m_pd3dDevice->SetRenderState( D3DRS_AMBIENT,        0xffffffff );
-			m_pd3dDevice->SetVertexShader(D3DFVF_POINTVERTEX);
-			m_pd3dDevice->SetRenderState( D3DRS_ZWRITEENABLE, FALSE );
+			m_pd3dDevice->SetRenderState( D3DRS_AMBIENT, 0xffffffff );
 			D3DXMATRIX mat1,mat2;
 			for(i=0;i<k;i++) {
 				if(pV[i].type!=0 || ShowDustFlag) {
@@ -7330,19 +7456,19 @@ HRESULT CMyD3DApplication::Render()
 					}
 					else if(pV[i].type==1) mesh=m_pXMesh[35];
 					else mesh=m_pXMesh[36];
-					mesh->m_pMaterials[0].Ambient.r=(float)pV[i].r;
-					mesh->m_pMaterials[0].Ambient.g=(float)pV[i].g;
-					mesh->m_pMaterials[0].Ambient.b=(float)pV[i].b;
-					mesh->m_pMaterials[0].Diffuse.a=(float)pV[i].alpha*0.3f;
+					mesh->m_pMaterials[0].Ambient.r=(FLOAT)pV[i].r;
+					mesh->m_pMaterials[0].Ambient.g=(FLOAT)pV[i].g;
+					mesh->m_pMaterials[0].Ambient.b=(FLOAT)pV[i].b;
+					mesh->m_pMaterials[0].Diffuse.a=(FLOAT)pV[i].alpha*0.3f;
 //					mesh->m_pMaterials[0].Ambient=mesh->m_pMaterials[0].Diffuse;
 					D3DXMatrixRotationZ(&mat1,(FLOAT)pV[i].id);
-					D3DXMatrixScaling(&mat2,pV[i].size,pV[i].size,pV[i].size);
+					D3DXMatrixScaling(&mat2,(FLOAT)pV[i].size,(FLOAT)pV[i].size,(FLOAT)pV[i].size);
 					D3DXMatrixMultiply( &mat1 , &mat1, &mat2);
 					mat2=GMatView;
 					mat2._41 = 0.0f; mat2._42 = 0.0f; mat2._43 = 0.0f;
 					D3DXMatrixInverse(&mat2,NULL,&mat2);
 					D3DXMatrixMultiply( &mat1 , &mat1, &mat2);
-					D3DXMatrixTranslation(&mat2,pV[i].x,pV[i].y,pV[i].z);
+					D3DXMatrixTranslation(&mat2,(FLOAT)pV[i].x,(FLOAT)pV[i].y,(FLOAT)pV[i].z);
 					D3DXMatrixMultiply( &mat1 , &mat1, &mat2);
 					D3DXMatrixMultiply( &mat1 , &mat1, &GMatWorld);
 					m_pd3dDevice->SetTransform( D3DTS_WORLD, &mat1 );
@@ -7350,24 +7476,21 @@ HRESULT CMyD3DApplication::Render()
 				}
 			}
 		}
-//				m_pd3dDevice->DrawPrimitive(D3DPT_POINTLIST,0,k);
+				//m_pd3dDevice->DrawPrimitive(D3DPT_POINTLIST,0,k);
 		
+		m_pd3dDevice->SetRenderState( D3DRS_AMBIENT, 0x000F0F0F );
 		m_pd3dDevice->SetRenderState( D3DRS_ZWRITEENABLE, TRUE );
-		m_pd3dDevice->SetRenderState( D3DRS_AMBIENT,        0x000F0F0F );
-		m_pd3dDevice->SetRenderState( D3DRS_LIGHTING,TRUE );
-		m_pd3dDevice->LightEnable(0,TRUE);
 		m_pd3dDevice->SetRenderState( D3DRS_ALPHABLENDENABLE,  FALSE );
-
-		//弾丸
-		m_pd3dDevice->SetRenderState( D3DRS_ALPHABLENDENABLE,TRUE );
-		m_pd3dDevice->SetRenderState( D3DRS_AMBIENT,        0xffffffff );
+		
+		
+		
+		//弾丸----------------------
 		m_pd3dDevice->SetVertexShader(D3DFVF_POINTVERTEX);
+		m_pd3dDevice->SetRenderState( D3DRS_AMBIENT, 0xffffffff );
+		m_pd3dDevice->SetRenderState( D3DRS_CULLMODE, D3DCULL_NONE);	// カリングモード
 		m_pd3dDevice->SetRenderState( D3DRS_ZWRITEENABLE, FALSE );
-		m_pd3dDevice->SetRenderState( D3DRS_LIGHTING, TRUE );
-		m_pd3dDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);	// カリングモード
-		m_pd3dDevice->SetRenderState(D3DRS_SPECULARENABLE, FALSE );
-		m_pd3dDevice->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);   //SRCの設定
-		m_pd3dDevice->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_ONE);  //DESTの設定
+		m_pd3dDevice->SetRenderState( D3DRS_ALPHABLENDENABLE,TRUE );
+		m_pd3dDevice->SetRenderState( D3DRS_DESTBLEND, D3DBLEND_ONE);  //DESTの設定
 		D3DXMATRIX mat1,mat2;
 		k=0;
 //		GVector v=(EyePos-RefPos).normalize2();
@@ -7376,53 +7499,86 @@ HRESULT CMyD3DApplication::Render()
 				//GVector v=Bullet->Vertex[i].Vec.normalize()*Bullet->Vertex[i].Size*10;
 				GVector v=Bullet->Vertex[i].Vec;
 				GVector pos=Bullet->Vertex[i].Pos;
-				float size=Bullet->Vertex[i].Size;
-				float va=v.abs();
-				GFloat f=fabs((pos-v/2-EyePos).normalize2().dot(v.normalize2()));
-				int fn=(int)((4+(int)((1.0f-f*f)*15))/size);
-				if(fn>50) fn=50;
-				
-				D3DXMatrixRotationZ(&mat1,(FLOAT)i);
-				D3DXMatrixScaling(&mat2,size,size,size);
-				D3DXMatrixMultiply( &mat1 , &mat1, &mat2);
-				mat2=GMatView;
-				mat2._41 = 0.0f; mat2._42 = 0.0f; mat2._43 = 0.0f;
-				D3DXMatrixInverse(&mat2,NULL,&mat2);
-				D3DXMatrixMultiply( &mat1 , &mat1, &mat2);
-				
-				for(int j=0;j<fn;j++) {
-					float x=(float)pos.x-v.x+v.x*j/fn;
-					float y=(float)pos.y-v.y+v.y*j/fn;
-					float z=(float)pos.z-v.z+v.z*j/fn;
-					
-					//pV[k].alpha=1.0f-j/(float)fn;
-					float alpha=1.0f;
-					alpha=(float)j/fn;
-					if((Bullet->Vertex[i].Dist+va-va*(float)j/fn)<=0) alpha=0.0f;
+				FLOAT size=(FLOAT)Bullet->Vertex[i].Size;
+				GFloat dist=Bullet->Vertex[i].Dist;
+				GVector v_norm=v.normalize2();
+				GFloat va=v.abs();
+				GFloat va_dist=va;
+				if(dist+size*2<0) va_dist=va+dist+size*2;
+				GFloat va_dist_norm=va_dist/va;
+				GFloat va_dist_inv_norm=(va-va_dist)/va;
+				FLOAT alpha=1.0f;
+				alpha=0.98f;
 
-					CD3DMesh *mesh;
+				FLOAT x,y,z;
+				CD3DMesh *mesh;
+				//-----------------弾頭
+				if(va_dist==va){
 					mesh=m_pXMesh[32];
 					mesh->m_pMaterials[0].Diffuse.a=alpha;
+					D3DXMatrixRotationZ(&mat1,(FLOAT)i);
+					D3DXMatrixScaling(&mat2,size,size,size);
+					D3DXMatrixMultiply( &mat1 , &mat1, &mat2);
+					mat2=GMatView;
+					mat2._41 = 0.0f; mat2._42 = 0.0f; mat2._43 = 0.0f;
+					D3DXMatrixInverse(&mat2,NULL,&mat2);
+					D3DXMatrixMultiply( &mat1 , &mat1, &mat2);
+					x=(FLOAT)(pos.x);
+					y=(FLOAT)(pos.y);
+					z=(FLOAT)(pos.z);
 					D3DXMatrixTranslation(&mat2,x,y,z);
 					D3DXMatrixMultiply( &mat2 , &mat1, &mat2);
 					D3DXMatrixMultiply( &mat2 , &mat2, &GMatWorld);
 					m_pd3dDevice->SetTransform( D3DTS_WORLD, &mat2 );
 					mesh->Render(m_pd3dDevice);
 				}
+				//----------------尾ひれ
+				mesh=m_pXMesh[38];
+				mesh->m_pMaterials[0].Diffuse.a=alpha;
+				
+				GFloat temp=(va-va_dist/2)/va;
+				x=(FLOAT)(pos.x-v.x*temp);
+				y=(FLOAT)(pos.y-v.y*temp);
+				z=(FLOAT)(pos.z-v.z*temp);
+				D3DXMatrixScaling(&mat1,size,(FLOAT)va_dist,size);
+				//-----------------尾ひれの向き
+				GVector Eye_norm=(EyePos2-pos).normalize2();
+				GVector PertVecY=Eye_norm.cross(v_norm);
+				GVector PertVecZ=v_norm.cross(PertVecY);
+				
+			    D3DXVECTOR3 vFromPt   = D3DXVECTOR3( 0.0f,0.0f,0.0f );
+			    D3DXVECTOR3 vLookatPt = D3DXVECTOR3( (FLOAT)PertVecZ.x, (FLOAT)PertVecZ.y, (FLOAT)PertVecZ.z );
+			    D3DXVECTOR3 vUpVec    = D3DXVECTOR3( (FLOAT)v_norm.x, (FLOAT)v_norm.y, (FLOAT)v_norm.z );
+			    D3DXMatrixLookAtLH( &mat2, &vFromPt, &vLookatPt, &vUpVec );
+				//-----------------
+				D3DXMatrixInverse(&mat2,NULL,&mat2);
+				D3DXMatrixMultiply( &mat1 , &mat1, &mat2);
+				D3DXMatrixTranslation(&mat2,x,y,z);
+				D3DXMatrixMultiply( &mat2 , &mat1, &mat2);
+				D3DXMatrixMultiply( &mat2 , &mat2, &GMatWorld);
+				m_pd3dDevice->SetTransform( D3DTS_WORLD, &mat2 );
+				//-----------------
+				m_pd3dDevice->SetTextureStageState( 0, D3DTSS_TEXTURETRANSFORMFLAGS, D3DTTFF_COUNT2 );
+				D3DXMatrixScaling(&mat1,1.0f,(FLOAT)va_dist_norm,1.0f);
+				mat1._31 = 0.0f; mat1._32 = (FLOAT)va_dist_inv_norm;
+				m_pd3dDevice->SetTransform( D3DTS_TEXTURE0, &mat1); //地形衝突時のﾃｸｽﾁｬｼﾌﾄ
+				mesh->Render(m_pd3dDevice);
+				m_pd3dDevice->SetTextureStageState( 0, D3DTSS_TEXTURETRANSFORMFLAGS, D3DTTFF_DISABLE );
 			}
 		}
-		
-		m_pd3dDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_CCW);	// カリングモード
-		m_pd3dDevice->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);  //DESTの設定
-		m_pd3dDevice->SetRenderState( D3DRS_ZWRITEENABLE, TRUE );
 		m_pd3dDevice->SetRenderState( D3DRS_AMBIENT,        0x000F0F0F );
-		m_pd3dDevice->SetRenderState( D3DRS_LIGHTING,TRUE );
-		m_pd3dDevice->LightEnable(0,TRUE);
-		m_pd3dDevice->SetRenderState( D3DRS_ALPHABLENDENABLE,  FALSE );
-
-
-
-		// メーターの表示
+		m_pd3dDevice->SetRenderState( D3DRS_CULLMODE, D3DCULL_CCW);	// カリングモード
+		m_pd3dDevice->SetRenderState( D3DRS_ZWRITEENABLE, TRUE );
+		m_pd3dDevice->SetRenderState( D3DRS_ALPHABLENDENABLE, FALSE );
+		m_pd3dDevice->SetRenderState( D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);  //DESTの設定
+    	
+		
+		World->Disp(0,FALSE,TRUE,FALSE); //半透明ｶｳﾙ描画
+		World->JetDisp();
+		World->DispNetJetAll();
+		
+		
+		// メーターの表示----------------------
 		D3DVIEWPORT8 viewData = { (DWORD)0, (DWORD)0, (DWORD)w, (DWORD)h, 0.0f, 1.0f };
 		D3DVIEWPORT8 viewData1 = { (DWORD)(w-128-94-94-79), (DWORD)(h-71), 64, 64, 0.0f, 1.0f };
 		D3DVIEWPORT8 viewData2 = { (DWORD)(w-128-94-94-94-79), (DWORD)(h-71), 64, 64, 0.0f, 1.0f };
@@ -7450,47 +7606,45 @@ HRESULT CMyD3DApplication::Render()
 				vUpVec    = D3DXVECTOR3(0.0f, 1.0f, 0.0f );
 				D3DXMatrixLookAtLH( &matV, &vFromPt, &vLookatPt, &vUpVec );
 				// Set the projection matrix
-				D3DXMatrixPerspectiveFovLH( &matProj, 0.1f, 1.0f, 1.0f, GFARMAX );
+				D3DXMatrixPerspectiveFovLH( &matProj, 0.1f, 1.0f, 1.0f, (FLOAT)GFARMAX );
 				m_pd3dDevice->SetTransform( D3DTS_PROJECTION, &matProj );
 				m_pd3dDevice->SetRenderState( D3DRS_AMBIENT,0xffffffff );
-				m_pd3dDevice->SetRenderState( D3DRS_LIGHTING,TRUE );
+				m_pd3dDevice->SetRenderState( D3DRS_ZENABLE, FALSE );
 				m_pd3dDevice->SetViewport(&viewData1);
 				m_pd3dDevice->SetTransform( D3DTS_VIEW, &matV );
-				m_pd3dDevice->SetRenderState( D3DRS_ZENABLE, FALSE );
 				m_pXMesh[12]->Render(G3dDevice);
+				m_pd3dDevice->SetRenderState( D3DRS_AMBIENT,0x000f0f0f );
+				m_pd3dDevice->SetRenderState( D3DRS_ZENABLE, TRUE );
+				G3dDevice->SetTransform( D3DTS_WORLD, &GMatWorld );
 			}
-			m_pd3dDevice->SetRenderState( D3DRS_ZENABLE, TRUE );
-			G3dDevice->SetTransform( D3DTS_WORLD, &GMatWorld );
 			if(w-128-94-94-94-79>0 && CCDFlag && ShowMeter) {
-				D3DXMatrixPerspectiveFovLH( &matProj, CCDZoom*(FLOAT)M_PI/180.0f, 1.0f, 1.0f, 300.0f );
+				D3DXMatrixPerspectiveFovLH( &matProj, (FLOAT)(CCDZoom*M_PI/180.0f), 1.0f, 1.0f, 300.0f );
 				m_pd3dDevice->SetTransform( D3DTS_PROJECTION, &matProj );
 				GVector lv0=Chip[0]->X+(GVector(0,0,1)*Chip[0]->R)*0.75f;
 				GVector lv=Chip[0]->X+(GVector(0,0,-1)*Chip[0]->R)*3.0f;
 				GVector lvy=GVector(0,1,0)*Chip[0]->R;
-				vFromPt   = D3DXVECTOR3(lv0.x, lv0.y, lv0.z);
-				vLookatPt = D3DXVECTOR3(lv.x, lv.y, lv.z );
-				vUpVec    = D3DXVECTOR3(lvy.x, lvy.y, lvy.z );
+				vFromPt   = D3DXVECTOR3((FLOAT)lv0.x, (FLOAT)lv0.y, (FLOAT)lv0.z);
+				vLookatPt = D3DXVECTOR3((FLOAT)lv.x, (FLOAT)lv.y, (FLOAT)lv.z );
+				vUpVec    = D3DXVECTOR3((FLOAT)lvy.x, (FLOAT)lvy.y, (FLOAT)lvy.z );
 				D3DXMatrixLookAtLH( &matV, &vFromPt, &vLookatPt, &vUpVec );
 				m_pd3dDevice->SetViewport(&viewData2);
 				m_pd3dDevice->Clear( 0, NULL, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, D3DCOLOR_XRGB((int)FogColor.x, (int)FogColor.y, (int)FogColor.z), 1.0f, 0 );
 				m_pd3dDevice->SetTransform( D3DTS_VIEW, &matV );
-				m_pd3dDevice->SetRenderState( D3DRS_AMBIENT,0x000f0f0f );
 				m_pLandMesh->Render(G3dDevice);
 				World->Disp2();
 				World->ObjectDisp();
 				//ネットチップの表示
-				m_pd3dDevice->SetRenderState( D3DRS_LIGHTING,TRUE );
 				m_pd3dDevice->SetRenderState( D3DRS_ALPHABLENDENABLE,TRUE );
-				m_pd3dDevice->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);  //DESTの設定
 				for(i=0;i<DPlay->GetNumPlayers();i++) {
 					World->DispNetChip(i);
 				}
+				m_pd3dDevice->SetRenderState( D3DRS_ALPHABLENDENABLE,FALSE );
 				{	//水面の表示
 					D3DXMATRIX mat1;
 					float x,z;
 					x=(int)(Chip[0]->X.x/50)*50.0f;
 					z=(int)(Chip[0]->X.z/50)*50.0f;
-					D3DXMatrixTranslation(&mat1,x,WaterLine,z);
+					D3DXMatrixTranslation(&mat1,x,(FLOAT)WaterLine,z);
 					D3DXMatrixMultiply( &mat1 , &mat1, &GMatWorld);
 					G3dDevice->SetTransform( D3DTS_WORLD, &mat1 );
 					G3dDevice->SetRenderState( D3DRS_ALPHABLENDENABLE,TRUE );
@@ -7669,7 +7823,7 @@ HRESULT CMyD3DApplication::Render()
 		pSprite->Draw(pMyTexture[0],NULL,NULL,NULL,D3DXToRadian(0),&pos,0x99ffffff);
 		float d=-(float)Chip[0]->V.abs()*3.6f*270.0f/450.0f;
 		ave1=ave1*0.8f+(-Chip[0]->W.y)*15.0f*0.2f;
-		float d2=ave1+180.0f;
+		float d2=(FLOAT)ave1+180.0f;
 		// 針の影2
 		pos.x=w-128+32.0f+2.0f;
 		pos.y=h-117.0f+44.0f+1.0f;
@@ -7755,7 +7909,7 @@ HRESULT CMyD3DApplication::Render()
 		if(w-128-94-94-79>0) {
 			
 			GVector dir=GVector(0,0,1)*Chip[0]->R;
-			d2=-(dir).Cut2(GVector(0,1,0)).angle2(GVector(0,0,1),GVector(0,1,0))*180.0f/(float)M_PI;
+			d2=(FLOAT)(-(dir).Cut2(GVector(0,1,0)).angle2(GVector(0,0,1),GVector(0,1,0))*180.0f/M_PI);
 			pos.x=w-94.0f-94.0f-94.0f-128.0f;
 			pos.y=h-86.0f;
 			pSprite->Draw(pMyTexture[3],NULL,&s,&v2,D3DXToRadian(0),&pos,0x99ffffff);
@@ -7765,7 +7919,7 @@ HRESULT CMyD3DApplication::Render()
 			if(CurrentCheckPoint<Course[CurrentCourse].Count || CompassTarget.y>-100000.0) {
 				GVector target=Course[CurrentCourse].Point[CurrentCheckPoint];
 				if(CurrentCheckPoint<Course[CurrentCourse].Count==0) target=CompassTarget;
-				d=(Chip[0]->X-target).Cut2(GVector(0,1,0)).angle2(GVector(0,0,1),GVector(0,1,0))*180.0f/(float)M_PI+d2+180.0f;
+				d=(FLOAT)((Chip[0]->X-target).Cut2(GVector(0,1,0)).angle2(GVector(0,0,1),GVector(0,1,0))*180.0f/M_PI+d2+180.0f);
 				// 針の影
 				pos.x=w-94.0f-94.0f-94.0f-128.0f+24.0f+2.0f;
 				pos.y=h-86.0f+48.0f+1.0f;
@@ -7856,9 +8010,8 @@ HRESULT CMyD3DApplication::RenderText()
 	float h=(FLOAT) m_d3dsdBackBuffer.Height;
     TCHAR szMsg[MAX_PATH] = TEXT("");
 	
-	G3dDevice->SetRenderState( D3DRS_ALPHABLENDENABLE,FALSE );
-				G3dDevice->SetRenderState( D3DRS_ALPHABLENDENABLE,TRUE );
-				G3dDevice->SetRenderState( D3DRS_AMBIENT,        0xffffffff );
+	G3dDevice->SetRenderState( D3DRS_ALPHABLENDENABLE,TRUE );
+	G3dDevice->SetRenderState( D3DRS_AMBIENT, 0xffffffff );
 
     szMsg[0]='\0';
 	// Output display stats
@@ -8172,6 +8325,8 @@ HRESULT CMyD3DApplication::RenderText()
 			}
 		}
 	}
+	m_pd3dDevice->SetRenderState( D3DRS_AMBIENT,        0x000F0F0F );
+	m_pd3dDevice->SetRenderState( D3DRS_ALPHABLENDENABLE, FALSE );
 	
 	return S_OK;
 }
@@ -8460,14 +8615,35 @@ LRESULT CMyD3DApplication::MsgProc( HWND hWnd, UINT msg, WPARAM wParam,
 					else CheckMenuItem(hMenu,IDM_DITHER,MF_UNCHECKED);
                     break;
 				}
+			/*case IDM_LIMIT60:
+				{
+					HMENU hMenu = GetMenu( hWnd );
+					LIMITFPS=60;
+                    m_dLimidFPS = (m_dLimidFPS==(1000/LIMITFPS))?0L:(1000/LIMITFPS);
+					if(World) World->SetStepTime(1.0f/LIMITFPS);
+					if(World) World->SetSubStep(5);
+					if(m_dLimidFPS==(1000/LIMITFPS)) {
+						CheckMenuItem(hMenu,IDM_LIMIT60,MF_CHECKED);
+						CheckMenuItem(hMenu,IDM_LIMIT30,MF_UNCHECKED);
+						CheckMenuItem(hMenu,IDM_LIMIT15,MF_UNCHECKED);
+					}
+					else {
+						CheckMenuItem(hMenu,IDM_LIMIT60,MF_UNCHECKED);
+						LIMITFPS=60;
+					}
+
+                    break;
+				}*/
 			case IDM_LIMIT30:
 				{
 					HMENU hMenu = GetMenu( hWnd );
 					LIMITFPS=30;
                     m_dLimidFPS = (m_dLimidFPS==(1000/LIMITFPS))?0L:(1000/LIMITFPS);
 					if(World) World->SetStepTime(1.0f/LIMITFPS);
+					//if(World) World->SetSubStep(10);
 					if(m_dLimidFPS==(1000/LIMITFPS)) {
 						CheckMenuItem(hMenu,IDM_LIMIT30,MF_CHECKED);
+						//CheckMenuItem(hMenu,IDM_LIMIT60,MF_UNCHECKED);
 						CheckMenuItem(hMenu,IDM_LIMIT15,MF_UNCHECKED);
 					}
 					else {
@@ -8483,9 +8659,11 @@ LRESULT CMyD3DApplication::MsgProc( HWND hWnd, UINT msg, WPARAM wParam,
 					LIMITFPS=15;
                     m_dLimidFPS = (m_dLimidFPS==(1000/LIMITFPS))?0L:(1000/LIMITFPS);
 					if(World) World->SetStepTime(1.0f/LIMITFPS);
+					//if(World) World->SetSubStep(20);
 					if(m_dLimidFPS==(1000/LIMITFPS)) {
 						CheckMenuItem(hMenu,IDM_LIMIT15,MF_CHECKED);
 						CheckMenuItem(hMenu,IDM_LIMIT30,MF_UNCHECKED);
+						//CheckMenuItem(hMenu,IDM_LIMIT60,MF_UNCHECKED);
 					}
 					else {
 						CheckMenuItem(hMenu,IDM_LIMIT15,MF_UNCHECKED);
@@ -8931,6 +9109,22 @@ LRESULT CMyD3DApplication::MsgProc( HWND hWnd, UINT msg, WPARAM wParam,
 					else CheckMenuItem(hMenu,IDM_SHOWSCRIPTMESSAGE,MF_UNCHECKED);
 					break;
 				}
+			case IDM_SHOWLANDNORMAL:
+				{
+					HMENU hMenu = GetMenu( hWnd );
+                    ShowLandNormal = !ShowLandNormal;
+					if(ShowLandNormal) CheckMenuItem(hMenu,IDM_SHOWLANDNORMAL,MF_CHECKED);
+					else CheckMenuItem(hMenu,IDM_SHOWLANDNORMAL,MF_UNCHECKED);
+					break;
+				}
+			case IDM_SHOWHITMESH:
+				{
+					HMENU hMenu = GetMenu( hWnd );
+                    ShowHitMesh = !ShowHitMesh;
+					if(ShowHitMesh) CheckMenuItem(hMenu,IDM_SHOWHITMESH,MF_CHECKED);
+					else CheckMenuItem(hMenu,IDM_SHOWHITMESH,MF_UNCHECKED);
+					break;
+				}
 			case IDM_SHOWPOWER:
 				{
 					HMENU hMenu = GetMenu( hWnd );
@@ -8938,7 +9132,7 @@ LRESULT CMyD3DApplication::MsgProc( HWND hWnd, UINT msg, WPARAM wParam,
 					if(ShowPower) CheckMenuItem(hMenu,IDM_SHOWPOWER,MF_CHECKED);
 					else CheckMenuItem(hMenu,IDM_SHOWPOWER,MF_UNCHECKED);
 					break;
-				}				
+				}
 			case IDM_SETTING_SHOWGHOST:
 				{
 					HMENU hMenu = GetMenu( hWnd );

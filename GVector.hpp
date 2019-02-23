@@ -1,11 +1,10 @@
 #ifndef G_VECTOR_H
 #define G_VECTOR_H
-#define GSINGLE_PRECISION
 #include <math.h>
 #ifndef M_PI
 #define M_PI        3.14159265358979323846
 #endif
-//#define GSINGLE_PRECISION
+//#define GSINGLE_PRECISION  //Logﾌｧｲﾙの互換性が失われる
 #ifdef GSINGLE_PRECISION
 #define gEpsilon  1E-4
 typedef float GFloat;
@@ -436,7 +435,7 @@ public:
         return(A*(B.inverse()));
     }
     // クォータニオンの補間
-	GQuat slerp(const GQuat &q,const float t)
+	GQuat slerp(const GQuat &q,const GFloat t)
 	{
 		GQuat p;
 
@@ -500,6 +499,14 @@ public:
 		elem[2][0] =  f[8]; elem[2][1] =  f[9]; elem[2][2] = f[10]; elem[2][3] = f[11];
 		elem[3][0] = f[12]; elem[3][1] = f[13]; elem[3][2] = f[14]; elem[3][3] = f[15];
 	}
+#ifndef GSINGLE_PRECISION
+	GMatrix(float f[16]) {
+		elem[0][0] =  f[0]; elem[0][1] =  f[1]; elem[0][2] =  f[2]; elem[0][3] =  f[3];
+		elem[1][0] =  f[4]; elem[1][1] =  f[5]; elem[1][2] =  f[6]; elem[1][3] =  f[7];
+		elem[2][0] =  f[8]; elem[2][1] =  f[9]; elem[2][2] = f[10]; elem[2][3] = f[11];
+		elem[3][0] = f[12]; elem[3][1] = f[13]; elem[3][2] = f[14]; elem[3][3] = f[15];
+	}
+#endif
 	// 初期化(コピー)
 	GMatrix(const GMatrix&);
 	GMatrix(const GMatrix33);
@@ -871,5 +878,13 @@ public:
     }
 };
 
-
+//通信ﾃﾞｰﾀ用4byteFloat
+typedef float GFloat_32;
+class GVector_32 {
+public:
+	float x,y,z;
+    GVector_32(void) { x = y = z = 0; }
+	explicit GVector_32(const GVector &v) : x((GFloat_32)v.x), y((GFloat_32)v.y), z((GFloat_32)v.z) {}
+	operator GVector() { return GVector(x,y,z); }
+};
 #endif

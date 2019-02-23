@@ -12,7 +12,7 @@
 #include "stdlib.h"
 
 #define GPARTMAX 10000
-extern float ARMSPEED;
+extern GFloat ARMSPEED;
 
 extern GFloat WaterLine;
 
@@ -94,7 +94,7 @@ public:
 	void Move(){
 		for(int i=0;i<MaxVertex;i++) {
 			if(Vertex[i].Life>0) {
-				float y=Vertex[i].Pos.y;
+				GFloat y=Vertex[i].Pos.y;
 				if(y>WaterLine && Vertex[i].Pos.y+Vertex[i].Vec.y<WaterLine)  {
 					Vertex[i].Vec.x=(GFloat)(Vertex[i].Vec.x+((myrand()%100)/100.0-0.5)*Vertex[i].Vec.y);
 					Vertex[i].Vec.z=(GFloat)(Vertex[i].Vec.z+((myrand()%100)/100.0-0.5)*Vertex[i].Vec.y);
@@ -173,7 +173,7 @@ public:
 				Vertex[i].Net=0;
 			}
 			if(Vertex[i].Life>0) {
-				float y=Vertex[i].Pos.y;
+				GFloat y=Vertex[i].Pos.y;
 				Vertex[i].Pos+=Vertex[i].Vec;
 				Vertex[i].Life-=Vertex[i].Vec.abs();
 				Vertex[i].Dist-=Vertex[i].Vec.abs();
