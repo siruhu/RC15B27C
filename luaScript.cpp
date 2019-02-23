@@ -82,6 +82,9 @@ lua_State *luaScriptInit(char *buff) {
 	setlocale(LC_ALL, "");
     //
 	lua_State *L = lua_open();  /* create state */
+	// ŠÖ”‚ğ“o˜^‚·‚é(v1.5C8)
+    lua_register(L, "_PLAYEREXTTIME", luaGetPlayerExtTime);
+	
     // ŠÖ”‚ğ“o˜^‚·‚é
     lua_register(L, "out", luaPrint);
 

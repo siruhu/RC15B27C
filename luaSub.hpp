@@ -133,6 +133,8 @@ int luaGetPlayerName(lua_State *L);
 int luaGetFuel(lua_State *L);
 int luaGetFuelMax(lua_State *L);
 void luaUpdateVal();
+//--------
+int luaGetPlayerExtTime(lua_State *L);
 //--------ºΩ√—ä÷êî
 int luaGetNoiseTicks(lua_State *L);
 int luaSetScriptFunction(lua_State *L);

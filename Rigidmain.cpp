@@ -189,6 +189,8 @@ int VarCount=0;
 int TickCount=0;
 int SystemTickCount=0;
 int RecTickCount=0;
+DWORD frameGetTime=0;
+DWORD frameElapsedTime=100;
 double FPS=0.0;
 int Width,Height;
 bool GravityFlag=TRUE;
@@ -531,9 +533,25 @@ HRESULT MyReceiveFunc( MYAPP_PLAYER_INFO* playerInfo,DWORD size,BYTE *stream ) {
 				PrePlayerData[i].sendtime2=PlayerData[i].sendtime2;
 				PlayerData[i].sendtime=PlayerData[i].sendtime2=PlayerData[i].ReceiveData.data[0].color; //¡‚Ì‚Æ‚±‚ë(C8)º±Ú×À•W‚Ì‚İ‚Å‚¢‚¢‚Í‚¸
 				
+				PrePlayerData[i].span=PlayerData[i].span;
+				PrePlayerData[i].span2=PlayerData[i].span2;
+				PlayerData[i].span=PlayerData[i].sendtime-PrePlayerData[i].sendtime;
+				PlayerData[i].span2=PlayerData[i].sendtime2-PrePlayerData[i].sendtime2;
+				
+				PrePlayerData[i].rtime=PlayerData[i].rtime;
+				PrePlayerData[i].rtime2=PlayerData[i].rtime2;
+				PlayerData[i].rtime=PlayerData[i].rtime+PlayerData[i].span+1;
+				PlayerData[i].rtime2=PlayerData[i].rtime2+PlayerData[i].span2+1; //‚Æ‚è‚ ‚¦‚¸1‘«‚µ‚Æ‚­
+				DWORD timeGt=frameGetTime;
+				if(timeGt-PlayerData[i].rtime>1000){ //Û°¶Ù‚ÅŒvZ‚µ‚½‘Šè‚Ì“à•”ŠÔ‚ÌÏZŒë·‚ª60‚ğ’´‚¦‚½‚Ü‚½‚Í0–¢–‚ÌØ¾¯Ä
+					PlayerData[i].rtime=timeGt;
+				}
+				if(timeGt-PlayerData[i].rtime2>1000){
+					PlayerData[i].rtime2=timeGt;
+				}
 				PrePlayerData[i].time=PlayerData[i].time;
 				PrePlayerData[i].time2=PlayerData[i].time2;
-				PlayerData[i].time=PlayerData[i].time2=timeGetTime();
+				PlayerData[i].time=PlayerData[i].time2=timeGt;
 				PrePlayerData[i].ReceiveData.size=s;
 				PlayerData[i].ReceiveData.size=size;
 				break;
@@ -585,8 +603,17 @@ HRESULT MyReceiveFunc( MYAPP_PLAYER_INFO* playerInfo,DWORD size,BYTE *stream ) {
 				PrePlayerData[i].sendtime2=PlayerData[i].sendtime2;
 				PlayerData[i].sendtime2=PlayerData[i].ReceiveData.data[0].color; //¡‚Ì‚Æ‚±‚ë(C8)º±Ú×À•W‚Ì‚İ‚Å‚¢‚¢‚Í‚¸
 				
+				PrePlayerData[i].span2=PlayerData[i].span2;
+				PlayerData[i].span2=PlayerData[i].sendtime2-PrePlayerData[i].sendtime2;
+				
+				PrePlayerData[i].rtime2=PlayerData[i].rtime2;
+				PlayerData[i].rtime2=PlayerData[i].rtime2+PlayerData[i].span2+1; //‚Æ‚è‚ ‚¦‚¸1‘«‚µ‚Æ‚­
+				DWORD timeGt=frameGetTime;
+				if(timeGt-PlayerData[i].rtime2>1000){ //Û°¶Ù‚ÅŒvZ‚µ‚½‘Šè‚Ì“à•”ŠÔ‚ÌÏZŒë·‚ª60‚ğ’´‚¦‚½‚Ü‚½‚Í0–¢–‚ÌØ¾¯Ä
+					PlayerData[i].rtime2=timeGt;
+				}
 				PrePlayerData[i].time2=PlayerData[i].time2;
-				PlayerData[i].time2=timeGetTime();
+				PlayerData[i].time2=timeGt;
 				PrePlayerData[i].ReceiveData.size=s2;
 				PlayerData[i].ReceiveData.size=s1;
 				break;
@@ -2082,7 +2109,7 @@ void GRigid::Disp()
 				pow=pow*pow*46.0f+4.0f;
 				float emi=((((int)Effect)&0xf00)>>8)/15.0f;
 				float emi_=1.0f-emi;
-				float alpha=1.0-((((int)Effect)&0xf000)>>12)/15.0f;
+				float alpha=1.0f-((((int)Effect)&0xf000)>>12)/15.0f;
 				if(alpha<1.0f) 	{
 					G3dDevice->SetRenderState( D3DRS_ALPHABLENDENABLE,TRUE );
 					G3dDevice->SetRenderState( D3DRS_ZWRITEENABLE,FALSE );
@@ -2167,18 +2194,12 @@ void GWorld::DispNetChip(int n)
 	float w1=0.0f,w2=1.0f;
 	float ww1=0.0f,ww2=1.0f;
 	if(PrePlayerData[n].ReceiveData.size==PlayerData[n].ReceiveData.size) {
-		unsigned short span=PlayerData[n].sendtime-PrePlayerData[n].sendtime;
-		unsigned short span2=PlayerData[n].sendtime2-PrePlayerData[n].sendtime2;
-		DWORD lspan=PlayerData[n].time-PrePlayerData[n].time; //localspan
-		DWORD lspan2=PlayerData[n].time2-PrePlayerData[n].time2;
-		unsigned short delay=(unsigned short)lspan-span;
-		unsigned short delay2=(unsigned short)lspan2-span2;
-		if(delay>0x8000)delay=0;
-		if(delay2>0x8000)delay2=0;
-		DWORD timeGt=timeGetTime(); //ÌÚ°Ñ‚ğg‚Á‚½‚Ù‚¤‚ª‚¢‚¢
-		DWORD t=timeGt-PlayerData[n].time;+delay;
-		DWORD t2=timeGt-PlayerData[n].time2+delay2;
-		if(t<(DWORD)span*2) {
+		DWORD span=PlayerData[n].span;
+		DWORD span2=PlayerData[n].span2;
+		DWORD timeGt=frameGetTime;
+		DWORD t=timeGt-PlayerData[n].rtime;
+		DWORD t2=timeGt-PlayerData[n].rtime2;
+		if(t<span*2) {
 			w2=(float)t/(float)span;
 			w1=1.0f-w2;
 			if(t<0) {
@@ -2186,7 +2207,7 @@ void GWorld::DispNetChip(int n)
 				w1=1;
 			}
 		}
-		if(t2<(DWORD)span2*6) {
+		if(t2<span2*6) {
 			ww2=(float)t2/(float)span2;
 			ww1=1.0f-ww2;
 			if(t2<0) {
@@ -2230,7 +2251,7 @@ void GWorld::DispNetChip(int n)
 		GVector p;
 		GVector X1=PlayerData[n].X[id];
 		GVector X2=PrePlayerData[n].X[id];
-		GVector X=(((X1-X2)*ww2+X1)+PlayerData[n].X2[id])/2.0f;
+		GVector X=(((X1-X2)*ww2+X1)+PlayerData[n].X2[id])/2;
 		PlayerData[n].X[PlayerData[n].ChipCount].x=chip->data.pos.x/100.0f+X1.x;
 		PlayerData[n].X[PlayerData[n].ChipCount].y=chip->data.pos.y/100.0f+X1.y;
 		PlayerData[n].X[PlayerData[n].ChipCount].z=chip->data.pos.z/100.0f+X1.z;
@@ -2330,8 +2351,8 @@ void GWorld::DispNetChip(int n)
 				float b1=(((int)chip->color)&0x1f)/32.0f;
 
 				int opt=chip->data.option&0x07;
-				float spe=(chip->data.option&0x08)>>3;//1bit
-				float emi=(chip->data.option&0x10)>>4;//1bit
+				float spe=(float)((chip->data.option&0x08)>>3);//1bit
+				float emi=(float)((chip->data.option&0x10)>>4);//1bit
 				float emi_=1.0f-emi;
 				float alpha=1.0f-((chip->data.option&0xe0)>>5)/7.0f;//3bit
 				if(alpha!=1) {PlayerData[n].ChipCount++;continue;}
@@ -2460,8 +2481,8 @@ void GWorld::DispNetChip(int n)
 				float alpha=1.0f-((chip->data.option&0xe0)>>5)/7.0f;//3bit
 				if(alpha==1) {PlayerData[n].ChipCount++;continue;} 
 				int opt=chip->data.option&0x07;
-				float spe=(chip->data.option&0x08)>>3;//1bit
-				float emi=(chip->data.option&0x10)>>4;//1bit
+				float spe=(float)((chip->data.option&0x08)>>3);//1bit
+				float emi=(float)((chip->data.option&0x10)>>4);//1bit
 				float emi_=1.0f-emi;
 				
 				D3DXMatrixMultiply( &mat1 , &mat1, &matLocal);
@@ -3239,6 +3260,7 @@ CMyD3DApplication::CMyD3DApplication()
 		RecieaveMessageDataLen[i]=0;
 	}
 
+	frameGetTime=timeGetTime();
 	MouseX=0;
 	MouseY=0;
 	MouseL=0;
@@ -4732,6 +4754,8 @@ HRESULT CMyD3DApplication::FrameMove()
 	int i,j,k;
 	POINT pos;
 	DWORD t=timeGetTime();
+	frameElapsedTime=t-frameGetTime;
+	frameGetTime=t;
 	//˜^‰æŠJn
 	if(!MsgFlag && RecState>0) {
 		if(RecState==1) {
@@ -5276,7 +5300,6 @@ if( win == FALSE )
 					BlockErrStr(errCode,DataCheck,str);
 					MessageBox( NULL, str, NULL, MB_ICONERROR|MB_OK );
 				}
-				float aa=Chip[0]->Fuel;
 				if(DPlay->GetNumPlayers()>0 ) {	//‰Šú‰»‚ğ‘—M‚·‚é
 					GINFOSTREAM stream;
 					stream.code=100; //‰Šú‰»
@@ -7712,7 +7735,7 @@ HRESULT CMyD3DApplication::Render()
 		// j‚Ì‰e2
 		pos.x=w-94-94-128+24.0f+2.0f;
 		pos.y=h-86.0f+32.0f+1.0f;
-		d2=-Chip[0]->TotalFuel/Chip[0]->TotalFuelMax*180+90.0f;
+		d2=(float)(-Chip[0]->TotalFuel/Chip[0]->TotalFuelMax*180+90.0f);
 		pSprite->Draw(pMyTexture[10],NULL,&s2,&v3,D3DXToRadian(d2),&pos,0x77ffffff);
 		// j2
 		pos.x=w-94.0f-94.0f-128.0f+24.0f;

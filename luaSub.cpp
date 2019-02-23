@@ -28,6 +28,8 @@ float luaL3dx,luaL3dy,luaL3dz;
 float luaL2dx,luaL2dy;
 int luaGraColor;
 extern int randTime;
+extern DWORD frameGetTime;
+extern DWORD frameElapsedTime;
 void Line(GVector &p1,GVector &p2,unsigned int col);
 void Line2D(GFloat x0,GFloat y0,GFloat x1,GFloat y1,int col);
 
@@ -809,7 +811,12 @@ int luaGetHeight(lua_State *L)
 }
 int luaGetFps(lua_State *L)
 {
-	lua_pushnumber(L,(double)FPS);
+	int flag=(int)lua_tonumber(L, 1);
+	if(flag==1 && frameElapsedTime>=1){
+		lua_pushnumber(L,1000/(double)frameElapsedTime);
+	}else{
+		lua_pushnumber(L,(double)FPS);
+	}
 	return 1;
 }
 int luaGetBase(lua_State *L)
@@ -1121,6 +1128,42 @@ void luaUpdateVal() {
 			else *(ValList[i].Ref[k])=ValList[i].Val;
 		}
 	}
+}
+//---------------------
+int luaGetPlayerPos(lua_State *L)
+{
+	int n=(int)lua_tonumber(L, 1);
+	if(n<0 || n>=DPlay->GetNumPlayers()) {
+		lua_pushnumber(L,0.0);
+		lua_pushnumber(L,-100000.0);
+		lua_pushnumber(L,0.0);
+		return 3;
+	}
+	if(DPlay->GetLocalPlayerDPNID()==PlayerData[n].ReceiveData.info.dpnidPlayer) {
+		lua_pushnumber(L,(double)Chip[0]->X.x);
+		lua_pushnumber(L,(double)Chip[0]->X.y);
+		lua_pushnumber(L,(double)Chip[0]->X.z);
+		return 3;
+	}
+	double a=pow((double)PlayerData[n].ChipCount,1.0/3.0)/2.0;
+	double x=PlayerData[n].x+(rand()%10000-5000)/1000.0*a+sin(randTime/150.0)*a-sin(randTime/350.0)*a;
+	double y=PlayerData[n].y+(rand()%10000-5000)/1000.0*a+sin(randTime/160.0)*a-sin(randTime/360.0)*a;
+	double z=PlayerData[n].z+(rand()%10000-5000)/1000.0*a+sin(randTime/140.0)*a-sin(randTime/340.0)*a;
+	lua_pushnumber(L,x);
+	lua_pushnumber(L,y);
+	lua_pushnumber(L,z);
+	return 3;
+}
+//---------------------
+int luaGetPlayerExtTime(lua_State *L) //ï‚äÆéûä‘
+{
+	int n=(int)lua_tonumber(L, 1);
+	if(n<0 || n>=DPlay->GetNumPlayers()) {
+		lua_pushnumber(L,0.0);
+		return 1;
+	}
+	lua_pushnumber(L,(double)frameGetTime-PlayerData[n].rtime2);
+	return 1;
 }
 //---------------------º≈ÿµä÷êî
 int luaGetNoiseTicks(lua_State *L)

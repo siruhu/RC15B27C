@@ -71,7 +71,7 @@ extern bool EfficientFlag;
 extern GRing Ring[];
 
 extern int ChipCount;
-extern float Zoom;
+extern GFloat Zoom;
 
 extern GDPlay *DPlay;
 extern GPLAYERDATA PlayerData[];
