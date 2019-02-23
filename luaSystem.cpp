@@ -344,18 +344,18 @@ int luaLoadLand(lua_State *L)
 	char *str=(char*)lua_tostring(L, 1);
 	int r=0;
 	char st[_MAX_PATH];
-	if(strcmp(szLandFileName0,str)!=0) {
-		char *s=SearchFolder(CurrDataDir,str,st);
-		if(s==NULL) {
+	//if(strcmp(szLandFileName0,str)!=0) {
+		//char *s=SearchFolder(CurrDataDir,str,st);
+		//if(s==NULL) {
 			char *s=SearchFolder(DataDir,str,st);
 			if(s==NULL) {
-				s=SearchFolder(ResourceDir,str,st);
-				if(s==NULL) {
+		//		s=SearchFolder(ResourceDir,str,st);
+		//		if(s==NULL) {
 					lua_pushnumber(L,0);
 					return 1;
-				}
+		//		}
 			}
-		}
+		//}
 
   
 		r=LoadLand(G3dDevice, s);
@@ -381,7 +381,7 @@ int luaLoadLand(lua_State *L)
 			m_pLandMesh->InvalidateDeviceObjects();
 			m_pLandMesh->RestoreDeviceObjects(G3dDevice);
 		}
-	}
+	//}
 	World->MainStepCount=-1;
 
 	lua_pushnumber(L,r);
@@ -842,6 +842,11 @@ int luaGetH(lua_State *L)
 	D3DXIntersect(m_pLandMesh->GetSysMemMesh(),&v1,&v2,&hit,NULL,NULL,NULL,&dist,NULL,NULL);
 	if(!hit) dist=-100000.0f;
 	else dist=100000.0f-dist;
+	pVB->Unlock();
+	pIB->Unlock();
+	pVB->Release();
+	pIB->Release();
+	
 	lua_pushnumber(L,dist);
 	return 1;
 

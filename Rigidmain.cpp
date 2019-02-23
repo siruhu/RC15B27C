@@ -748,7 +748,7 @@ HRESULT MyReceiveFunc( MYAPP_PLAYER_INFO* playerInfo,DWORD size,BYTE *stream ) {
 			GSTREAM strm2;
 			strm2.code=1;
 			char *str=(char*)strm2.data;
-			sprintf(str,"Version=1.5 C1");
+			sprintf(str,"Version=1.5 B27C4");
 			DWORD size=strlen(str)+1+sizeof(short);
 			DPlay->SendTo(playerInfo->dpnidPlayer,(BYTE*)&strm2,size);
 		}
@@ -1301,75 +1301,86 @@ void Text3Dm(CD3DFont*font,D3DXMATRIX &m,char *str,DWORD col) {
 	G3dDevice->SetMaterial( &mtrlText );
 	font->Render3DText(str,D3DFONT_CENTERED);
 }
+
+
+
+struct line2dVerex{
+	float x, y, z;
+	DWORD color;
+};
+#define line2dVerexMax 200 //奇数が始点 偶数が終点の線
+line2dVerex line2dVerexTable[line2dVerexMax]; //頂点ﾊﾞｯﾌｧ 埋まったら描画
+int line2dVerexTable_n=0;
+
 void Line2D(GFloat x0,GFloat y0,GFloat x1,GFloat y1,int col)
 {
-	D3DXMATRIX mat1;
-	D3DXMATRIX matV,mat2;
-	G3dDevice->GetTransform(D3DTS_VIEW,&matV);
-	D3DXMatrixInverse(&mat1,NULL,&matV);
-	D3DXMatrixScaling( &mat1, 1,1,1 );
-//	D3DXMatrixMultiply(&mat2,&mat1,&GMatWorld);
-	G3dDevice->SetTransform(D3DTS_VIEW,&mat1);
-
-	G3dDevice->SetRenderState( D3DRS_LIGHTING, FALSE );
-	G3dDevice->SetRenderState( D3DRS_AMBIENT,0xFFFFFFFF );
-	G3dDevice->SetStreamSource(0,pPointVB,sizeof(D3DPOINTVERTEX));
-	G3dDevice->SetVertexShader(D3DFVF_POINTVERTEX);
-	G3dDevice->SetTexture(0,NULL);
-	G3dDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);	// カリングモード
-	D3DPOINTVERTEX* p2V;
-	pPointVB->Lock(0,0,(BYTE**)&p2V,0);
-
 	float t;
 	if(ViewType==7) t=(float)tan(CCDZoom*M_PI/360.0);
 	else t=(float)tan(Zoom*M_PI/360.0);
 	float t2=(t+1)/t;
-
-	p2V[0].x=(float)x0*t;
-	p2V[0].y=(float)y0*t;
-	p2V[0].z=(float)1;
-	p2V[0].color=col|0xff000000;
-	p2V[1].x=(float)x1*t;
-	p2V[1].y=(float)y1*t;
-	p2V[1].z=(float)1;
-	p2V[1].color=col|0xff000000;
 	
-	pPointVB->Unlock();
-	//	G3dDevice->SetRenderState( D3DRS_ZENABLE, FALSE );
-	G3dDevice->DrawPrimitive(D3DPT_LINELIST,0,1);
+	line2dVerexTable[line2dVerexTable_n]={(float)x0*t,(float)y0*t,1,col|0xff000000};
+	line2dVerexTable[line2dVerexTable_n+1]={(float)x1*t,(float)y1*t,1,col|0xff000000};
+	line2dVerexTable_n=line2dVerexTable_n+2;
 	
-	G3dDevice->SetRenderState( D3DRS_LIGHTING, TRUE );
-	G3dDevice->SetRenderState( D3DRS_AMBIENT,0x000F0F0F );
-	G3dDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_CCW);	// カリングモード
-	G3dDevice->SetTransform(D3DTS_VIEW,&GMatView);
+	if(line2dVerexTable_n>=line2dVerexMax || col&0xFF000000){ //colが0x00FFFFFF以上の時ﾊﾞｯﾌｧ分強制描画
+		int Verex_num=line2dVerexTable_n;
+		line2dVerexTable_n=0;
+		D3DXMATRIX mat1;
+		//D3DXMATRIX matV,mat2;
+		//G3dDevice->GetTransform(D3DTS_VIEW,&matV);
+		//D3DXMatrixInverse(&mat1,NULL,&matV);
+		D3DXMatrixScaling( &mat1, 1,1,1 );
+		//D3DXMatrixMultiply(&mat2,&mat1,&GMatWorld);
+		G3dDevice->SetTransform(D3DTS_VIEW,&mat1);
 
+		G3dDevice->SetRenderState( D3DRS_LIGHTING, FALSE );
+		G3dDevice->SetRenderState( D3DRS_AMBIENT,0xFFFFFFFF );
+		G3dDevice->SetTexture(0,NULL);
+		G3dDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);	// カリングモード
+		
+		//G3dDevice->SetRenderState( D3DRS_ZENABLE, FALSE );
+		G3dDevice->SetVertexShader(D3DFVF_XYZ | D3DFVF_DIFFUSE);
+		G3dDevice->DrawPrimitiveUP(D3DPT_LINELIST,Verex_num/2,line2dVerexTable,sizeof (line2dVerex));
+		
+		G3dDevice->SetRenderState( D3DRS_LIGHTING, TRUE );
+		G3dDevice->SetRenderState( D3DRS_AMBIENT,0x000F0F0F );
+		G3dDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_CCW);	// カリングモード
+		G3dDevice->SetTransform(D3DTS_VIEW,&GMatView);
+	}
 }
+
+struct line3dVerex{
+	float x, y, z;
+	DWORD color;
+};
+#define line3dVerexMax 200 //奇数が始点 偶数が終点の線
+line3dVerex line3dVerexTable[line3dVerexMax]; //頂点ﾊﾞｯﾌｧ 埋まったら描画
+int line3dVerexTable_n=0;
 
 void Line(GVector &p1,GVector &p2,unsigned int col)
 {
-	G3dDevice->SetRenderState( D3DRS_LIGHTING, FALSE );
-	G3dDevice->SetRenderState( D3DRS_AMBIENT,0xFFFFFFFF );
-	G3dDevice->SetStreamSource(0,pPointVB,sizeof(D3DPOINTVERTEX));
-	G3dDevice->SetVertexShader(D3DFVF_POINTVERTEX);
-	G3dDevice->SetTexture(0,NULL);
-	G3dDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);	// カリングモード
-	D3DPOINTVERTEX* p2V;
-	pPointVB->Lock(0,0,(BYTE**)&p2V,0);
-	p2V[0].x=(float)p1.x;
-	p2V[0].y=(float)p1.y;
-	p2V[0].z=(float)p1.z;
-	p2V[0].color=col|0xff000000;
-	p2V[1].x=(float)p2.x;
-	p2V[1].y=(float)p2.y;
-	p2V[1].z=(float)p2.z;
-	p2V[1].color=col|0xff000000;
 	
-	pPointVB->Unlock();
-	G3dDevice->DrawPrimitive(D3DPT_LINELIST,0,1);
+	line3dVerexTable[line3dVerexTable_n]={(float)p1.x,(float)p1.y,(float)p1.z,col|0xff000000};
+	line3dVerexTable[line3dVerexTable_n+1]={(float)p2.x,(float)p2.y,(float)p2.z,col|0xff000000};
+	line3dVerexTable_n=line3dVerexTable_n+2;
 	
-	G3dDevice->SetRenderState( D3DRS_LIGHTING, TRUE );
-	G3dDevice->SetRenderState( D3DRS_AMBIENT,0x000F0F0F );
-	G3dDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_CCW);	// カリングモード
+	if(line3dVerexTable_n>=line3dVerexMax || col&0xFF000000){ //colが0x00FFFFFF以上の時ﾊﾞｯﾌｧ分強制描画
+		int Verex_num=line3dVerexTable_n;
+		line3dVerexTable_n=0;
+	
+		G3dDevice->SetRenderState( D3DRS_LIGHTING, FALSE );
+		G3dDevice->SetRenderState( D3DRS_AMBIENT,0xFFFFFFFF );
+		G3dDevice->SetTexture(0,NULL);
+		G3dDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);	// カリングモード
+		
+		G3dDevice->SetVertexShader(D3DFVF_XYZ | D3DFVF_DIFFUSE);
+		G3dDevice->DrawPrimitiveUP(D3DPT_LINELIST,Verex_num/2,line3dVerexTable,sizeof (line3dVerex));
+		
+		G3dDevice->SetRenderState( D3DRS_LIGHTING, TRUE );
+		G3dDevice->SetRenderState( D3DRS_AMBIENT,0x000F0F0F );
+		G3dDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_CCW);	// カリングモード
+	}
 }
 int CALLBACK DlgDataProc(HWND hDlg,UINT uMsg,WPARAM wParam,LPARAM lParam)
 {
@@ -3227,7 +3238,7 @@ CMyD3DApplication::CMyD3DApplication()
 
 	m_dwCreationWidth           = 640;
     m_dwCreationHeight          = 480;
-    m_strWindowTitle            = TEXT( "RigidChips 1.5.B27" );
+    m_strWindowTitle            = TEXT( "RigidChips 1.5.B27C4" );
     m_bUseDepthBuffer           = TRUE;
 
 	m_dLimidFPS=1000/LIMITFPS;
@@ -6846,7 +6857,12 @@ HRESULT CMyD3DApplication::Render()
 		for(i=0;i<GVALMAX;i++) {
 			ValList[i].Updated=false;
 		}
-		if(ViewUpdate)	ViewSet();
+    	Line(GVector(0,0,0),GVector(0,0,0),0xff000000); //Lineﾊﾞｯﾌｧ強制描画 ｼﾅﾘｵ分
+    	Line2D(0,0,0,0,0xff000000); //Lineﾊﾞｯﾌｧ強制描画
+		if(ViewUpdate)	{
+			ViewSet();
+			//ViewUpdate=0; //なぜかここでﾌﾗｸﾞ倒しちゃうとLINE2Dの描画が狂う
+		}
 		if(World->Stop==false && World->NetStop==false) {
 			for (i=0;i<GOUTPUTMAX;i++) ScriptOutput[i][0]='\0';
 			if(ScriptFlag && waitCount<=0) {
@@ -6914,6 +6930,8 @@ HRESULT CMyD3DApplication::Render()
 				}
 			}
 		}
+    	Line(GVector(0,0,0),GVector(0,0,0),0xff000000); //Lineﾊﾞｯﾌｧ強制描画
+    	Line2D(0,0,0,0,0xff000000); //Lineﾊﾞｯﾌｧ強制描画
 
 		if(ViewType>=0) viewFlag=0;
 
@@ -7314,35 +7332,38 @@ HRESULT CMyD3DApplication::Render()
 			if(Bullet->Vertex[i].Life>0 && Bullet->Vertex[i].Life!=1200.0f) {
 				//GVector v=Bullet->Vertex[i].Vec.normalize()*Bullet->Vertex[i].Size*10;
 				GVector v=Bullet->Vertex[i].Vec;
-				GFloat f=fabs((Bullet->Vertex[i].Pos-Bullet->Vertex[i].Vec/2-EyePos).normalize2().dot(v.normalize2()));
-				int fn=(int)((4+(int)((1.0f-f*f)*15))/Bullet->Vertex[i].Size);
+				GVector pos=Bullet->Vertex[i].Pos;
+				float size=Bullet->Vertex[i].Size;
+				float va=v.abs();
+				GFloat f=fabs((pos-v/2-EyePos).normalize2().dot(v.normalize2()));
+				int fn=(int)((4+(int)((1.0f-f*f)*15))/size);
 				if(fn>50) fn=50;
+				
+				D3DXMatrixRotationZ(&mat1,(FLOAT)i);
+				D3DXMatrixScaling(&mat2,size,size,size);
+				D3DXMatrixMultiply( &mat1 , &mat1, &mat2);
+				mat2=GMatView;
+				mat2._41 = 0.0f; mat2._42 = 0.0f; mat2._43 = 0.0f;
+				D3DXMatrixInverse(&mat2,NULL,&mat2);
+				D3DXMatrixMultiply( &mat1 , &mat1, &mat2);
+				
 				for(int j=0;j<fn;j++) {
-					float x=(float)Bullet->Vertex[i].Pos.x-v.x+v.x*j/fn;
-					float y=(float)Bullet->Vertex[i].Pos.y-v.y+v.y*j/fn;
-					float z=(float)Bullet->Vertex[i].Pos.z-v.z+v.z*j/fn;
+					float x=(float)pos.x-v.x+v.x*j/fn;
+					float y=(float)pos.y-v.y+v.y*j/fn;
+					float z=(float)pos.z-v.z+v.z*j/fn;
 					
-					float size=Bullet->Vertex[i].Size;
 					//pV[k].alpha=1.0f-j/(float)fn;
 					float alpha=1.0f;
-					float va=v.abs();
 					alpha=(float)j/fn;
 					if((Bullet->Vertex[i].Dist+va-va*(float)j/fn)<=0) alpha=0.0f;
 
 					CD3DMesh *mesh;
 					mesh=m_pXMesh[32];
 					mesh->m_pMaterials[0].Diffuse.a=alpha;
-					D3DXMatrixRotationZ(&mat1,(FLOAT)i);
-					D3DXMatrixScaling(&mat2,size,size,size);
-					D3DXMatrixMultiply( &mat1 , &mat1, &mat2);
-					mat2=GMatView;
-					mat2._41 = 0.0f; mat2._42 = 0.0f; mat2._43 = 0.0f;
-					D3DXMatrixInverse(&mat2,NULL,&mat2);
-					D3DXMatrixMultiply( &mat1 , &mat1, &mat2);
 					D3DXMatrixTranslation(&mat2,x,y,z);
-					D3DXMatrixMultiply( &mat1 , &mat1, &mat2);
-					D3DXMatrixMultiply( &mat1 , &mat1, &GMatWorld);
-					m_pd3dDevice->SetTransform( D3DTS_WORLD, &mat1 );
+					D3DXMatrixMultiply( &mat2 , &mat1, &mat2);
+					D3DXMatrixMultiply( &mat2 , &mat2, &GMatWorld);
+					m_pd3dDevice->SetTransform( D3DTS_WORLD, &mat2 );
 					mesh->Render(m_pd3dDevice);
 				}
 			}

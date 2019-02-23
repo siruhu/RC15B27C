@@ -1,6 +1,9 @@
-目立つﾊﾞｸﾞは(相性以外)だいたい潰せたんじゃないかなって by siruhu
+C1時点で目立つﾊﾞｸﾞは(相性以外)だいたい潰せたんじゃないかなって
 
 ------------------------------------------------------------------------------
+20160330  1.5 B27C4:RC15Dとかいうｸｿややこしい無関係なﾊﾞｲﾅﾘが上がってたんで名前変更、Skybox二重描画ﾊﾞｸﾞ修正取り消し、燃料消費量ﾊﾞｸﾞ修正
+20160226  1.5 C3:_LOADLANDﾃﾞｨﾚｸﾄﾘﾊﾞｸﾞ、Skybox二重描画ﾊﾞｸﾞ修正、Arm描画をびっみょーに軽量化、Line超軽量化  Lineに関しては今までと比べると大きく弄ったのでｴﾝﾊﾞｸﾞの可能性高し  多分そろそろ何行目って書き方が無理
+20160215  1.5 C2:Armの地形短距離貫通ﾊﾞｸﾞを修正  ﾎｲｰﾙﾊﾞｸﾞ(対ﾎﾞｰﾙのみ)の修正に置換忘れがあったので修正  今度こそ完治や･･･
 20160214  1.5 C1:ﾎｲｰﾙﾊﾞｸﾞ(対ﾎﾞｰﾙのみ)、_LOADLAND透明ﾊﾞｸﾞ、ﾁｬｯﾄ&sでSystem.rcsしか帰ってこないﾊﾞｸﾞを修正 ついでにﾂｰﾙｾｯﾄを同梱 いい加減B27だらけでややこしいんでﾁｬｯﾄ&vで返す値を1.5 C1に変更 ﾀｲﾄﾙﾊﾞｰ名はどうしようね
 以前のVer 1.5 B27:忘れた  (鬼火、透明化、ﾈﾄﾜｸ10秒、接続中CPU100%、ﾎｲｰﾙﾊﾞｸﾞ(+砂煙ﾊﾞｸﾞ)を修正)
 
@@ -16,11 +19,23 @@
 		-対ﾎﾞｰﾙのみ:ﾎﾞｰﾙとﾓﾃﾞﾙ、ﾎﾞｰﾙ同士の接触では常に代入抜け(本来は接触相手のUxを読む)
 	･_LOADLAND透明ﾊﾞｸﾞ:ｼﾅﾘｵ関数_LOADLAND()を利用してﾏｯﾌﾟ読み込みした際、ｳｲﾝﾄﾞｳﾘｻｲｽﾞ、File>OpenLandを押す(Landを読み込むかは問わない)、Log>LoadLogでﾛｸﾞを読み込む のいずれかを行うまでLandが透明(当たり判定はあり)になるﾊﾞｸﾞ
 	･ﾁｬｯﾄ&sでSystem.rcsしか帰ってこないﾊﾞｸﾞ:何読んでてもSystem.rcsとしか帰ってこない  後ろのｼﾅﾘｵｺｰﾄﾞは正しい
-
+	･ﾏｰｶｻｲｽﾞ0ﾈｰﾑﾊﾞｸﾞ:ﾏｰｶｻｲｽﾞ0,ﾈｰﾑｻｲｽﾞを0以外にすると画面にﾊﾞｸﾞﾎﾟﾘのようなものがちらつく
+	･Arm地形短距離貫通ﾊﾞｸﾞ:地形の裏に隠れても20mぐらい?弾が(当たり判定だけ)貫通してくる  まあｺﾚはｺﾚで味があったけど･･･
+	･_LOADLANDﾃﾞｨﾚｸﾄﾘﾊﾞｸﾞ:ｶﾚﾝﾄﾃﾞｨﾚｸﾄﾘ(最後にﾓﾃﾞﾙ,ｼﾅ,Land等)を読み込んだﾌｫﾙﾀﾞ以下に指定ﾌｧｲﾙが見つからない 且つ ("実行ﾌｧｲﾙDir"/Data または "実行ﾌｧｲﾙDir"/Resource 以下に指定ﾌｧｲﾙが存在する) 場合、ｸﾗｯｼｭする  ぶっちゃけ_LOADLAND透明化のせいで誰も使わなかったおかげで誰も気づかなかったんやね･･･  "実行ﾌｧｲﾙDir"/Data以下の指定ﾌｧｲﾙ名を読み込み に変更
+	//･Skybox二重描画ﾊﾞｸﾞ:ｼﾅﾘｵで_LINExD()未使用 且つ ﾓﾃﾞﾙで_LINExD()使用 した場合、Skyboxが二重に描画されてた  多分誰も気づいてなかったし実害も(気持ち無駄な負荷以外)なかった //なぜかLINE2Dの見た目変わったため戻した(むしろなぜ今までまともに動いてたのか分かってない
+	･燃料消費量ﾊﾞｸﾞ:n番目の燃料消費要素の消費量が1/n倍になっていた
+	
+------------------------------------------------------------------------------
+ﾊﾞｸﾞ以外の修正点
+	･_GETY頂点ﾃﾞｰﾀｱﾝﾛｯｸ忘れ:頂点ﾃﾞｰﾀをﾛｯｸしたままｱﾝﾛｯｸしてなかった このせいでおそらく最適化が止まってた(DX8時点ではどうせﾛｸな最適化されてなかったという噂も)
+	･LOADLAND同名ﾌｧｲﾙ読み込みｷｬﾝｾﾙ修正:ﾌｧｲﾙ名だけ指定してた場合、親切心で同名ﾌｧｲﾙの読み込みをｷｬﾝｾﾙしてくれてたのを削除
+	･Arm描画を気持ち軽量化:行列計算をﾙｰﾌﾟの外に出したら1割ぐらい軽くなった･･･ような･･･
+	･_LINExD超軽量化:LINEをﾊﾞｯﾌｧに貯めて纏めて描画するように、とりあえず100本ごと描画 色指定0x00FFFFFFより大きい時ﾊﾞｯﾌｧ強制描画 多分3倍から5倍ぐらい早くなった
+	
 ------------------------------------------------------------------------------
 やったこと
 	･(鬼火ﾊﾞｸﾞ)Rigidmain.cppの2342行目のPlayerData[n].Jet[PlayerData[n].ChipCount]=0;を切り取り、2183行目の前に移植
-	･(透明化ﾊﾞｸﾞ)Rigidmain.cppの6963行目のfor(i=0;i<(unsigned int)DPlay->GetCurrentPlayers();i++) { を for(i=0;i<DPlay->GetNumPlayers();i++) { に置換
+	･(透明化ﾊﾞｸﾞ)Rigidmain.cppの6963行目のfor(i=0;i<(unsigned int)DPlay->GetCurrentPlayers();i++) { を for(i=0;i<(unsigned int)DPlay->GetNumPlayers();i++) { に置換
 	･(ﾈﾄﾜｸ10秒ﾃﾞｯﾄﾞﾛｯｸ)Rigidmain.cppの940行目のPlayersInfoDisp();をｺﾒﾝﾄｱｳﾄ  どーせｺﾚ消しても他所で1000msごとに描画してる  副作用で接続人数増えた時最大1秒ﾈﾄﾜｸ窓の反映が遅れる
 	･(ﾈﾄﾜｸ接続待機中CPU100%)GDPlay.hppの501行目の次にSleep(10);を追記
 	･(ﾎｲｰﾙﾊﾞｸﾞ)GRigid.cppの627行目からのswitch内、Hit[HitN].Us=us;(7箇所)の次の行にHit[HitN].Ux=0.0f;を追加
@@ -32,6 +47,16 @@
 			1010行目 //ころがり摩擦    から下4行 }までを切り取り   1018行目からのif(Hit[i].Target->Type==-1)を閉じた後ろに挿入
 	･(_LOADLAND透明ﾊﾞｸﾞ)luaSystem.cpp 380行目の次にm_pLandMesh->InvalidateDeviceObjects(); その次に m_pLandMesh->RestoreDeviceObjects(G3dDevice);を追加
 	･(ﾁｬｯﾄ&sでSystem.rcsしか帰ってこないﾊﾞｸﾞ):Rigidmain.cpp 5557行目 _tcscpy( CurrScenarioDir, CurrDataDir ); の前に lstrcpy(szSystemFileName0,szTitle); その次に lstrcat(szSystemFileName0,szExt);を追加
+	･(ﾏｰｶｻｲｽﾞ0ﾈｰﾑﾊﾞｸﾞ)Rigidmain.cpp 2652行目 if(GNAMESIZE!=0.0f)分岐をまるごと切り取り(2679行目まで)、1行上2650行目 } の前に挿入
+	･(Arm地形短距離貫通ﾊﾞｸﾞ):GRigid.cpp 1954行目 if(t>=0 && t<Bullet->Vertex[i].Vec.abs() && t<t2) { の条件式に && t<Bullet->Vertex[i].Dist を追加
+	･(_LOADLANDﾃﾞｨﾚｸﾄﾘﾊﾞｸﾞ):luaSystem.cpp 348行目 char *s=SearchFolder(CurrDataDir,str,st); 349行目 352行目 353行目 356行目 358行目をｺﾒﾝﾄｱｳﾄ
+	//･(Skybox二重描画ﾊﾞｸﾞ):Rigidmain.cpp CMyD3DApplication::Render()内 if(ViewUpdate) ViewSet(); でViewUpdateﾌﾗｸﾞを倒し忘れてるんでViewUpdate=0;を追加
+	･(燃料消費量ﾊﾞｸﾞ):GRigid.cpp GRigid::CalcTotalFuel()内最初にif(Parent==NULL) {Top->TotalFuelMax=0; Top->TotalFuel=0; Top->TotalFuel2=0; } を追記 ﾎﾝﾄは燃料消費要素の数だけ総燃料計算しなおしてるの直したほうがいい
+	-------------
+	･(_GETY頂点ﾃﾞｰﾀｱﾝﾛｯｸ忘れ):luaSystem.cpp 844行目 else dist=100000.0f-dist;の次にpVB->Unlock(); pIB->Unlock(); pVB->Release(); pIB->Release();の4行を追加
+	･(_LOADLAND同名ﾌｧｲﾙ読み込みｷｬﾝｾﾙ):347行目if(strcmp(szLandFileName0,str)!=0) { 384行目をｺﾒﾝﾄｱｳﾄ
+	･(Arm描画を気持ち軽量化):Rigidmain.cpp CMyD3DApplication::Render()内 //弾丸 ってｺﾒﾝﾄついてる当たり 回転拡大ﾋﾞｭｰ変換行列計算をjﾙｰﾌﾟの外に
+	･(_LINExD超軽量化):Rigidmain.cpp Line()、Line2D関数内で投げ込まれたLINEをﾊﾞｯﾌｧに貯めて纏めて描画するように DrawPrimitiveで描画してたのをDrawPrimitiveUPに変更
 	-------------
 	･(&v表示名変更):Rigidmain.cpp 751行目 sprintf(str,"Version=1.5 B27");をsprintf(str,"Version=1.5 C1");に変更
 	
@@ -61,3 +86,4 @@ Githubから拾ってきた修正
 	･ﾈﾄﾜｸ窓ﾌﾟﾚｲﾔｰ名色情報に不正な値を入れるとﾌﾟﾚｲﾔｰ表示名がﾊﾞｸﾞる:Githubでは修正済み
 
 ------------------------------------------------------------------------------
+連絡先:https://twitter.com/siruhu64

@@ -176,6 +176,11 @@ void GRigid::RSet()
 }
 void GRigid::CalcTotalFuel()
 {
+	if(Parent==NULL) {
+		Top->TotalFuelMax=0;
+		Top->TotalFuel=0;
+		Top->TotalFuel2=0;
+	}
 	Top->TotalFuelMax+=FuelMax;
 	Top->TotalFuel+=Fuel;
 	if(ChipType==GT_CHIPH) Top->TotalFuel2+=Fuel;
@@ -1078,7 +1083,7 @@ void GRigid::Impulse() {
 							if(a>1.0f) a=1.0f;else if(a<=0.0f) a=0.0f;
 							GVector v=j1*n2/5+GVector(0,0.03f,0);
 							if(v.abs()>0.1f) v=v.normalize()/10.0f;
-							GroundParticle->Add(hitPos-V*Dt*(rand()%8),v,GVector(0,0,0),v.abs()*(1+Hit[i].Ux*50),a,0.02f+(rand()%10)/100.0,GVector(1,1,1));
+							GroundParticle->Add(hitPos-V*Dt*(rand()%8),v,GVector(0,0,0),v.abs()*(1+ux*50),a,0.02f+(rand()%10)/100.0,GVector(1,1,1));
 						}
 					}
 					GVector fv=-j1*(n2*ud*dd+na*ud2);
@@ -1952,7 +1957,7 @@ void GWorld::Move(bool initFlag)
 				for(j=0;j<ChipCount;j++) {
 					if(Bullet->Vertex[i].Rigid!=Rigid[j] && Rigid[j]->ChipType!=9 && (Rigid[j]->ChipType<32 || myrand()%100>=70)) {
 						t=Rigid[j]->X.distanceOnBallAndLine(0.3f,Bullet->Vertex[i].Pos,Bullet->Vertex[i].Vec.normalize2());
-						if(t>=0 && t<Bullet->Vertex[i].Vec.abs() && t<t2) {
+						if(t>=0 && t<Bullet->Vertex[i].Vec.abs() && t<Bullet->Vertex[i].Dist && t<t2) {
 							t2=t;
 							r=Rigid[j];
 						}

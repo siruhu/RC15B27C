@@ -19,10 +19,8 @@
 // ニュートラル (既定) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_NEUD)
-#ifdef _WIN32
 LANGUAGE LANG_NEUTRAL, SUBLANG_DEFAULT
 #pragma code_page(932)
-#endif //_WIN32
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -30,7 +28,7 @@ LANGUAGE LANG_NEUTRAL, SUBLANG_DEFAULT
 //
 
 #ifdef APSTUDIO_INVOKED
-GUIDELINES DESIGNINFO 
+GUIDELINES DESIGNINFO
 BEGIN
     IDD_SOURCE, DIALOG
     BEGIN
@@ -130,13 +128,11 @@ END
 
 
 /////////////////////////////////////////////////////////////////////////////
-// 日本語 resources
+// 日本語 (日本) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_JPN)
-#ifdef _WIN32
 LANGUAGE LANG_JAPANESE, SUBLANG_DEFAULT
 #pragma code_page(932)
-#endif //_WIN32
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -144,7 +140,7 @@ LANGUAGE LANG_JAPANESE, SUBLANG_DEFAULT
 //
 
 IDB_BITMAP1             BITMAP                  "Start.bmp"
-#endif    // 日本語 resources
+#endif    // 日本語 (日本) resources
 /////////////////////////////////////////////////////////////////////////////
 
 
@@ -152,10 +148,8 @@ IDB_BITMAP1             BITMAP                  "Start.bmp"
 // 英語 (米国) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
-#ifdef _WIN32
 LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 #pragma code_page(1252)
-#endif //_WIN32
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -163,7 +157,7 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 //
 
 #ifdef APSTUDIO_INVOKED
-GUIDELINES DESIGNINFO 
+GUIDELINES DESIGNINFO
 BEGIN
     IDD_SELECTDEVICE, DIALOG
     BEGIN
@@ -180,7 +174,7 @@ END
 // Dialog
 //
 
-IDD_SELECTDEVICE DIALOG  0, 0, 267, 138
+IDD_SELECTDEVICE DIALOG 0, 0, 267, 138
 STYLE DS_SETFONT | DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Select Device"
 FONT 8, "MS Shell Dlg"
@@ -207,7 +201,7 @@ END
 // Menu
 //
 
-IDR_MENU MENU 
+IDR_MENU MENU
 BEGIN
     POPUP "&File"
     BEGIN
@@ -334,7 +328,7 @@ END
 // Accelerator
 //
 
-IDR_MAIN_ACCEL ACCELERATORS 
+IDR_MAIN_ACCEL ACCELERATORS
 BEGIN
     "2",            IDM_AIR,                VIRTKEY, NOINVERT
     "6",            IDM_CCD,                VIRTKEY, NOINVERT
@@ -381,7 +375,7 @@ BEGIN
     "?",            IDM_WEBHELP,            ASCII,  NOINVERT
 END
 
-IDR_NET_ACCEL ACCELERATORS 
+IDR_NET_ACCEL ACCELERATORS
 BEGIN
     VK_TAB,         IDC_RETURNMAIN,         VIRTKEY, NOINVERT
     VK_RETURN,      IDC_SEND,               VIRTKEY, NOINVERT
