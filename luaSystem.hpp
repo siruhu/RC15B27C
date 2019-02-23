@@ -67,8 +67,10 @@ void setOption(GRigid *rigid,GFloat value);
 
 #define	MESSAGEMAX 64
 extern char MessageData[];
+extern size_t MessageDataLen;
 extern int RecieaveMessageCode[];
 extern char RecieaveMessageData[][MESSAGEMAX+1];
+extern size_t RecieaveMessageDataLen[];
 
 
 int LoadSystem(char *fileName);

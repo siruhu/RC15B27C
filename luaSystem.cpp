@@ -126,7 +126,11 @@ int CloseFp(int n){
 int luaSendAllMessage(lua_State *L)
 {
 	char *str=(char *)lua_tostring(L, 1);
-	_tcsncpy(MessageData,str,MESSAGEMAX);
+	size_t len=lua_strlen(L, 1);
+	if(len>MESSAGEMAX){len=MESSAGEMAX;}
+	memcpy(MessageData,str,len);
+	MessageData[len]=0x00; //len>MESSAGEMAXの時終端文字が切れるため  終端文字自体いらない気はする
+	MessageDataLen=len;
 	return 0;
 }
 int luaReceiveMessage(lua_State *L)
@@ -136,7 +140,7 @@ int luaReceiveMessage(lua_State *L)
 		lua_pushstring(L,"");
 		return 1;
 	}
-	lua_pushstring(L,RecieaveMessageData[no]);
+	lua_pushlstring(L,RecieaveMessageData[no],RecieaveMessageDataLen[no]);
 	return 1;
 }
 int luaReceiveMessageClear(lua_State *L)
@@ -144,6 +148,7 @@ int luaReceiveMessageClear(lua_State *L)
 	int no=(int)lua_tonumber(L, 1);
 	if(no<0 || no>=DPlay->GetNumPlayers()) return 0;
 	RecieaveMessageData[no][0]='\0';
+	RecieaveMessageDataLen[no]=0;
 	return 0;
 }
 
@@ -821,6 +826,20 @@ int luaGetH(lua_State *L)
 {
 	float x=(float)lua_tonumber(L, 1);
 	float z=(float)lua_tonumber(L, 2);
+	
+	D3DXVECTOR3 v1,v2;
+	v1.x=x;v1.y=100000.0f;v1.z=z;
+	v2.x=0;v2.y=-1;v2.z=0;
+	
+	int n=lua_gettop(L);
+	if(n>2){
+		v1.y=(float)lua_tonumber(L, 2);
+		v1.z=(float)lua_tonumber(L, 3);
+		v2.x=(float)lua_tonumber(L, 4);
+		v2.y=(float)lua_tonumber(L, 5);
+		v2.z=(float)lua_tonumber(L, 6);
+	}
+	
 	BOOL hit;
 	FLOAT dist;
 	LPDIRECT3DVERTEXBUFFER8 pVB;
@@ -835,13 +854,9 @@ int luaGetH(lua_State *L)
 	m_pLandMesh->GetSysMemMesh()->GetIndexBuffer( &pIB );
 	pIB->Lock( 0, 0, (BYTE**)&pIndices, 0 );
 	pVB->Lock( 0, 0, (BYTE**)&pVertices, 0 );
-	D3DXVECTOR3 v1,v2;
-	GVector dir2=GVector(0,-1,0);
-	v1.x=x;v1.y=100000.0f;v1.z=z;
-	v2.x=0;v2.y=-1;v2.z=0;
 	D3DXIntersect(m_pLandMesh->GetSysMemMesh(),&v1,&v2,&hit,NULL,NULL,NULL,&dist,NULL,NULL);
 	if(!hit) dist=-100000.0f;
-	else dist=100000.0f-dist;
+	else if(n<=2) dist=100000.0f-dist;
 	pVB->Unlock();
 	pIB->Unlock();
 	pVB->Release();

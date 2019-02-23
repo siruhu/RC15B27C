@@ -1,6 +1,13 @@
+15B27派生非公式ﾋﾞﾙﾄﾞ
 C1時点で目立つﾊﾞｸﾞは(相性以外)だいたい潰せたんじゃないかなって
 
 ------------------------------------------------------------------------------
+RC15B26からの関数仕様変更点ﾘｽﾄ
+	･_LINE系:100本までﾊﾞｯﾌｧに貯めた後纏めて描画  _SETCOLOR()で設定した値が0x01000000以上の時ﾊﾞｯﾌｧ分強制描画  ﾌﾚｰﾑ終了時ﾊﾞｯﾌｧ分強制描画
+	･_GETY:_GETY(x,z)B26と等価, _GETY(x,y,z,vz,vy,vz)v*:方向ﾍﾞｸﾄﾙ  地形までの距離
+	･_SENDALL:途中に0x00を含む文字列も利用可能
+------------------------------------------------------------------------------
+20160408  1.5 B27C5:_SENDALL()の0x00が終端文字と解釈される問題修正  _GETYを測距関数として使えるよう拡張  ｺｰﾄﾞ変更量多くてここに書くのはもう無理かも、ｿｰｽ添付
 20160330  1.5 B27C4:RC15Dとかいうｸｿややこしい無関係なﾊﾞｲﾅﾘが上がってたんで名前変更、Skybox二重描画ﾊﾞｸﾞ修正取り消し、燃料消費量ﾊﾞｸﾞ修正
 20160226  1.5 C3:_LOADLANDﾃﾞｨﾚｸﾄﾘﾊﾞｸﾞ、Skybox二重描画ﾊﾞｸﾞ修正、Arm描画をびっみょーに軽量化、Line超軽量化  Lineに関しては今までと比べると大きく弄ったのでｴﾝﾊﾞｸﾞの可能性高し  多分そろそろ何行目って書き方が無理
 20160215  1.5 C2:Armの地形短距離貫通ﾊﾞｸﾞを修正  ﾎｲｰﾙﾊﾞｸﾞ(対ﾎﾞｰﾙのみ)の修正に置換忘れがあったので修正  今度こそ完治や･･･
@@ -24,13 +31,15 @@ C1時点で目立つﾊﾞｸﾞは(相性以外)だいたい潰せたんじゃないかなって
 	･_LOADLANDﾃﾞｨﾚｸﾄﾘﾊﾞｸﾞ:ｶﾚﾝﾄﾃﾞｨﾚｸﾄﾘ(最後にﾓﾃﾞﾙ,ｼﾅ,Land等)を読み込んだﾌｫﾙﾀﾞ以下に指定ﾌｧｲﾙが見つからない 且つ ("実行ﾌｧｲﾙDir"/Data または "実行ﾌｧｲﾙDir"/Resource 以下に指定ﾌｧｲﾙが存在する) 場合、ｸﾗｯｼｭする  ぶっちゃけ_LOADLAND透明化のせいで誰も使わなかったおかげで誰も気づかなかったんやね･･･  "実行ﾌｧｲﾙDir"/Data以下の指定ﾌｧｲﾙ名を読み込み に変更
 	//･Skybox二重描画ﾊﾞｸﾞ:ｼﾅﾘｵで_LINExD()未使用 且つ ﾓﾃﾞﾙで_LINExD()使用 した場合、Skyboxが二重に描画されてた  多分誰も気づいてなかったし実害も(気持ち無駄な負荷以外)なかった //なぜかLINE2Dの見た目変わったため戻した(むしろなぜ今までまともに動いてたのか分かってない
 	･燃料消費量ﾊﾞｸﾞ:n番目の燃料消費要素の消費量が1/n倍になっていた
+	･_SENDALL0x00問題:_SENDALLで途中に0x00を含む文字列を送信しようとした場合、0x00以降の文字列が送信されなかった 仕様っぽいけどこっちに書く
 	
 ------------------------------------------------------------------------------
 ﾊﾞｸﾞ以外の修正点
 	･_GETY頂点ﾃﾞｰﾀｱﾝﾛｯｸ忘れ:頂点ﾃﾞｰﾀをﾛｯｸしたままｱﾝﾛｯｸしてなかった このせいでおそらく最適化が止まってた(DX8時点ではどうせﾛｸな最適化されてなかったという噂も)
 	･LOADLAND同名ﾌｧｲﾙ読み込みｷｬﾝｾﾙ修正:ﾌｧｲﾙ名だけ指定してた場合、親切心で同名ﾌｧｲﾙの読み込みをｷｬﾝｾﾙしてくれてたのを削除
 	･Arm描画を気持ち軽量化:行列計算をﾙｰﾌﾟの外に出したら1割ぐらい軽くなった･･･ような･･･
-	･_LINExD超軽量化:LINEをﾊﾞｯﾌｧに貯めて纏めて描画するように、とりあえず100本ごと描画 色指定0x00FFFFFFより大きい時ﾊﾞｯﾌｧ強制描画 多分3倍から5倍ぐらい早くなった
+	･_LINExD超軽量化:LINEをﾊﾞｯﾌｧに貯めて纏めて描画するように、とりあえず100本ごと描画 色指定0x01000000以上の時ﾊﾞｯﾌｧ強制描画 数倍から数十倍(環境依存)ぐらい早くなった
+	･_GETY測距関数化拡張:指定座標からの指定ﾍﾞｸﾄﾙ方向の地形ﾎﾟﾘｺﾞﾝまでの距離を取得可能に  引数の数で自動切り替え _GETY(x,y,z,vx,vy,vz)
 	
 ------------------------------------------------------------------------------
 やったこと
@@ -52,6 +61,11 @@ C1時点で目立つﾊﾞｸﾞは(相性以外)だいたい潰せたんじゃないかなって
 	･(_LOADLANDﾃﾞｨﾚｸﾄﾘﾊﾞｸﾞ):luaSystem.cpp 348行目 char *s=SearchFolder(CurrDataDir,str,st); 349行目 352行目 353行目 356行目 358行目をｺﾒﾝﾄｱｳﾄ
 	//･(Skybox二重描画ﾊﾞｸﾞ):Rigidmain.cpp CMyD3DApplication::Render()内 if(ViewUpdate) ViewSet(); でViewUpdateﾌﾗｸﾞを倒し忘れてるんでViewUpdate=0;を追加
 	･(燃料消費量ﾊﾞｸﾞ):GRigid.cpp GRigid::CalcTotalFuel()内最初にif(Parent==NULL) {Top->TotalFuelMax=0; Top->TotalFuel=0; Top->TotalFuel2=0; } を追記 ﾎﾝﾄは燃料消費要素の数だけ総燃料計算しなおしてるの直したほうがいい
+	･(_SENDALL0x00問題):luaSystem.hpp、Rigidmain.cppに文字列長格納変数MessageDataLen,RecieaveMessageDataLenを定義
+			luaSystem.cpp luaSendAllMessage()内、_tcsncpyをmemcpy(MessageData,str,len)で置き換え len=lua_strlen()  luaReceiveMessage()内、lua_pushstringをlua_pushlstringに置換  luaReceiveMessageClear()内、RecieaveMessageDataLen[no]=0;を追加
+			GRigid.cpp "else if(code==30) { //15B26追加　シナリオメッセージ"付近 RecieaveMessageDataのstrcpy()をmemcpyに 2行前にRecieaveMessageDataLen[i]=size-sizeof(int)-1-sizeof(short);
+			CMyD3DApplication::CMyD3DApplication()内10行目付近 MessageDataLen,RecieaveMessageDataLenの初期化
+			"//メッセージの送信"付近 strlen(MessageData)をMessageDataLenに置換(2箇所) strcpyをmemcpyに 
 	-------------
 	･(_GETY頂点ﾃﾞｰﾀｱﾝﾛｯｸ忘れ):luaSystem.cpp 844行目 else dist=100000.0f-dist;の次にpVB->Unlock(); pIB->Unlock(); pVB->Release(); pIB->Release();の4行を追加
 	･(_LOADLAND同名ﾌｧｲﾙ読み込みｷｬﾝｾﾙ):347行目if(strcmp(szLandFileName0,str)!=0) { 384行目をｺﾒﾝﾄｱｳﾄ

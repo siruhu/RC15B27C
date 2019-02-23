@@ -273,8 +273,10 @@ int  AttackDataStart=0;
 int  AttackDataEnd=0;
 
 char MessageData[MESSAGEMAX+1];
+size_t MessageDataLen;
 int RecieaveMessageCode[GPLAYERMAX];
 char RecieaveMessageData[GPLAYERMAX][MESSAGEMAX+1];
+size_t RecieaveMessageDataLen[GPLAYERMAX];
 
 //bool ObjectBallFlag=TRUE;
 BOOL WindCalm=TRUE;
@@ -545,8 +547,9 @@ HRESULT MyReceiveFunc( MYAPP_PLAYER_INFO* playerInfo,DWORD size,BYTE *stream ) {
 			if(PlayerData[i].ReceiveData.info.dpnidPlayer==playerInfo->dpnidPlayer) {
 				RecieaveMessageCode[i]=*((int*)data);
 				if(scenarioCode==RecieaveMessageCode[i]) {
-					char *str=(char*)&data[4];
-					strcpy(RecieaveMessageData[i],str);
+					RecieaveMessageDataLen[i]=size-sizeof(int)-1-sizeof(short);
+					char *str=(char*)&data[sizeof(int)];
+					memcpy(RecieaveMessageData[i],str,RecieaveMessageDataLen[i]+1);
 				}
 			}
 		}
@@ -748,7 +751,7 @@ HRESULT MyReceiveFunc( MYAPP_PLAYER_INFO* playerInfo,DWORD size,BYTE *stream ) {
 			GSTREAM strm2;
 			strm2.code=1;
 			char *str=(char*)strm2.data;
-			sprintf(str,"Version=1.5 B27C4");
+			sprintf(str,"Version=1.5 C5");
 			DWORD size=strlen(str)+1+sizeof(short);
 			DPlay->SendTo(playerInfo->dpnidPlayer,(BYTE*)&strm2,size);
 		}
@@ -1323,7 +1326,7 @@ void Line2D(GFloat x0,GFloat y0,GFloat x1,GFloat y1,int col)
 	line2dVerexTable[line2dVerexTable_n+1]={(float)x1*t,(float)y1*t,1,col|0xff000000};
 	line2dVerexTable_n=line2dVerexTable_n+2;
 	
-	if(line2dVerexTable_n>=line2dVerexMax || col&0xFF000000){ //colが0x00FFFFFF以上の時ﾊﾞｯﾌｧ分強制描画
+	if(line2dVerexTable_n>=line2dVerexMax || col&0xFF000000){ //colが0x01000000以上の時ﾊﾞｯﾌｧ分強制描画
 		int Verex_num=line2dVerexTable_n;
 		line2dVerexTable_n=0;
 		D3DXMATRIX mat1;
@@ -1365,7 +1368,7 @@ void Line(GVector &p1,GVector &p2,unsigned int col)
 	line3dVerexTable[line3dVerexTable_n+1]={(float)p2.x,(float)p2.y,(float)p2.z,col|0xff000000};
 	line3dVerexTable_n=line3dVerexTable_n+2;
 	
-	if(line3dVerexTable_n>=line3dVerexMax || col&0xFF000000){ //colが0x00FFFFFF以上の時ﾊﾞｯﾌｧ分強制描画
+	if(line3dVerexTable_n>=line3dVerexMax || col&0xFF000000){ //colが0x01000000以上の時ﾊﾞｯﾌｧ分強制描画
 		int Verex_num=line3dVerexTable_n;
 		line3dVerexTable_n=0;
 	
@@ -3222,9 +3225,11 @@ CMyD3DApplication::CMyD3DApplication()
 	DPlay=new GDPlay;
 	DPlay->Init(g_hInst);
 	MessageData[0]='\0';
+	MessageDataLen=0;
 	for(i=0;i<GPLAYERMAX;i++) {
 		RecieaveMessageCode[i]=0;
 		RecieaveMessageData[i][0]='\0';
+		RecieaveMessageDataLen[i]=0;
 	}
 
 	MouseX=0;
@@ -3238,7 +3243,7 @@ CMyD3DApplication::CMyD3DApplication()
 
 	m_dwCreationWidth           = 640;
     m_dwCreationHeight          = 480;
-    m_strWindowTitle            = TEXT( "RigidChips 1.5.B27C4" );
+    m_strWindowTitle            = TEXT( "RigidChips 1.5.B27C5" );
     m_bUseDepthBuffer           = TRUE;
 
 	m_dLimidFPS=1000/LIMITFPS;
@@ -5028,14 +5033,15 @@ if( win == FALSE )
 	}
 	//メッセージの送信
 	if(DPlay->GetNumPlayers()>0 && t-lastT>(DWORD)GNETSPAN && tempMoveEnd) {
-		if(strlen(MessageData)) {
+		if(MessageDataLen) {
 			GSTREAM stream;
 			stream.code=30;//シナリオメッセージ
 			*((int*)stream.data)=scenarioCode;
-			strcpy((char*)&stream.data[4],MessageData);
-			DWORD size=(DWORD)(sizeof(int)+strlen(MessageData)+1+sizeof(short));
+			memcpy((char*)&stream.data[sizeof(int)],MessageData,MessageDataLen+1);
+			DWORD size=(DWORD)(sizeof(int)+MessageDataLen+1+sizeof(short));
 			DPlay->SendAll((BYTE*)&stream,size);
 			MessageData[0]='\0';
+			MessageDataLen=0;
 		}
 	}
 
