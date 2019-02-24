@@ -24,6 +24,7 @@ public:
 	int Type;
 	GVector Pos;
 	GVector Vec;
+	GVector Vec2;
 	GVector Acc;
 	GFloat Size;
 	GFloat SizeD;
@@ -52,7 +53,7 @@ public:
 		Vertex[NextVertex].Net=0;
 		Vertex[NextVertex].Type=0;
 		Vertex[NextVertex].Pos=pos;
-		Vertex[NextVertex].Vec=vec;//弾も砂煙も速度寿命がFPS依存なのはひどい
+		Vertex[NextVertex].Vec=vec;//速度,寿命の時間単位は1/30s
 		Vertex[NextVertex].Acc=acc;
 		Vertex[NextVertex].Size=0.4f+(myrand()%100*sizeD*4)/100.0f-sizeD*2;
 		Vertex[NextVertex].SizeD=sizeD;
@@ -67,10 +68,31 @@ public:
 	}
 	GParticleVertex *Add(int type,GVector pos,GVector vec,GVector acc,GFloat sizeD,GFloat life,GFloat lifeSpan,GVector col,DWORD  dpnid,bool net){
 		GParticleVertex *ret=&Vertex[NextVertex];
-		Vertex[NextVertex].Type=type;
+		Vertex[NextVertex].Type=type;//Type=0:Jet煙&土煙,1:爆炎(黄),2:爆炎(白)
 		Vertex[NextVertex].Net=(type!=0 && net);
 		Vertex[NextVertex].Pos=pos;
 		Vertex[NextVertex].Vec=vec;
+		Vertex[NextVertex].Acc=acc;
+		Vertex[NextVertex].Size=0.4f+(myrand()%100*sizeD*4)/100.0f-sizeD*2;
+		Vertex[NextVertex].SizeD=sizeD;
+		Vertex[NextVertex].Life=life;
+		if(type==1) Vertex[NextVertex].Life=life*2.0f;
+		if(type==2) Vertex[NextVertex].Life=life*1.6f;
+		Vertex[NextVertex].Power=life;
+		Vertex[NextVertex].LifeSpan=lifeSpan;
+		Vertex[NextVertex].Color=col;
+		Vertex[NextVertex].dpnid=dpnid;
+		NextVertex++;
+		if(NextVertex>=MaxVertex) NextVertex=0;
+		return ret;
+	}
+	GParticleVertex *Add(int type,GVector pos,GVector vec,GVector vec2,GVector acc,GFloat sizeD,GFloat life,GFloat lifeSpan,GVector col,DWORD  dpnid,bool net){
+		GParticleVertex *ret=&Vertex[NextVertex];
+		Vertex[NextVertex].Type=type;//Type=0:Jet煙&土煙,1:爆炎(黄),2:爆炎(白)
+		Vertex[NextVertex].Net=(type!=0 && net);
+		Vertex[NextVertex].Pos=pos;
+		Vertex[NextVertex].Vec=vec;
+		Vertex[NextVertex].Vec2=vec2;//長さ  現状JetEffect5専用 単位はm
 		Vertex[NextVertex].Acc=acc;
 		Vertex[NextVertex].Size=0.4f+(myrand()%100*sizeD*4)/100.0f-sizeD*2;
 		Vertex[NextVertex].SizeD=sizeD;
@@ -98,21 +120,36 @@ public:
 				GFloat y=Vertex[i].Pos.y;
 				GFloat FPS_mag=(GFloat)LIMITFPS/30.0f;
 				if(y>WaterLine && y+Vertex[i].Vec.y/FPS_mag<WaterLine)  {
+					GFloat y_temp=WaterLine+Vertex[i].Size/2;
+					if(y_temp>y) y_temp=y;//元の高度より高くならないように
+					GFloat dist=(y-y_temp)/(-Vertex[i].Vec.y/FPS_mag);//上の条件式より、Vec.yは必ず負数なんでabsじゃなく-でいい
+					Vertex[i].Pos+=Vertex[i].Vec/FPS_mag*dist;
+					
 					Vertex[i].Vec.x=(GFloat)(Vertex[i].Vec.x+((myrand()%100)/100.0-0.5)*Vertex[i].Vec.y);
 					Vertex[i].Vec.z=(GFloat)(Vertex[i].Vec.z+((myrand()%100)/100.0-0.5)*Vertex[i].Vec.y);
 					Vertex[i].Vec.y=(GFloat)(-Vertex[i].Vec.y/10.0);
+					Vertex[i].Vec2=-Vertex[i].Vec/FPS_mag*2;//ﾊﾞﾗける分密度が下がるので尾の長さを伸ばしてごまかす  ･･･誤魔化したい  だいたい誤魔化せるけど水面の散らばりだけはﾑﾘ
+					Vertex[i].Size+=Vertex[i].Vec.abs()/10;
 				}
 				Vertex[i].Pos+=Vertex[i].Vec/FPS_mag;
 				Vertex[i].Vec=Vertex[i].Vec*(1-0.005/FPS_mag)+Vertex[i].Acc/FPS_mag;
-				Vertex[i].Size=Vertex[i].Size+Vertex[i].SizeD/FPS_mag;
+				Vertex[i].Vec2+=Vertex[i].Vec2*Vertex[i].SizeD/Vertex[i].Size/FPS_mag/2;
+				Vertex[i].Size+=Vertex[i].SizeD/FPS_mag;
 				Vertex[i].Life-=Vertex[i].LifeSpan/FPS_mag;
 				if(Vertex[i].Net>0) Vertex[i].Net++;
+				
+				GFloat y_wl=Vertex[i].Pos.y-WaterLine;
+				if(y_wl*(y_wl+Vertex[i].Vec2.y)<0 && y_wl>0){ //尾が水面を跨ぐ時Vec2縮める
+					GFloat dist=y_wl/(-Vertex[i].Vec2.y);
+					Vertex[i].Vec2*=dist;
+					
+				}
 			}
 		}
 	}
 };
 
-class GBulletVertex {// ここのVec,Acc,SizeD,LifeSpanの時間単位は1/LIMITFPS 時間単位を固定したかったが影響範囲が大きすぎる･･･
+class GBulletVertex {
 public:
 	int Net;
 	GVector Pos;

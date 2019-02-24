@@ -59,6 +59,7 @@
 #define IDC_B20CHECK                    1055
 #define IDC_CHECK2                      1056
 #define IDC_FASTSHADOWCHECK             1056
+#define IDC_LOADLIBDUMMYCHECK           1057
 #define IDD_MULTIPLAYER_CONNECT         10001
 #define IDD_MULTIPLAYER_GAMES           10002
 #define IDD_MULTIPLAYER_CREATE          10003
@@ -177,6 +178,12 @@
 #define IDM_LIMIT60                     40190
 #define ID_Menu40191                    40191
 #define ID_Menu40192                    40192
+#define ID_Menu40193                    40193
+#define IDM_SHOWFPS                     40194
+#define ID_SETTING_SHOWSMOKE            40195
+#define IDM_SHOWSMOK                    40196
+#define IDM_SHOWSMOKE                   40197
+#define IDM_SHOWNETSMOKE                40198
 
 // Next default values for new objects
 // 
@@ -184,7 +191,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_3D_CONTROLS                     1
 #define _APS_NEXT_RESOURCE_VALUE        203
-#define _APS_NEXT_COMMAND_VALUE         40193
+#define _APS_NEXT_COMMAND_VALUE         40199
 #define _APS_NEXT_CONTROL_VALUE         1006
 #define _APS_NEXT_SYMED_VALUE           102
 #endif

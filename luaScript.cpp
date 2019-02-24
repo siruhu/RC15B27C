@@ -44,6 +44,7 @@ extern char szUpdateFileName0[];
 extern GFloat luaL3dx,luaL3dy,luaL3dz;
 extern int luaGraColor;
 extern int randTime;
+extern DWORD LoadlibDummy;
 
 // Luaに登録するCの関数は、intを返し、lua_State*を受け取るものである必要がある。
 // 返す値は戻り値の数。この場合数値を1個返す（スタックに積む）ので1。
@@ -70,7 +71,7 @@ int luaPrint(lua_State *L)
 			sprintf(str,"%s",lua_toboolean(L,i) ? "true" : "false");
 		}
 		else {
-			sprintf("%s:%p",lua_typename(L,lua_type(L,i)),lua_topointer(L,i));
+			sprintf(str,"%s:%p",lua_typename(L,lua_type(L,i)),lua_topointer(L,i));
 		}
 		strcat(ScriptOutput[a],str);
 	}
@@ -107,9 +108,9 @@ lua_State *luaScriptInit(char *buff) {
     lua_register(L, "_GETVIEWZOOM", luaGetViewZoom);
     lua_register(L, "_SETVIEWZOOM", luaSetViewZoom);
 	//ﾀﾞﾐｰ関数
+	if(LoadlibDummy ) lua_register(L, "loadlib",luaDummyFuncFunc);
     lua_register(L, "_SETLIMITVELOCITY", luaDummyFunc1);
     lua_register(L, "SetFogDepth", luaDummyFunc1);
-	lua_register(L, "loadlib",luaDummyFuncFunc);
 	lua_register(L, "_NTICKS",luaDummyFunc1);
 	lua_register(L, "_SETVIEW",luaDummyFunc1);
 	lua_register(L, "_SETVIEWUP",luaDummyFunc1);

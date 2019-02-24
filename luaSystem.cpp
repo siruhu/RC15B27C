@@ -48,6 +48,7 @@ extern GFloat luaL3dx,luaL3dy,luaL3dz;
 extern int luaGraColor;
 extern GVector CompassTarget;
 extern int ViewUpdate;
+extern DWORD LoadlibDummy;
 
 
 char SystemOutput[GOUTPUTMAX][512];
@@ -1232,7 +1233,7 @@ int luaSystemInit() {
     lua_register(SystemL, "GetPortNumber", luaGetPortNumber);
     lua_register(SystemL, "_SETLIMITVELOCITY", luaSetSpeedLimit);
 	//¿ﬁ–∞ä÷êî
-	lua_register(SystemL, "loadlib",luaDummyFuncFunc);
+	if(LoadlibDummy ) lua_register(SystemL, "loadlib",luaDummyFuncFunc);
 	lua_register(SystemL, "_EXFOPEN",luaDummyFunc1);
 	lua_register(SystemL, "_EXFCLOSE",luaDummyFunc1);
 	lua_register(SystemL, "_EXFPUTS",luaDummyFunc1);

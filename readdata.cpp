@@ -422,7 +422,7 @@ int readChildData(FILE *fp,int parentNo,int parentType,bool checkFlag)
 				cno=ChipCount;
 				Chip[cno]->CheckShape=Chip[cno]->Shape;
 				Chip[cno]->SaveShape=Chip[cno]->Shape;
-				ChipCount++;if(ChipCount>=GCHIPMAX) ChipCount=GCHIPMAX-1;
+				ChipCount++;
 			}
 		}
 		else if(type=='C' || type=='c' || type=='H'  || type=='O' || type=='R' || type=='r' || type=='T' || type=='t' || type=='J' || type=='A') {
@@ -485,7 +485,7 @@ int readChildData(FILE *fp,int parentNo,int parentType,bool checkFlag)
 				}
 				if(type=='O') link2=World->AddCowl(Chip[parentNo],offA,Chip[ChipCount],offB,axis[an],angle);
 				else link2=World->AddHinge(Chip[parentNo],offA,Chip[ChipCount],offB,axis[an],angle,spring,damper);
-				ChipCount++;if(ChipCount>=GCHIPMAX) ChipCount=GCHIPMAX-1;
+				ChipCount++;
 			}
 			else {
 				if(parentType=='O'&& type!='O') return 104;//The caul cannot be connected with the caul.
@@ -499,14 +499,14 @@ int readChildData(FILE *fp,int parentNo,int parentType,bool checkFlag)
 				Chip[cno2]->SaveShape=Chip[cno2]->Shape;
 
 				link2=World->AddHinge(Chip[parentNo],offA,Chip[cno2],offB,axis[0],angle,1.0,0.5);
-				ChipCount++;if(ChipCount>=GCHIPMAX) ChipCount=GCHIPMAX-1;
+				ChipCount++;
 				cno=ChipCount;
 				MakeChip(GT_WHEEL,rn);
 				Chip[cno]->CheckShape=Chip[cno]->Shape;
 				Chip[cno]->SaveShape=Chip[cno]->Shape;
 				Chip[parentNo]->DirCode|=dirCode;
 				link1=World->AddShaft(Chip[cno2],GVector(0,0,0),Chip[cno],GVector(0,0,0),axis[1],0);
-				ChipCount++;if(ChipCount>=GCHIPMAX) ChipCount=GCHIPMAX-1;
+				ChipCount++;
 				an=2;
 			}
 		}
@@ -517,14 +517,14 @@ int readChildData(FILE *fp,int parentNo,int parentType,bool checkFlag)
 				Chip[cno2]->CheckShape=Chip[cno2]->Shape;
 				Chip[cno2]->SaveShape=Chip[cno2]->Shape;
 				link2=World->AddHinge(Chip[parentNo],offA,Chip[cno2],offB,axis[0],angle,1.0,0.5);
-				ChipCount++;if(ChipCount>=GCHIPMAX) ChipCount=GCHIPMAX-1;
+				ChipCount++;
 				cno=ChipCount;
 				MakeChip(GT_RLW,rn);
 				Chip[cno]->CheckShape=Chip[cno]->Shape;
 				Chip[cno]->SaveShape=Chip[cno]->Shape;
 				Chip[parentNo]->DirCode|=dirCode;
 				link1=World->AddShaft(Chip[cno2],GVector(0,0,0),Chip[cno],GVector(0,0,0),axis[1],0);
-				ChipCount++;if(ChipCount>=GCHIPMAX) ChipCount=GCHIPMAX-1;
+				ChipCount++;
 				an=2;
 			}
 		}

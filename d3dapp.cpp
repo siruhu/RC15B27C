@@ -1671,9 +1671,16 @@ INT CD3DApplication::Run()
         else
         {
             // Render a frame during idle time (no messages are waiting)
+        	static float micro_t_I=0;//ﾏｲｸﾛ秒の積分値
+			float limitFps_micro_t=0;//m_dLimidFPSの切り捨て分
+        	if(m_dLimidFPS==(1000L/60L)) limitFps_micro_t=1000.0f/60.0f-m_dLimidFPS;//ほんとはm_dLimidFPSをfloatで定義し直してやるべきだけどめんどくさい･･･
+        	else if(m_dLimidFPS==(1000L/30L)) limitFps_micro_t=1000.0f/30.0f-m_dLimidFPS;//のでここでm_dLimidFPSから切り捨て分復元
+        	else if(m_dLimidFPS==(1000L/15L)) limitFps_micro_t=1000.0f/15.0f-m_dLimidFPS;//絶対良くない書き方だけどどーせ15,30,60FPSしか使わないでしょ･･･
 			DWORD t=timeGetTime();
 			if((t-lastTime)>=m_dLimidFPS) {
-				lastTime=t;
+        		micro_t_I+=limitFps_micro_t;
+				lastTime=t+(DWORD)micro_t_I;
+				micro_t_I=micro_t_I-(DWORD)micro_t_I;
 				if( m_bActive && m_bReady )
 				{
 					if( FAILED( Render3DEnvironment() ) )

@@ -247,6 +247,7 @@ DWORD ShowData=FALSE;
 DWORD ShowExtra=FALSE;
 DWORD ShowNetwork=FALSE;
 DWORD ShowVariable=TRUE;
+DWORD ShowFPS=TRUE;
 DWORD ShowPower=FALSE;
 DWORD ShowLandNormal=FALSE;
 DWORD ShowHitMesh=FALSE;
@@ -256,8 +257,10 @@ DWORD TextureAlpha=TRUE;
 DWORD BackFaces=FALSE;
 DWORD ShowShadowFlag=TRUE;
 DWORD ShowDustFlag=TRUE;
+DWORD ShowNetSmokeFlag=TRUE;
 DWORD DitherFlag=TRUE;
 DWORD FastShadow=1;
+DWORD LoadlibDummy=0;
 bool MoveEnd=false;
 
 TCHAR SessionName[256]="RigidChips";
@@ -559,13 +562,11 @@ HRESULT MyReceiveFunc( MYAPP_PLAYER_INFO* playerInfo,DWORD size,BYTE *stream ) {
 				
 				PrePlayerData[i].rtime=PlayerData[i].rtime;
 				PrePlayerData[i].rtime2=PlayerData[i].rtime2;
-				PlayerData[i].rtime=PlayerData[i].rtime+PlayerData[i].span+1;
-				PlayerData[i].rtime2=PlayerData[i].rtime2+PlayerData[i].span2+1; //Ç∆ÇËÇ†Ç¶Ç∏1ë´ÇµÇ∆Ç≠
+				PlayerData[i].rtime=PlayerData[i].rtime+PlayerData[i].span+15;
+				PlayerData[i].rtime2=PlayerData[i].rtime2+PlayerData[i].span2+5; //Ç∆ÇËÇ†Ç¶Ç∏1ë´ÇµÇ∆Ç≠
 				DWORD timeGt=frameGetTime;
-				if(timeGt-PlayerData[i].rtime>1000){ //€∞∂ŸÇ≈åvéZÇµÇΩëäéËÇÃì‡ïîéûä‘ÇÃêœéZåÎç∑Ç™60Çí¥Ç¶ÇΩÇ‹ÇΩÇÕ0ñ¢ñûÇÃéûÿæØƒ
+				if(timeGt-PlayerData[i].rtime>300 || timeGt-PlayerData[i].rtime2>300){ //€∞∂ŸÇ≈åvéZÇµÇΩëäéËÇÃì‡ïîéûä‘ÇÃêœéZåÎç∑Ç™60Çí¥Ç¶ÇΩÇ‹ÇΩÇÕ0ñ¢ñûÇÃéûÿæØƒ
 					PlayerData[i].rtime=timeGt;
-				}
-				if(timeGt-PlayerData[i].rtime2>1000){
 					PlayerData[i].rtime2=timeGt;
 				}
 				PrePlayerData[i].time=PlayerData[i].time;
@@ -626,9 +627,11 @@ HRESULT MyReceiveFunc( MYAPP_PLAYER_INFO* playerInfo,DWORD size,BYTE *stream ) {
 				PlayerData[i].span2=PlayerData[i].sendtime2-PrePlayerData[i].sendtime2;
 				
 				PrePlayerData[i].rtime2=PlayerData[i].rtime2;
-				PlayerData[i].rtime2=PlayerData[i].rtime2+PlayerData[i].span2+1; //Ç∆ÇËÇ†Ç¶Ç∏1ë´ÇµÇ∆Ç≠
+				PlayerData[i].rtime2=PlayerData[i].rtime2+PlayerData[i].span2+5; //Ç∆ÇËÇ†Ç¶Ç∏1ë´ÇµÇ∆Ç≠
 				DWORD timeGt=frameGetTime;
-				if(timeGt-PlayerData[i].rtime2>1000){ //€∞∂ŸÇ≈åvéZÇµÇΩëäéËÇÃì‡ïîéûä‘ÇÃêœéZåÎç∑Ç™60Çí¥Ç¶ÇΩÇ‹ÇΩÇÕ0ñ¢ñûÇÃéûÿæØƒ
+				if(timeGt-PlayerData[i].rtime2>300){ //€∞∂ŸÇ≈åvéZÇµÇΩëäéËÇÃì‡ïîéûä‘ÇÃêœéZåÎç∑Ç™60Çí¥Ç¶ÇΩÇ‹ÇΩÇÕ0ñ¢ñûÇÃéûÿæØƒ
+					DWORD temp=PlayerData[i].rtime2-PlayerData[i].rtime;
+					PlayerData[i].rtime=timeGt-temp;
 					PlayerData[i].rtime2=timeGt;
 				}
 				PrePlayerData[i].time2=PlayerData[i].time2;
@@ -704,7 +707,7 @@ HRESULT MyReceiveFunc( MYAPP_PLAYER_INFO* playerInfo,DWORD size,BYTE *stream ) {
 			GEXPDATA2 *expo=(GEXPDATA2*)data;
 			for(int j=0;j<s;j++) {
 				GParticleVertex *part=NULL;
-				if(expo[j].Type==1) {
+				if(expo[j].Type==1) {//Ç±ÇÃï”Ç»ÇÒÇ≈SizeDÇÃíËêîÇ™0.3ÇæÇ¡ÇΩÇË0.2ÇæÇ¡ÇΩÇË? é©êgÇÃîöî≠ìoò^ÇÕ0.4Ç≈å≈íË »ƒ‹∏âzÇµÇæÇ∆å©ÇΩñ⁄ïœÇÌÇÈÇÃÇÕà”ê}ÇµÇΩìÆçÏ?
 					part=JetParticle->Add(1,expo[j].Pos,GVector(0,0,0),GVector(0,0,0),(0.3f+(rand()%50/200.0f))*expo[j].Power*0.08f,expo[j].Power,0.04f,GVector(1,1,1),0,false);
 					if(expo->dpnid==DPlay->GetLocalPlayerDPNID()) AttackDataDisp("O >> Crush ",playerInfo->dpnidPlayer,0);
 				}
@@ -808,7 +811,7 @@ HRESULT MyReceiveFunc( MYAPP_PLAYER_INFO* playerInfo,DWORD size,BYTE *stream ) {
 			GSTREAM strm2;
 			strm2.code=1;
 			char *str=(char*)strm2.data;
-			sprintf(str,"Version=1.5 C10pre1");
+			sprintf(str,"Version=1.5 C12");
 			DWORD size=strlen(str)+1+sizeof(short);
 			DPlay->SendTo(playerInfo->dpnidPlayer,(BYTE*)&strm2,size,180,DPNSEND_NOLOOPBACK|DPNSEND_NOCOMPLETE);
 		}
@@ -1522,6 +1525,7 @@ int CALLBACK DlgExtraProc(HWND hDlg,UINT uMsg,WPARAM wParam,LPARAM lParam)
 			SendMessage(GetDlgItem(hDlg,IDC_FARSLIDER), TBM_SETRANGE, 0, MAKELPARAM(0, 7));
 			SendMessage(GetDlgItem(hDlg,IDC_FARSLIDER), TBM_SETTICFREQ, (WPARAM)1, 0);
 			SendMessage(GetDlgItem(hDlg,IDC_FASTSHADOWCHECK), BM_SETCHECK,(WPARAM)FastShadow,0);
+			SendMessage(GetDlgItem(hDlg,IDC_LOADLIBDUMMYCHECK), BM_SETCHECK,(WPARAM)LoadlibDummy,0);
 			SendMessage(GetDlgItem(hDlg,IDC_MARKERSLIDER), TBM_SETRANGE, 0, MAKELPARAM(0, 4));
 			SendMessage(GetDlgItem(hDlg,IDC_MARKERSLIDER), TBM_SETTICFREQ, (WPARAM)1, 0);
 			SendMessage(GetDlgItem(hDlg,IDC_NAMESLIDER), TBM_SETRANGE, 0, MAKELPARAM(0, 4));
@@ -1622,6 +1626,13 @@ int CALLBACK DlgExtraProc(HWND hDlg,UINT uMsg,WPARAM wParam,LPARAM lParam)
 						int st=(int)SendMessage(GetDlgItem(hDlg,IDC_FASTSHADOWCHECK), BM_GETCHECK,0,0);
 						if(st&BST_CHECKED) FastShadow=1;
 						else FastShadow=0;
+					}
+					break;
+				case IDC_LOADLIBDUMMYCHECK|(BN_CLICKED<<16):
+					{
+						int st=(int)SendMessage(GetDlgItem(hDlg,IDC_LOADLIBDUMMYCHECK), BM_GETCHECK,0,0);
+						if(st&BST_CHECKED) LoadlibDummy=1;
+						else LoadlibDummy=0;
 					}
 					break;
                case IDOK:
@@ -2283,19 +2294,21 @@ void GWorld::DispNetChip(int n)
 		if(t<span*2) {
 			w2=(float)t/(float)span;
 			w1=1.0f-w2;
-			if(t<0) {
+			//if(t<0) {
+		}
+			if(t&0x80000000) {
 				w2=0;
 				w1=1;
 			}
-		}
 		if(t2<span2*6) {
 			ww2=(float)t2/(float)span2;
 			ww1=1.0f-ww2;
-			if(t2<0) {
+			//if(t2<0) {
+		}
+			if(t2&0x80000000) {
 				ww2=0;
 				ww1=1;
 			}
-		}
 
 	}
 	PlayerData[n].ChipCount=0;
@@ -2658,9 +2671,29 @@ void GWorld::DispNetJetAll()
 				q.matrix(r);
 				GMatrix tm=r.translate(p);
 
-				GFloat f=chip->data.option/50.0f;
-				if(chip->data.type&GT_OPTION2) f=-f; 
-				DispNetJet(0,tm,f,dir);
+				GFloat f=(chip->data.option&0xfffe)/100.0f;
+				f*=8;
+				GFloat f2=f;
+				if(f>2.5f) f2=2.5f;//í êMPower5000Ç≈ñOòaÇµÇƒÇΩÇÃÇÃëŒçÙÇ…/8ÇµÇΩÇÃÇ≈ÿ–ØƒÇÇ©ÇØíºÇ∑
+				if(chip->data.type&GT_OPTION2){
+					f=-f;
+					f2=-f2;
+				}
+				DispNetJet(0,tm,f2,dir);
+				//-----------------
+						//if(Chip[i]->Effect==5) 
+						if(ShowNetSmokeFlag && chip->data.option&0x0001)
+						{
+							GFloat s=(GFloat)GDTSTEP/6.0f;
+							GFloat po=f*2000*s;  //Power=5000Ç≈è„å¿(í êMå^Ç™é¿éøSigned Char)Ç»ÇÃÇ≈å©ÇΩñ⁄Ç∑Ç≤Ç≠î˜ñ≠••• ->4ñúÇ‹Ç≈êLÇŒÇµÇΩ
+							if(fabs(f*2000)>2500) {
+								GFloat a=1.0f;
+								GVector V=(X1-X2)/PlayerData[i].span2*1000;
+								GVector vv=-GVector(0,1,0)*r*po/50000.0f*LIMITFPS;
+								JetParticle->Add(10,p+(V-vv)/LIMITFPS,vv/30,-(V-vv)/LIMITFPS,GVector(0,0,0),0.08f,a,0.02f,GVector(1,1,1),0,false);
+							}
+						}
+				//-----------------
 			}
 		}
 	}
@@ -3358,7 +3391,7 @@ CMyD3DApplication::CMyD3DApplication()
 
 	m_dwCreationWidth           = 640;
     m_dwCreationHeight          = 480;
-    m_strWindowTitle            = TEXT( "RigidChips 1.5.B27C10pre1" );
+    m_strWindowTitle            = TEXT( "RigidChips 1.5.B27C12pre" );
     m_bUseDepthBuffer           = TRUE;
 
 	m_dLimidFPS=1000/LIMITFPS;
@@ -3446,6 +3479,8 @@ HRESULT CMyD3DApplication::OneTimeSceneInit()
 	else CheckMenuItem(hMenu,IDM_SHOWSHADOW,MF_UNCHECKED);
 	if(ShowDustFlag) CheckMenuItem(hMenu,IDM_SHOWDUST,MF_CHECKED);
 	else CheckMenuItem(hMenu,IDM_SHOWDUST,MF_UNCHECKED);
+	if(ShowNetSmokeFlag) CheckMenuItem(hMenu,IDM_SHOWNETSMOKE,MF_CHECKED);
+	else CheckMenuItem(hMenu,IDM_SHOWNETSMOKE,MF_UNCHECKED);
 	if(DitherFlag) CheckMenuItem(hMenu,IDM_DITHER,MF_CHECKED);
 	else CheckMenuItem(hMenu,IDM_DITHER,MF_UNCHECKED);
 	if(ShowMeter) CheckMenuItem(hMenu,IDM_SHOWMETER,MF_CHECKED);
@@ -3454,6 +3489,8 @@ HRESULT CMyD3DApplication::OneTimeSceneInit()
 	else CheckMenuItem(hMenu,IDM_SHOWREGULATION,MF_UNCHECKED);
 	if(ShowVariable) CheckMenuItem(hMenu,IDM_SHOWVARIABLE,MF_CHECKED);
 	else CheckMenuItem(hMenu,IDM_SHOWVARIABLE,MF_UNCHECKED);
+	if(ShowFPS) CheckMenuItem(hMenu,IDM_SHOWFPS,MF_CHECKED);
+	else CheckMenuItem(hMenu,IDM_SHOWFPS,MF_UNCHECKED);
 	if(ShowMessage) CheckMenuItem(hMenu,IDM_SHOWSCRIPTMESSAGE,MF_CHECKED);
 	else CheckMenuItem(hMenu,IDM_SHOWSCRIPTMESSAGE,MF_UNCHECKED);
 	if(ShowGhost) CheckMenuItem(hMenu,IDM_SETTING_SHOWGHOST,MF_CHECKED);
@@ -3606,10 +3643,12 @@ VOID CMyD3DApplication::ReadSettings()
         DXUtil_ReadIntRegKey( hkey, TEXT("ShowRegulation"), &ShowRegulation, ShowRegulation );
         DXUtil_ReadIntRegKey( hkey, TEXT("ShowMessage"), &ShowMessage, ShowMessage );
         DXUtil_ReadIntRegKey( hkey, TEXT("ShowVariable"), &ShowVariable, ShowVariable );
+        DXUtil_ReadIntRegKey( hkey, TEXT("ShowFPS"), &ShowFPS, ShowFPS );
         DXUtil_ReadIntRegKey( hkey, TEXT("ShowCowl"), &ShowCowl, ShowCowl );
         DXUtil_ReadIntRegKey( hkey, TEXT("ShowGhost"), &ShowGhost, ShowGhost );
 		DXUtil_ReadIntRegKey( hkey, TEXT("LimidFPS"), &m_dLimidFPS, m_dLimidFPS );
 		DXUtil_ReadIntRegKey( hkey, TEXT("FastShadow"), &FastShadow, FastShadow );
+		DXUtil_ReadIntRegKey( hkey, TEXT("LoadlibDummy"), &LoadlibDummy, LoadlibDummy );
 		if(m_dLimidFPS==(1000/15)) LIMITFPS=15;
 		else if(m_dLimidFPS==(1000/60)) LIMITFPS=60;
 		else LIMITFPS=30;
@@ -3619,6 +3658,7 @@ VOID CMyD3DApplication::ReadSettings()
         DXUtil_ReadIntRegKey( hkey, TEXT("BackFaces"), &BackFaces, BackFaces );
         DXUtil_ReadIntRegKey( hkey, TEXT("ShowShadowFlag"), &ShowShadowFlag, ShowShadowFlag );
         DXUtil_ReadIntRegKey( hkey, TEXT("ShowDustFlag"), &ShowDustFlag, ShowDustFlag );
+        DXUtil_ReadIntRegKey( hkey, TEXT("ShowNetSmokeFlag"), &ShowNetSmokeFlag, ShowNetSmokeFlag );
         DXUtil_ReadIntRegKey( hkey, TEXT("DitherFlag"), &DitherFlag, DitherFlag );
 		DWORD v=(DWORD)GSPEEDLIMIT;
         DXUtil_ReadIntRegKey( hkey, TEXT("SpeedLimit"), &v, v );
@@ -3679,14 +3719,17 @@ VOID CMyD3DApplication::WriteSettings()
         DXUtil_WriteIntRegKey( hkey, TEXT("ShowRegulation"),  ShowRegulation );
         DXUtil_WriteIntRegKey( hkey, TEXT("ShowMessage"), ShowMessage );
         DXUtil_WriteIntRegKey( hkey, TEXT("ShowVariable"), ShowVariable );
+        DXUtil_WriteIntRegKey( hkey, TEXT("ShowFPS"), ShowFPS );
         DXUtil_WriteIntRegKey( hkey, TEXT("ShowCowl"), ShowCowl );
         DXUtil_WriteIntRegKey( hkey, TEXT("ShowGhost"), ShowGhost );
 		DXUtil_WriteIntRegKey( hkey, TEXT("LimidFPS"),  m_dLimidFPS );
 		DXUtil_WriteIntRegKey( hkey, TEXT("FastShadow"),  FastShadow );
+		DXUtil_WriteIntRegKey( hkey, TEXT("LoadlibDummy"),  LoadlibDummy );
         DXUtil_WriteIntRegKey( hkey, TEXT("TextureAlpha"), TextureAlpha );
         DXUtil_WriteIntRegKey( hkey, TEXT("BackFaces"), BackFaces );
         DXUtil_WriteIntRegKey( hkey, TEXT("ShowShadowFlag"), ShowShadowFlag );
         DXUtil_WriteIntRegKey( hkey, TEXT("ShowDustFlag"), ShowDustFlag );
+        DXUtil_WriteIntRegKey( hkey, TEXT("ShowNetSmokeFlag"), ShowNetSmokeFlag );
         DXUtil_WriteIntRegKey( hkey, TEXT("DitherFlag"), DitherFlag );
 		DWORD v=(DWORD)GSPEEDLIMIT;
         DXUtil_WriteIntRegKey( hkey, TEXT("SpeedLimit"),  v );
@@ -5212,9 +5255,15 @@ if( win == FALSE )
 					stream.data[i].data.option=(int)(f*10+0.5);
 				}
 				else {
-					float f=(float)fabs(r->Power/2000.0);if(f>2.5f) f=2.5f;
-					stream.data[i].data.option=(int)(f*50+0.5f);
-					if(r->Power<0) stream.data[i].data.type|=GT_OPTION2;
+					float f=(float)fabs(r->Power/2000.0);
+					f/=8;
+					if(f>2.5f) f=2.5f;
+					//stream.data[i].data.option=(int)(f*50+0.5f);// •••Ç†ÇÍ? .optionÇÃç≈è„à bitãÛÇ¢ÇƒÇ»Ç¢?
+					stream.data[i].data.option=(int)(f*100+0.5f);
+					if(r->Power<0) stream.data[i].data.type|=GT_OPTION2;//ïÑçÜïtâ¡
+					//------------
+					stream.data[i].data.option&=0xfffe;//â∫à 1bitÇ…JetâåÃ◊∏ﬁâüÇµçûÇ› Effect5ÇÃÇ›(ïââ◊ìIÇ…) Å¶Effect6Ç‡å©Ç¶ÇÈÇØÇ«å©ÇΩñ⁄ÇÕEffect5ÇÃÇ‹Ç‹
+					stream.data[i].data.option|=(r->Effect == 5 || r->Effect == 6);
 				}
 			}
 			stream.data[i].data.pos.x=(short)(p.x*100);
@@ -6306,10 +6355,10 @@ if( win == FALSE )
 							if(nn>0) {
 								GFloat a=0.5f+(rand()%100)/5000.0f;
 								if(a>2.0f) a=2.0f;else if(a<=0.0f) a=0.0f;
-								GVector vv=-GVector(0,1,0)*Chip[i]->R*po/50000.0f;
+								GVector vv=-GVector(0,1,0)*Chip[i]->R*po/50000.0f*LIMITFPS; // m/s
 								//if(v.abs()>0.1f) v=v.normalize()/10.0f;
 								for(int ii=0;ii<nn;ii++) {
-									JetParticle->Add(Chip[i]->X+(Chip[i]->V/30-vv)*(GFloat)ii/(GFloat)nn,vv,GVector(0,0,0),0.08f,a,0.02f,GVector(1,1,1));
+									JetParticle->Add(Chip[i]->X+(Chip[i]->V-vv)/LIMITFPS*(GFloat)ii/(GFloat)nn,vv/30,GVector(0,0,0),0.08f,a,0.02f,GVector(1,1,1));
 								}
 							}
 						}
@@ -6318,11 +6367,11 @@ if( win == FALSE )
 							if(nn>0) {
 								GFloat a=0.7f+(rand()%1000)/5000.0f;
 								if(a>1.0f) a=1.0f;else if(a<=0.0f) a=0.0f;
-								GVector vv=-GVector(0,1,0)*Chip[i]->R*po/50000.0f;
+								GVector vv=-GVector(0,1,0)*Chip[i]->R*po/50000.0f*LIMITFPS;
 		//						double f=fabs(Power/2000.0);if(f>2.5) f=2.5;
 								for(int ii=0;ii<nn;ii++) {
 									GVector rv=GVector((rand()%100-50)/2000.0f,(rand()%100-50)/2000.0f,(rand()%100-50)/2000.0f);
-									JetParticle->Add(Chip[i]->X+vv*2+(Chip[i]->V/30-vv)*(GFloat)ii/(GFloat)nn,vv+rv,GVector(0,0,0),0.08f,a,0.003f,GVector(1,1,1));
+									JetParticle->Add(Chip[i]->X+vv*2/LIMITFPS+(Chip[i]->V-vv)/LIMITFPS*(GFloat)ii/(GFloat)nn,vv/30+rv,GVector(0,0,0),0.08f,a,0.003f,GVector(1,1,1));
 								}
 							}
 						}
@@ -6331,10 +6380,10 @@ if( win == FALSE )
 							if(nn>0) {
 								GFloat a=1.0f+(rand()%100)/5000.0f;
 								if(a>2.0f) a=2.0f;else if(a<=0.0f) a=0.0f;
-								GVector vv=-GVector(0,1,0)*Chip[i]->R*po/50000.0f;
+								GVector vv=-GVector(0,1,0)*Chip[i]->R*po/50000.0f*LIMITFPS;
 								//if(v.abs()>0.1f) v=v.normalize()/10.0f;
 								for(int ii=0;ii<nn;ii++) {
-									JetParticle->Add(Chip[i]->X+(Chip[i]->V/30-vv)*(GFloat)ii/(GFloat)nn,vv,GVector(0,0,0),0.08f,a,0.005f,GVector(1,1,1));
+									JetParticle->Add(Chip[i]->X+(Chip[i]->V-vv)/LIMITFPS*(GFloat)ii/(GFloat)nn,vv/30,GVector(0,0,0),0.08f,a,0.005f,GVector(1,1,1));
 								}
 							}
 						}
@@ -6342,11 +6391,25 @@ if( win == FALSE )
 							int nn=(int)((fabs(po)+7900)/8000);
 							if(nn>0) {
 								GFloat a=1.0f;
-								GVector vv=-GVector(0,1,0)*Chip[i]->R*po/50000.0f;
+								GVector vv=-GVector(0,1,0)*Chip[i]->R*po/50000.0f*LIMITFPS;
 								//if(v.abs()>0.1f) v=v.normalize()/10.0f;
 								for(int ii=0;ii<nn;ii++) {
-									JetParticle->Add(Chip[i]->X+(Chip[i]->V/30-vv)*(GFloat)ii/(GFloat)nn,vv,GVector(0,0,0),0.01f,a,0.000f,GVector(1,1,1));
+									JetParticle->Add(Chip[i]->X+(Chip[i]->V-vv)/LIMITFPS*(GFloat)ii/(GFloat)nn,vv/30,GVector(0,0,0),0.01f,a,0.000f,GVector(1,1,1));
 								}
+							}
+						}
+						if(Chip[i]->Effect==5) {
+							if(fabs(Chip[i]->PowerByFuel)>2500) {
+								GFloat a=1.0f;
+								GVector vv=-GVector(0,1,0)*Chip[i]->R*po/50000.0f*LIMITFPS;
+								JetParticle->Add(10,Chip[i]->X+(Chip[i]->V-vv)/LIMITFPS,vv/30,-(Chip[i]->V-vv)/LIMITFPS,GVector(0,0,0),0.08f,a,0.02f,GVector(1,1,1),0,false);
+							}
+						}
+						if(Chip[i]->Effect==6) {
+							if(fabs(Chip[i]->PowerByFuel)>2500) {
+								GFloat a=1.0f;
+								GVector vv=-GVector(0,1,0)*Chip[i]->R*po/50000.0f*LIMITFPS;
+								JetParticle->Add(10,Chip[i]->X+(Chip[i]->V-vv)/LIMITFPS,vv/30,-(Chip[i]->V-vv)/LIMITFPS,GVector(0,0,0),0.08f,a,0.005f,GVector(1,1,1),0,false);
 							}
 						}
 					}
@@ -7432,9 +7495,9 @@ HRESULT CMyD3DApplication::Render()
 			m_pd3dDevice->SetRenderState( D3DRS_AMBIENT, 0xffffffff );
 			D3DXMATRIX mat1,mat2;
 			for(i=0;i<k;i++) {
-				if(pV[i].type!=0 || ShowDustFlag) {
+				if(pV[i].type!=0 && pV[i].type!=10 || ShowDustFlag) {
 					CD3DMesh *mesh;
-					if(pV[i].type==0) {
+					if(pV[i].type==0 || pV[i].type==10) {
 						if(pV[i].y<=WaterLine) mesh=m_pXMesh[19];
 						else mesh=m_pXMesh[29];
 					}
@@ -7445,18 +7508,58 @@ HRESULT CMyD3DApplication::Render()
 					mesh->m_pMaterials[0].Ambient.b=(FLOAT)pV[i].b;
 					mesh->m_pMaterials[0].Diffuse.a=(FLOAT)pV[i].alpha*0.3f;
 //					mesh->m_pMaterials[0].Ambient=mesh->m_pMaterials[0].Diffuse;
-					D3DXMatrixRotationZ(&mat1,(FLOAT)pV[i].id);
-					D3DXMatrixScaling(&mat2,(FLOAT)pV[i].size,(FLOAT)pV[i].size,(FLOAT)pV[i].size);
-					D3DXMatrixMultiply( &mat1 , &mat1, &mat2);
-					mat2=GMatView;
-					mat2._41 = 0.0f; mat2._42 = 0.0f; mat2._43 = 0.0f;
-					D3DXMatrixInverse(&mat2,NULL,&mat2);
-					D3DXMatrixMultiply( &mat1 , &mat1, &mat2);
-					D3DXMatrixTranslation(&mat2,(FLOAT)pV[i].x,(FLOAT)pV[i].y,(FLOAT)pV[i].z);
-					D3DXMatrixMultiply( &mat1 , &mat1, &mat2);
-					D3DXMatrixMultiply( &mat1 , &mat1, &GMatWorld);
-					m_pd3dDevice->SetTransform( D3DTS_WORLD, &mat1 );
-					mesh->Render(m_pd3dDevice);
+						GVector v=JetParticle->Vertex[pV[i].id].Vec2;
+						GVector pos=JetParticle->Vertex[pV[i].id].Pos;
+						FLOAT size=(FLOAT)pV[i].size;
+						GVector v_norm=v.normalize2();
+						GFloat va=v.abs();
+					if(pV[i].type<10 || (EyePos2-pos).abs()>40 || size>=va){
+						D3DXMatrixRotationZ(&mat1,(FLOAT)pV[i].id);
+						D3DXMatrixScaling(&mat2,(FLOAT)pV[i].size,(FLOAT)pV[i].size,(FLOAT)pV[i].size);
+						D3DXMatrixMultiply( &mat1 , &mat1, &mat2);
+						mat2=GMatView;
+						mat2._41 = 0.0f; mat2._42 = 0.0f; mat2._43 = 0.0f;
+						D3DXMatrixInverse(&mat2,NULL,&mat2);
+						D3DXMatrixMultiply( &mat1 , &mat1, &mat2);
+						D3DXMatrixTranslation(&mat2,(FLOAT)pV[i].x,(FLOAT)pV[i].y,(FLOAT)pV[i].z);
+						D3DXMatrixMultiply( &mat1 , &mat1, &mat2);
+						D3DXMatrixMultiply( &mat1 , &mat1, &GMatWorld);
+						m_pd3dDevice->SetTransform( D3DTS_WORLD, &mat1 );
+						mesh->Render(m_pd3dDevice);
+					}
+					if(pV[i].type==10 && size<va*1.2){
+						//----------------îˆÇ–ÇÍ
+						pos+=v/2;//âåÇÃêÊí[Ç©ÇÁîˆÇÃê^ÇÒíÜÇ÷à⁄ìÆ
+						v=v*1.4;
+						//v_norm=v.normalize2();
+						va=v.abs();
+						
+						FLOAT x,y,z;
+						x=(FLOAT)pos.x;
+						y=(FLOAT)pos.y;
+						z=(FLOAT)pos.z;
+						//-----------------îˆÇ–ÇÍÇÃå¸Ç´
+						GVector Eye_norm=(EyePos2-pos).normalize2();
+						GVector PertVecY=Eye_norm.cross(v_norm);
+						GVector PertVecZ=v_norm.cross(PertVecY);
+						
+					    D3DXVECTOR3 vFromPt   = D3DXVECTOR3( 0.0f,0.0f,0.0f );
+					    D3DXVECTOR3 vLookatPt = D3DXVECTOR3( (FLOAT)PertVecZ.x, (FLOAT)PertVecZ.y, (FLOAT)PertVecZ.z );
+					    D3DXVECTOR3 vUpVec    = D3DXVECTOR3( (FLOAT)v_norm.x, (FLOAT)v_norm.y, (FLOAT)v_norm.z );
+					    D3DXMatrixLookAtRH( &mat2, &vFromPt, &vLookatPt, &vUpVec );
+						D3DXMatrixInverse(&mat2,NULL,&mat2);
+						//-----------------
+						D3DXMatrixScaling(&mat1,size,(FLOAT)va,size);
+						D3DXMatrixMultiply( &mat1 , &mat1, &mat2);
+						//D3DXMatrixRotationZ(&mat2,(FLOAT)pV[i].id);
+						//D3DXMatrixMultiply( &mat1 , &mat2, &mat1);
+						D3DXMatrixTranslation(&mat2,x,y,z);
+						D3DXMatrixMultiply( &mat2 , &mat1, &mat2);
+						D3DXMatrixMultiply( &mat2 , &mat2, &GMatWorld);
+						m_pd3dDevice->SetTransform( D3DTS_WORLD, &mat2 );
+						mesh->Render(m_pd3dDevice);
+						//-----------------
+					}
 				}
 			}
 		}
@@ -8311,6 +8414,12 @@ HRESULT CMyD3DApplication::RenderText()
 			}
 		}
 	}
+	if(ShowFPS) {
+		_stprintf( szMsg, _T("%.2f"), m_fFPS);
+		m_pFont->GetTextExtent(szMsg, &size );
+		m_pFont->DrawText( w-1-size.cx, 1, fontColor3, szMsg ,0 );
+		m_pFont->DrawText( w-2-size.cx, 0, fontColor2, szMsg ,0 );
+	}
 	m_pd3dDevice->SetRenderState( D3DRS_AMBIENT,        0x000F0F0F );
 	m_pd3dDevice->SetRenderState( D3DRS_ALPHABLENDENABLE, FALSE );
 	
@@ -8591,6 +8700,14 @@ LRESULT CMyD3DApplication::MsgProc( HWND hWnd, UINT msg, WPARAM wParam,
                     ShowDustFlag = !ShowDustFlag;
 					if(ShowDustFlag) CheckMenuItem(hMenu,IDM_SHOWDUST,MF_CHECKED);
 					else CheckMenuItem(hMenu,IDM_SHOWDUST,MF_UNCHECKED);
+                    break;
+				}
+			case IDM_SHOWNETSMOKE:
+				{
+					HMENU hMenu = GetMenu( hWnd );
+                    ShowNetSmokeFlag = !ShowNetSmokeFlag;
+					if(ShowNetSmokeFlag) CheckMenuItem(hMenu,IDM_SHOWNETSMOKE,MF_CHECKED);
+					else CheckMenuItem(hMenu,IDM_SHOWNETSMOKE,MF_UNCHECKED);
                     break;
 				}
 			case IDM_DITHER:
@@ -9084,6 +9201,14 @@ LRESULT CMyD3DApplication::MsgProc( HWND hWnd, UINT msg, WPARAM wParam,
                     ShowVariable = !ShowVariable;
 					if(ShowVariable) CheckMenuItem(hMenu,IDM_SHOWVARIABLE,MF_CHECKED);
 					else CheckMenuItem(hMenu,IDM_SHOWVARIABLE,MF_UNCHECKED);
+					break;
+				}
+			case IDM_SHOWFPS:
+				{
+					HMENU hMenu = GetMenu( hWnd );
+                    ShowFPS = !ShowFPS;
+					if(ShowFPS) CheckMenuItem(hMenu,IDM_SHOWFPS,MF_CHECKED);
+					else CheckMenuItem(hMenu,IDM_SHOWFPS,MF_UNCHECKED);
 					break;
 				}
 			case IDM_SHOWSCRIPTMESSAGE:

@@ -93,6 +93,8 @@ BEGIN
     LTEXT           "Speed Limit",IDC_STATIC,7,10,37,8
     RTEXT           "505km/h",IDC_SPEEDLIMITSTATIC,14,18,57,8
     RTEXT           "2.4km",IDC_FARSTATIC,14,39,57,8
+    CONTROL         "",IDC_LOADLIBDUMMYCHECK,"Button",BS_AUTOCHECKBOX | BS_FLAT | WS_TABSTOP,74,132,11,8
+    LTEXT           "loadlib dummy",IDC_STATIC,7,132,46,8
 END
 
 IDD_NETDIALOG DIALOGEX 0, 0, 418, 257
@@ -218,7 +220,7 @@ BEGIN
         MENUITEM SEPARATOR
         MENUITEM "&Reload Chips\tCtrl+U",       IDM_UPDATE
         MENUITEM SEPARATOR
-        MENUITEM "E&xit\tESC",                  IDM_EXIT
+        MENUITEM "Exit",                        IDM_EXIT
     END
     POPUP "&Setting"
     BEGIN
@@ -231,10 +233,12 @@ BEGIN
         MENUITEM "Show C&owl\tCtrl+F4",         IDM_SETTING_SHOWCOWL, CHECKED
         MENUITEM "Show Ghost\tCtrl+F5",         IDM_SETTING_SHOWGHOST
         MENUITEM SEPARATOR
+        MENUITEM "Show NetSmoke",               IDM_SHOWNETSMOKE, CHECKED
+        MENUITEM SEPARATOR
         MENUITEM "&Limit 15 FPS\tF6",           IDM_LIMIT15
         MENUITEM "&Limit 30 FPS\tF7",           IDM_LIMIT30, CHECKED
         MENUITEM SEPARATOR
-        MENUITEM "Limit 60 FPS",                IDM_LIMIT60
+        MENUITEM "&Limit 60 FPS",               IDM_LIMIT60
         MENUITEM SEPARATOR
         MENUITEM "&Texture Alpha\tCtrl+F6",     IDM_SETTING_TEXTUREALPHA, CHECKED
         MENUITEM "Show Backfaces\tCtrl+F7",     IDM_SETTING_SHOWBACKFACE
@@ -286,12 +290,13 @@ BEGIN
     BEGIN
         MENUITEM "&About",                      IDM_SHOWABOUT
         MENUITEM SEPARATOR
-        MENUITEM "Web &Help\t?",                IDM_WEBHELP
+        MENUITEM "Web Help",                    IDM_WEBHELP
         MENUITEM SEPARATOR
         MENUITEM "Show &Meter",                 IDM_SHOWMETER, CHECKED
         MENUITEM "Show &Regulation",            IDM_SHOWREGULATION, CHECKED
         MENUITEM "Show &Script Message",        IDM_SHOWSCRIPTMESSAGE, CHECKED
         MENUITEM "Show &Variable",              IDM_SHOWVARIABLE, CHECKED
+        MENUITEM "Show &FPS",                   IDM_SHOWFPS, CHECKED
         MENUITEM SEPARATOR
         MENUITEM "Show &External Force",        IDM_SHOWPOWER
         MENUITEM "Show &Land Vert Norm",        IDM_SHOWLANDNORMAL
@@ -355,8 +360,6 @@ BEGIN
     VK_F3,          IDM_CONFIGINPUT,        VIRTKEY, NOINVERT
     VK_F2,          IDM_DITHER,             VIRTKEY, CONTROL, NOINVERT
     "8",            IDM_ENERGY,             VIRTKEY, NOINVERT
-    VK_ESCAPE,      IDM_EXIT,               VIRTKEY, NOINVERT
-    "X",            IDM_EXIT,               VIRTKEY, ALT, NOINVERT
     "1",            IDM_GRAVITY,            VIRTKEY, NOINVERT
     "4",            IDM_JET,                VIRTKEY, NOINVERT
     VK_F6,          IDM_LIMIT15,            VIRTKEY, NOINVERT
@@ -380,7 +383,6 @@ BEGIN
     "3",            IDM_TORQUE,             VIRTKEY, NOINVERT
     "5",            IDM_UNBREAKABLE,        VIRTKEY, NOINVERT
     "U",            IDM_UPDATE,             VIRTKEY, CONTROL, NOINVERT
-    "?",            IDM_WEBHELP,            ASCII,  NOINVERT
 END
 
 IDR_NET_ACCEL ACCELERATORS
