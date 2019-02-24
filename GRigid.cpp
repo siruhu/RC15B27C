@@ -1096,7 +1096,7 @@ void GRigid::Impulse() {
 						if((myrand()%100)<(int)(V.abs()*(1+ux*50)) && a>30.0) {
 							a=(a-30.0f)/100.0f+(myrand()%100)/5000.0f-0.01f;
 							if(a>1.0f) a=1.0f;else if(a<=0.0f) a=0.0f;
-							GVector v=j1*n2/5+GVector(0,0.03f,0);
+							GVector v=j1*n2/5*Dt/30.0f+GVector(0,0.03f,0);
 							if(v.abs()>0.1f) v=v.normalize()/10.0f;
 							GroundParticle->Add(hitPos-V*Dt*(float)(rand()%8),v,GVector(0,0,0),v.abs()*(1+ux*50),a,0.02f+(rand()%10)/100.0f,GVector(1,1,1));
 						}
@@ -1321,6 +1321,7 @@ void GWorld::SetStepTime(float stepTime)
 void GWorld::SetSubStep(int substep)
 {
 	SubStep=substep;
+	GDTSTEP=substep;
 	Dt=StepTime/SubStep;
 }
 
@@ -1753,10 +1754,18 @@ GFloat GWorld::CalcJoint(GRigid* rigidA, GVector &offsetA, GRigid* rigidB, GVect
 	GVector	pB = offsetB * rigidB->R;
 	GVector	wA = pA + rigidA->X;
 	GVector	wB = pB + rigidB->X;
-	GVector	b = (rigidB->V + pB.cross(rigidB->W)) - (rigidA->V + pA.cross(rigidA->W));
 	GMatrix33	mm = ((rigidA->CalcMassMat(pA) + rigidB->CalcMassMat(pB)).inverse());
+	/*
+	GVector AV=rigidA->P * rigidA->M_;
+	GVector BV=rigidB->P * rigidB->M_;
+	GVector AW=rigidA->L * rigidA->I_;
+	GVector BW=rigidB->L * rigidB->I_;
+	GVector	b = GVector(0,0,0);
+	GVector c = (BV-AV)*1.5f+(BW.cross(pB)-AW.cross(pA))*0.5f ;
+	*/
+	GVector	b = (rigidB->V + pB.cross(rigidB->W)) - (rigidA->V + pA.cross(rigidA->W)); //V‚ÆW‚ÍŒÃ‚¢’l‚¾‚©‚ç‚Ü‚¸‚­‚È‚¢‚Ì?
 	GVector	c  = (rigidB->P * rigidB->M_ + (rigidB->L * rigidB->I_).cross(pB))
-		- (rigidA->P * rigidA->M_ + (rigidA->L * rigidA->I_).cross(pA)) ;
+		- (rigidA->P * rigidA->M_ + (rigidA->L * rigidA->I_).cross(pA)) ; //P*M_‚ÍV‚¾‚µL*I_‚ÍW‚¾‚µA‚±‚±‚ÅŒvŽZ‚·‚×‚«‚¶‚á‚È‚­‚Ë?
 	GVector a=wB - wA;
 	GFloat s;
 	s=(GFloat)pow((double)a.abs(),(double)1/2.0);
@@ -1848,8 +1857,8 @@ GFloat GWorld::CalcHinge(GRigid* rigidA, GVector &offsetA, GRigid* rigidB, GVect
 {
 
 	GFloat h=10.0f/(GFloat)GLOOP*(GFloat)30.0f/(GFloat)LIMITFPS*10.0f/(GFloat)GDTSTEP;
-	k=k*h*0.6f/(GFloat)CHIPSIZE;if(k>1.0f*10.0f/(GFloat)GDTSTEP) k=1.0f*10.0f/(GFloat)GDTSTEP;else if(k<0) k=0.0f;
-	damper=damper*h;if(damper>0.5*10.0f/(GFloat)GDTSTEP) damper=0.5f*10.0f/(GFloat)GDTSTEP;else if(damper<0) damper=0.0f;
+	k=k*h*0.6f/(GFloat)CHIPSIZE;if(k>1.0f) k=1.0f;else if(k<0) k=0.0f;
+	damper=damper*h;if(damper>0.5) damper=0.5f;else if(damper<0) damper=0.0f;
 	angle=angle*(GFloat)M_PI/180.0f+(GFloat)M_PI;
 	//	rigidA->N2.x=angle;
 	GVector ax=axis*rigidA->R;
@@ -1957,7 +1966,7 @@ void GWorld::Move(bool initFlag)
 						Object[j]->ApplyForce(Bullet->Vertex[i].Vec.normalize2()*Bullet->Vertex[i].Power,x);
 						Object[j]->ApplyForce((Object[j]->X-x).normalize2()*Bullet->Vertex[i].Power,x);
 						GFloat p=(GFloat)pow((double)Bullet->Vertex[i].Power/15000.0,1.0/3.0);
-						JetParticle->Add(2,x,GVector(0,0,0),GVector(0,0,0),(0.2f+(myrand()%50/200.0f))*p*0.08f,p,0.04f,GVector(1,1,1),Bullet->Vertex[i].dpnid);
+						JetParticle->Add(2,x,GVector(0,0,0),GVector(0,0,0),(0.2f+(myrand()%50/200.0f))*p*0.08f,p,0.04f,GVector(1,1,1),Bullet->Vertex[i].dpnid,true);
 					}
 				}
 			}
@@ -1992,11 +2001,11 @@ void GWorld::Move(bool initFlag)
 						GFloat p=(GFloat)pow((double)Bullet->Vertex[i].Power/15000.0,1.0/3.0);
 						if(r->Tolerant<1) {
 							if(r->Crush) {
-								JetParticle->Add(2,x,GVector(0,0,0),GVector(0,0,0),(0.4f+(myrand()%50/200.0f))*p*0.08f,p,0.04f,GVector(1,1,1),Bullet->Vertex[i].dpnid);
+								JetParticle->Add(2,x,GVector(0,0,0),GVector(0,0,0),(0.4f+(myrand()%50/200.0f))*p*0.08f,p,0.04f,GVector(1,1,1),Bullet->Vertex[i].dpnid,true);
 								AttackDataDisp("X << Hit ",Bullet->Vertex[i].dpnid,1);
 							}
 							else  {
-								JetParticle->Add(1,x,GVector(0,0,0),GVector(0,0,0),(0.4f+(myrand()%50/200.0f))*p*0.08f,p,0.04f,GVector(1,1,1),Bullet->Vertex[i].dpnid);
+								JetParticle->Add(1,x,GVector(0,0,0),GVector(0,0,0),(0.4f+(myrand()%50/200.0f))*p*0.08f,p,0.04f,GVector(1,1,1),Bullet->Vertex[i].dpnid,true);
 								AttackDataDisp("X << Crush ",Bullet->Vertex[i].dpnid,1);
 							}
 							if(r->Parent==NULL) {
@@ -2018,7 +2027,7 @@ void GWorld::Move(bool initFlag)
 							r->Crush=true;
 						}
 						else {
-							JetParticle->Add(2,x,GVector(0,0,0),GVector(0,0,0),(0.4f+(myrand()%50/200.0f))*p*0.08f,p,0.04f,GVector(1,1,1),Bullet->Vertex[i].dpnid);
+							JetParticle->Add(2,x,GVector(0,0,0),GVector(0,0,0),(0.4f+(myrand()%50/200.0f))*p*0.08f,p,0.04f,GVector(1,1,1),Bullet->Vertex[i].dpnid,true);
 							AttackDataDisp("X << Hit ",(DWORD)Bullet->Vertex[i].dpnid,1);
 						}
 				}

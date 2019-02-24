@@ -146,6 +146,9 @@
     <ClInclude Include="Lua\include\lualib.h">
       <Filter>Lua</Filter>
     </ClInclude>
+    <ClInclude Include="GRigid.hpp">
+      <Filter>MySource</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="cursor1.cur">

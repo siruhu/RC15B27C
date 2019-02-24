@@ -51,7 +51,7 @@ public:
 		Vertex[NextVertex].Net=0;
 		Vertex[NextVertex].Type=0;
 		Vertex[NextVertex].Pos=pos;
-		Vertex[NextVertex].Vec=vec;
+		Vertex[NextVertex].Vec=vec;//’e‚à»‰Œ‚à‘¬“xŽõ–½‚ªFPSˆË‘¶‚È‚Ì‚Í‚Ð‚Ç‚¢
 		Vertex[NextVertex].Acc=acc;
 		Vertex[NextVertex].Size=0.4f+(myrand()%100*sizeD*4)/100.0f-sizeD*2;
 		Vertex[NextVertex].SizeD=sizeD;
@@ -64,10 +64,10 @@ public:
 		if(NextVertex>=MaxVertex) NextVertex=0;
 		return ret;
 	}
-	GParticleVertex *Add(int type,GVector pos,GVector vec,GVector acc,GFloat sizeD,GFloat life,GFloat lifeSpan,GVector col,DWORD  dpnid){
+	GParticleVertex *Add(int type,GVector pos,GVector vec,GVector acc,GFloat sizeD,GFloat life,GFloat lifeSpan,GVector col,DWORD  dpnid,bool net){
 		GParticleVertex *ret=&Vertex[NextVertex];
 		Vertex[NextVertex].Type=type;
-		if(type!=0) Vertex[NextVertex].Net=1;
+		if(type!=0 && net) Vertex[NextVertex].Net=1;
 		Vertex[NextVertex].Pos=pos;
 		Vertex[NextVertex].Vec=vec;
 		Vertex[NextVertex].Acc=acc;
@@ -139,7 +139,7 @@ public:
 	~GBullet() {
 		delete []Vertex;
 	}
-	GBulletVertex *Add(GRigid *rigid,GVector pos,GVector vec,GFloat power,GFloat size,GFloat dist,GVector t,DWORD dpnid){
+	GBulletVertex *Add(GRigid *rigid,GVector pos,GVector vec,GFloat power,GFloat size,GFloat dist,GVector t,DWORD dpnid,int Net){
 		
 		GBulletVertex *ret=&Vertex[NextVertex];
 		Vertex[NextVertex].Pos=pos;
@@ -153,7 +153,7 @@ public:
 		Vertex[NextVertex].Dist2=dist;
 		Vertex[NextVertex].Rigid=rigid;
 		Vertex[NextVertex].dpnid=dpnid;
-		Vertex[NextVertex].Net=1;
+		Vertex[NextVertex].Net=Net;
 		NextVertex++;
 		if(NextVertex>=MaxVertex) NextVertex=0;
 		return ret;
@@ -170,7 +170,7 @@ public:
 		for(int i=0;i<MaxVertex;i++) {
 			if(Vertex[i].Dist<0) {
 				Vertex[i].Life=-1;
-				Vertex[i].Net=0;
+				//Vertex[i].Net=0; //‚±‚±‚ÅÌ×¸Þ“|‚µ‚¿‚á‚¤‚Æ‘—M‘O‚É’nŒ`‚É“–‚½‚Á‚½’e‚ª‘—M‚³‚ê‚È‚¢
 			}
 			if(Vertex[i].Life>0) {
 				GFloat y=Vertex[i].Pos.y;

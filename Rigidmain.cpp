@@ -265,6 +265,7 @@ TCHAR PlayerName[MAX_PLAYER_NAME]="Player";
 long PlayerColor=0xffffff;
 TCHAR HostName[256]="localhost";
 DWORD PortNo=2345;
+DWORD setting_Network_HostFlag=false;
 
 #define	GMAXCHATLINE 101
 char ChatData[GMAXCHATLINE][256];
@@ -438,12 +439,15 @@ void AttackDataDisp(char *s,DPNID dpnid,int attack){
 	int i;
 	char str[256*GMAXATTACKLINE];
 	char name2[MAX_PLAYER_NAME];
+	bool hitFlag=false;
 	for(i=0;i<DPlay->GetMaxPlayers();i++) {
 		if(PlayerData[i].ReceiveData.info.dpnidPlayer==dpnid) {
 			strcpy(name2,PlayerData[i].ReceiveData.info.strPlayerName);
+			hitFlag=true;
 			break;
 		}
 	}
+	if(!hitFlag) strcpy(name2,"self");
 	TCHAR* strLastSharp = _tcsrchr( name2, TEXT('#') );
 	if(strLastSharp) *strLastSharp='\0';
 	sprintf(AttackData[AttackDataEnd],"%s %s\r\n",s,name2);
@@ -455,17 +459,27 @@ void AttackDataDisp(char *s,DPNID dpnid,int attack){
 		AttackDataStart=AttackDataEnd+1;
 	}
 	AttackData[AttackDataEnd][0]='\0';
-	i=AttackDataStart;if(i>=GMAXATTACKLINE) i=0;
-	str[0]='\0';
-	while(i!=AttackDataEnd) {
-		strcat(str,AttackData[i]);
-		i++;
-		if(i>=GMAXATTACKLINE) i=0;
+	
+	static DWORD frameGetTime_old=0;
+	if(frameGetTime_old!=frameGetTime){ //更新頻度を1F1回に制限  そもそもここで描画更新すべきではないが･･･  同時着弾の反映が遅れる場合有り
+		frameGetTime_old=frameGetTime;
+		
+		i=AttackDataStart;if(i>=GMAXATTACKLINE) i=0;
+		str[0]='\0';
+		while(i!=AttackDataEnd) {
+			strcat(str,AttackData[i]);
+			i++;
+			if(i>=GMAXATTACKLINE) i=0;
+		}
+		for(i=0;i<=(AttackDataEnd%13);i++){
+			strcat(str,"_");
+		}
+		SendDlgItemMessage(NetworkDlg,IDC_ATTACKTEXT,WM_SETTEXT,0,(LPARAM)str);
+		//SendMessage(GetDlgItem(NetworkDlg,IDC_ATTACKTEXT),EM_SETSEL,0,-1); //全てを選択
+		//SendMessage(GetDlgItem(NetworkDlg,IDC_ATTACKTEXT),EM_SETSEL,-1,-1); //解除
+		//SendMessage(GetDlgItem(NetworkDlg,IDC_ATTACKTEXT),EM_REPLACESEL,0,(WPARAM)"_");
+		SendMessage(GetDlgItem(NetworkDlg,IDC_ATTACKTEXT),EM_LINESCROLL,0,GMAXATTACKLINE+1); //ｶｰｿﾙ位置へｽｸﾛｰﾙ･･･出来なかったんで最大行数ｽｸﾛｰﾙ
 	}
-	SendDlgItemMessage(NetworkDlg,IDC_ATTACKTEXT,WM_SETTEXT,0,(LPARAM)str);
-	SendMessage(GetDlgItem(NetworkDlg,IDC_ATTACKTEXT),EM_SETSEL,0,-1); //全てを選択
-	SendMessage(GetDlgItem(NetworkDlg,IDC_ATTACKTEXT),EM_SETSEL,-1,-1); //解除
-	SendMessage(GetDlgItem(NetworkDlg,IDC_ATTACKTEXT),EM_REPLACESEL,0,(WPARAM)"_");
 }
 
 char  *ChatDataDisp(char *name,char *s){
@@ -629,7 +643,7 @@ HRESULT MyReceiveFunc( MYAPP_PLAYER_INFO* playerInfo,DWORD size,BYTE *stream ) {
 		int s=(size-sizeof(short))/sizeof(GBULLETDATA);
 		GBULLETDATA *bullet=(GBULLETDATA*)data;
 		for(int j=0;j<s;j++) {
-			GBulletVertex *b=Bullet->Add(NULL,bullet[j].Pos,bullet[j].Vec,bullet[j].Power,bullet[j].Size,bullet[j].Dist,bullet[j].Tar,playerInfo->dpnidPlayer);
+			GBulletVertex *b=Bullet->Add(NULL,bullet[j].Pos,bullet[j].Vec,bullet[j].Power,bullet[j].Size,bullet[j].Dist,bullet[j].Tar,playerInfo->dpnidPlayer,false);
 			b->Net=0;
 		}
 	}
@@ -643,7 +657,7 @@ HRESULT MyReceiveFunc( MYAPP_PLAYER_INFO* playerInfo,DWORD size,BYTE *stream ) {
 			int s=(size-sizeof(short))/sizeof(GBULLETDATA);
 			GBULLETDATA *bullet=(GBULLETDATA*)data;
 			for(int j=0;j<s;j++) {
-				GBulletVertex *b=Bullet->Add(NULL,bullet[j].Pos,bullet[j].Vec,bullet[j].Power,bullet[j].Size,bullet[j].Dist,bullet[j].Tar,playerInfo->dpnidPlayer);
+				GBulletVertex *b=Bullet->Add(NULL,bullet[j].Pos,bullet[j].Vec,bullet[j].Power,bullet[j].Size,bullet[j].Dist,bullet[j].Tar,playerInfo->dpnidPlayer,false);
 				b->Net=0;
 			}
 		}
@@ -652,7 +666,7 @@ HRESULT MyReceiveFunc( MYAPP_PLAYER_INFO* playerInfo,DWORD size,BYTE *stream ) {
 		int s=(size-sizeof(short))/sizeof(GBULLETDATA);
 		GBULLETDATA *bullet=(GBULLETDATA*)data;
 		for(int j=0;j<s;j++) {
-			GBulletVertex *b=Bullet->Add(NULL,bullet[j].Pos,bullet[j].Vec,bullet[j].Power,bullet[j].Size,bullet[j].Dist,bullet[j].Tar,playerInfo->dpnidPlayer);
+			GBulletVertex *b=Bullet->Add(NULL,bullet[j].Pos,bullet[j].Vec,bullet[j].Power,bullet[j].Size,bullet[j].Dist,bullet[j].Tar,playerInfo->dpnidPlayer,false);
 			b->Net=0;
 		}
 	}
@@ -675,10 +689,10 @@ HRESULT MyReceiveFunc( MYAPP_PLAYER_INFO* playerInfo,DWORD size,BYTE *stream ) {
 		for(int j=0;j<s;j++) {
 			GParticleVertex *part=NULL;
 			if(expo[j].Type==1) {
-				part=JetParticle->Add(1,expo[j].Pos,GVector(0,0,0),GVector(0,0,0),(0.3f+(rand()%50/200.0f))*expo[j].Power*0.08f,expo[j].Power,0.04f,GVector(1,1,1),0);
+				part=JetParticle->Add(1,expo[j].Pos,GVector(0,0,0),GVector(0,0,0),(0.3f+(rand()%50/200.0f))*expo[j].Power*0.08f,expo[j].Power,0.04f,GVector(1,1,1),0,false);
 			}
 			else {
-				part=JetParticle->Add(2,expo[j].Pos,GVector(0,0,0),GVector(0,0,0),(0.2f+(rand()%50/200.0f))*expo[j].Power*0.08f,expo[j].Power,0.04f,GVector(1,1,1),0);
+				part=JetParticle->Add(2,expo[j].Pos,GVector(0,0,0),GVector(0,0,0),(0.2f+(rand()%50/200.0f))*expo[j].Power*0.08f,expo[j].Power,0.04f,GVector(1,1,1),0,false);
 			}
 			part->Net=0;
 		}
@@ -695,11 +709,11 @@ HRESULT MyReceiveFunc( MYAPP_PLAYER_INFO* playerInfo,DWORD size,BYTE *stream ) {
 			for(int j=0;j<s;j++) {
 				GParticleVertex *part=NULL;
 				if(expo[j].Type==1) {
-					part=JetParticle->Add(1,expo[j].Pos,GVector(0,0,0),GVector(0,0,0),(0.3f+(rand()%50/200.0f))*expo[j].Power*0.08f,expo[j].Power,0.04f,GVector(1,1,1),0);
+					part=JetParticle->Add(1,expo[j].Pos,GVector(0,0,0),GVector(0,0,0),(0.3f+(rand()%50/200.0f))*expo[j].Power*0.08f,expo[j].Power,0.04f,GVector(1,1,1),0,false);
 					if(expo->dpnid==DPlay->GetLocalPlayerDPNID()) AttackDataDisp("O >> Crush ",playerInfo->dpnidPlayer,0);
 				}
 				else {
-					part=JetParticle->Add(2,expo[j].Pos,GVector(0,0,0),GVector(0,0,0),(0.2f+(rand()%50/200.0f))*expo[j].Power*0.08f,expo[j].Power,0.04f,GVector(1,1,1),0);
+					part=JetParticle->Add(2,expo[j].Pos,GVector(0,0,0),GVector(0,0,0),(0.2f+(rand()%50/200.0f))*expo[j].Power*0.08f,expo[j].Power,0.04f,GVector(1,1,1),0,false);
 					if(expo->dpnid==DPlay->GetLocalPlayerDPNID()) AttackDataDisp("O >> Hit ",playerInfo->dpnidPlayer,0);
 				}
 				part->Net=0;
@@ -712,11 +726,11 @@ HRESULT MyReceiveFunc( MYAPP_PLAYER_INFO* playerInfo,DWORD size,BYTE *stream ) {
 		for(int j=0;j<s;j++) {
 			GParticleVertex *part=NULL;
 			if(expo[j].Type==1) {
-				part=JetParticle->Add(1,expo[j].Pos,GVector(0,0,0),GVector(0,0,0),(0.3f+(rand()%50/200.0f))*expo[j].Power*0.08f,expo[j].Power,0.04f,GVector(1,1,1),0);
+				part=JetParticle->Add(1,expo[j].Pos,GVector(0,0,0),GVector(0,0,0),(0.3f+(rand()%50/200.0f))*expo[j].Power*0.08f,expo[j].Power,0.04f,GVector(1,1,1),0,false);
 				if(expo->dpnid==DPlay->GetLocalPlayerDPNID()) AttackDataDisp("O >> Crush ",playerInfo->dpnidPlayer,0);
 			}
 			else {
-				part=JetParticle->Add(2,expo[j].Pos,GVector(0,0,0),GVector(0,0,0),(0.2f+(rand()%50/200.0f))*expo[j].Power*0.08f,expo[j].Power,0.04f,GVector(1,1,1),0);
+				part=JetParticle->Add(2,expo[j].Pos,GVector(0,0,0),GVector(0,0,0),(0.2f+(rand()%50/200.0f))*expo[j].Power*0.08f,expo[j].Power,0.04f,GVector(1,1,1),0,false);
 				if(expo->dpnid==DPlay->GetLocalPlayerDPNID()) AttackDataDisp("O >> Hit ",playerInfo->dpnidPlayer,0);
 			}
 			part->Net=0;
@@ -800,7 +814,7 @@ HRESULT MyReceiveFunc( MYAPP_PLAYER_INFO* playerInfo,DWORD size,BYTE *stream ) {
 			GSTREAM strm2;
 			strm2.code=1;
 			char *str=(char*)strm2.data;
-			sprintf(str,"Version=1.5 C9");
+			sprintf(str,"Version=1.5 C10pre1");
 			DWORD size=strlen(str)+1+sizeof(short);
 			DPlay->SendTo(playerInfo->dpnidPlayer,(BYTE*)&strm2,size,180,DPNSEND_NOLOOPBACK|DPNSEND_NOCOMPLETE);
 		}
@@ -1356,7 +1370,7 @@ void Text3Dm(CD3DFont*font,D3DXMATRIX &m,char *str,DWORD col) {
 
 
 
-#define line2dVertexMax 2000 //奇数が始点 偶数が終点の線
+#define line2dVertexMax 400 //奇数が始点 偶数が終点の線
 D3DPOINTVERTEX line2dVertexTable[line2dVertexMax]; //頂点ﾊﾞｯﾌｧ 埋まったら描画
 int line2dVertexTable_n=0;
 
@@ -1406,7 +1420,7 @@ void Line2D(GFloat x0,GFloat y0,GFloat x1,GFloat y1,int col)
 	}
 }
 
-#define line3dVertexMax 2000 //奇数が始点 偶数が終点の線
+#define line3dVertexMax 400 //奇数が始点 偶数が終点の線
 D3DPOINTVERTEX line3dVertexTable[line3dVertexMax]; //頂点ﾊﾞｯﾌｧ 埋まったら描画
 int line3dVertexTable_n=0;
 
@@ -1646,8 +1660,13 @@ int CALLBACK DlgNetworkProc(HWND hDlg,UINT uMsg,WPARAM wParam,LPARAM lParam)
 				int st=(int)SendMessage(GetDlgItem(hDlg,IDC_HOSTRADIO), BM_GETCHECK,0,0);
 				int st2=(int)SendMessage(GetDlgItem(hDlg,IDC_CONNECTRADIO), BM_GETCHECK,0,0);
 				if((st&BST_CHECKED)==0 && (st2&BST_CHECKED)==0) {
-					SendMessage(GetDlgItem(hDlg,IDC_HOSTRADIO), BM_SETCHECK, (WPARAM)BST_CHECKED, 0);
-					st=BST_CHECKED;
+					if(setting_Network_HostFlag){ //ｳｲﾝﾄﾞｳ生成時のみここを通るのでHostFlag読み込み あまりいい書き方ではないね
+						SendMessage(GetDlgItem(hDlg,IDC_HOSTRADIO), BM_SETCHECK, (WPARAM)BST_CHECKED, 0);
+						st=BST_CHECKED;
+					}else{
+						SendMessage(GetDlgItem(hDlg,IDC_CONNECTRADIO), BM_SETCHECK, (WPARAM)BST_CHECKED, 0);
+						st2=BST_CHECKED;
+					}
 				}
 						
 				str[0]='\0';
@@ -1968,8 +1987,14 @@ int CALLBACK DlgNetworkProc(HWND hDlg,UINT uMsg,WPARAM wParam,LPARAM lParam)
                     break;
 */
 				case IDC_HOSTRADIO|(BN_CLICKED<<16):
+					{
+						setting_Network_HostFlag=true;
+						SendMessage(hDlg, WM_INITDIALOG,0,0);
+					}
+					break;
 				case IDC_CONNECTRADIO|(BN_CLICKED<<16):
 					{
+						setting_Network_HostFlag=false;
 						SendMessage(hDlg, WM_INITDIALOG,0,0);
 					}
 					break;
@@ -2082,10 +2107,10 @@ void GRigid::Disp(BOOL bDrawOpaqueSubsets,BOOL bDrawAlphaSubsets) //透明半透明ﾌﾗ
 	else {
 		mesh=m_pXMesh[MeshNo];
 		if(MeshNo==2) {
-			if(LinkInfo && (W*(LinkInfo->Axis*R)).abs()>M_PI/World->StepTime/3.0f) mesh=m_pXMesh[8];
+			if(LinkInfo && (W*(LinkInfo->Axis*R)).abs()>M_PI*10.0f) mesh=m_pXMesh[8];
 		}
 		else if(MeshNo==3) {
-			if(LinkInfo && (W*(LinkInfo->Axis*R)).abs()>M_PI/World->StepTime/3.0f) mesh=m_pXMesh[9];
+			if(LinkInfo && (W*(LinkInfo->Axis*R)).abs()>M_PI*10.0f) mesh=m_pXMesh[9];
 		}
 		else if(MeshNo==23) { //カウル
 			if(Option==1) mesh=m_pXMesh[24];
@@ -2227,7 +2252,8 @@ void GRigid::Disp(BOOL bDrawOpaqueSubsets,BOOL bDrawAlphaSubsets) //透明半透明ﾌﾗ
 void GWorld::DispNetChip(int n)
 {
 	if(PlayerData[n].ReceiveData.info.dpnidPlayer==0) return;
-//	if(PrePlayerData[n].ReceiveData.size!=PlayerData[n].ReceiveData.size) return;
+//	if(PrePlayerData[n].ReceiveData.size!=PlayerData[n].ReceiveData.size) return; //ﾓﾃﾞﾙ変更時にﾌﾚｰﾑｻｲｽﾞの差から描画ｽｷｯﾌﾟしようとした? ･･･けどなぜかｺﾒﾝﾄｱｳﾄされてる
+	//結果少ﾁｯﾌﾟﾓﾃﾞﾙから多ﾁｯﾌﾟﾓﾃﾞﾙに変更された瞬間に増えた分PrePlayerDataからｺﾞﾐﾃﾞｰﾀ読んでるぽい
 	
 	G3dDevice->SetRenderState(D3DRS_SPECULARENABLE, TRUE );
 	
@@ -2475,9 +2501,9 @@ void GWorld::DispNetChip(int n)
 			int id2=chip2->id&0xfff;
 			int dir=chip->id>>12;
 			if(id>=512) {
-				PlayerData[n].X[id-512].x=chip->data.f[0];
-				PlayerData[n].X[id-512].y=chip->data.f[1];
-				PlayerData[n].X[id-512].z=chip->data.f[2];
+				//PlayerData[n].X[id-512].x=chip->data.f[0]; //これ上のﾁｯﾌﾟのとこでもうやってる
+				//PlayerData[n].X[id-512].y=chip->data.f[1];
+				//PlayerData[n].X[id-512].z=chip->data.f[2];
 				continue;
 			}
 
@@ -2494,6 +2520,9 @@ void GWorld::DispNetChip(int n)
 			GVector X1=PlayerData[n].X[id];
 			GVector X2=PrePlayerData[n].X[id];
 			GVector X=(((X1-X2)*ww2+X1)+PlayerData[n].X2[id])/2.0f;
+			PlayerData[n].X[PlayerData[n].ChipCount].x=chip->data.pos.x/100.0f+X1.x; //これ消してたけどｶｳﾙの座標取れなくなってたね  戻した
+			PlayerData[n].X[PlayerData[n].ChipCount].y=chip->data.pos.y/100.0f+X1.y;
+			PlayerData[n].X[PlayerData[n].ChipCount].z=chip->data.pos.z/100.0f+X1.z;
 				p.x=(chip->data.pos.x/100.0f+X.x)*w2+(chip2->data.pos.x/100.0f+X.x)*w1;
 				p.y=(chip->data.pos.y/100.0f+X.y)*w2+(chip2->data.pos.y/100.0f+X.y)*w1;
 				p.z=(chip->data.pos.z/100.0f+X.z)*w2+(chip2->data.pos.z/100.0f+X.z)*w1;
@@ -2894,6 +2923,7 @@ void GRigid::DispShadow()
 		G3dDevice->SetRenderState( D3DRS_ALPHABLENDENABLE,TRUE );
 		G3dDevice->SetRenderState( D3DRS_ZWRITEENABLE, FALSE );
 		G3dDevice->SetRenderState( D3DRS_ZFUNC, D3DCMP_LESS);
+		//G3dDevice->SetRenderState( D3DRS_SLOPESCALEDEPTHBIAS, 1); //D3D9からｻﾎﾟｰﾄらしい･･･
 		#define ShadowVertexMax 200 //Shape.PointNの最大値だけあれば足りる気はする(30くらい?)
 		D3DPOINTVERTEX ShadowVertexTable[ShadowVertexMax]; //頂点ﾊﾞｯﾌｧ
 		int ShadowVertexTable_n=0;
@@ -3114,11 +3144,11 @@ void GRigid::ApplyExtForce()
 	}
 	if(X.y<=WaterLine){ //水の中
 		if(X.y<=WaterLine-100 && Top && Top->TotalCount>2) {
-			Ext+=(X-Top->TotalCenterOfGravity)*(X.y-WaterLine+100)*M*0.01f;
-			//ApplyImpulse((,X);
+			Ext+=(X-Top->TotalCenterOfGravity)*(X.y-WaterLine+100)*M*0.01f;//水深100m以降の水圧
+			//ApplyImpulse(,X);
 		}
 		Ext+=((-World->G*M)-(World->G*(1100.0f*volume-M)))*World->Dt;
-		Ext+=-v.normalize()*va*va*1.225f*World->Dt*1.0f;
+		Ext+=-v.normalize2()*va*va*1.225f*World->Dt*1.0f;
 		Ext+=-n*cd*va*va*u*px*pz*1.225f*World->Dt*0.5f*k*(30.0f);
 		//ApplyImpulse(,X);
 		//ApplyImpulse(,X);
@@ -3128,7 +3158,7 @@ void GRigid::ApplyExtForce()
 	else {
 		GFloat a=X.y-WaterLine;
 		GFloat hk=1.0f;
-		if(X.y>300) hk=1.0f-(X.y-300)/10000.0f;if(hk<=0) hk=0.0f;
+		if(X.y>300) hk=1.0f-(X.y-300)/10000.0f;if(hk<=0) hk=0.0f; //300mが空気抵抗減衰開始高度 10kmが終了高度
 		hk=hk*hk;
 		if(V.y<0.0 && a<=1){
 			Ext+=GVector(0,(GFloat)fabs(GVector(0,1,0).dot(nw))*cd*V.y*V.y*uw*px*pz*1.225f*World->Dt*0.5f*k*(1-a*a)*100*hk,0);
@@ -3139,12 +3169,12 @@ void GRigid::ApplyExtForce()
 		//ApplyImpulse(,X);	//1.225f[Kg/m^3]は空気密度
 
 		if(va<1.0f) {
-			Ext+=-vw.normalize()*vwa*M*World->Dt*2.0f*cd*hk;
+			Ext+=-vw.normalize2()*vwa*M*World->Dt*2.0f*cd*hk;
 			//ApplyImpulse(,X);
 		}
 		L-=L*0.5f*cd*World->Dt*hk;
 	}
-
+	if(Ext.abs()>Top->TotalMass*va*2*0.9) Ext=Ext.normalize2()*Top->TotalMass*va*2*0.9;//水面高速突入時等に速度が発散する対策
 	ApplyImpulse(Ext,X);
 }
 
@@ -3318,7 +3348,7 @@ CMyD3DApplication::CMyD3DApplication()
 
 	m_dwCreationWidth           = 640;
     m_dwCreationHeight          = 480;
-    m_strWindowTitle            = TEXT( "RigidChips 1.5.B27C9" );
+    m_strWindowTitle            = TEXT( "RigidChips 1.5.B27C10pre1" );
     m_bUseDepthBuffer           = TRUE;
 
 	m_dLimidFPS=1000/LIMITFPS;
@@ -3430,6 +3460,11 @@ HRESULT CMyD3DApplication::OneTimeSceneInit()
 	}
 	else if(m_dLimidFPS==(1000/30)){
 		CheckMenuItem(hMenu,IDM_LIMIT30,MF_CHECKED);
+		CheckMenuItem(hMenu,IDM_LIMIT15,MF_UNCHECKED);
+	}
+	else if(m_dLimidFPS==(1000/60)){
+		CheckMenuItem(hMenu,IDM_LIMIT60,MF_CHECKED);
+		CheckMenuItem(hMenu,IDM_LIMIT30,MF_UNCHECKED);
 		CheckMenuItem(hMenu,IDM_LIMIT15,MF_UNCHECKED);
 	}
 	else {
@@ -3570,7 +3605,6 @@ VOID CMyD3DApplication::ReadSettings()
 
 		DXUtil_ReadIntRegKey( hkey, TEXT("ShowMeter"), &ShowMeter, ShowMeter );
         DXUtil_ReadIntRegKey( hkey, TEXT("ShowRegulation"), &ShowRegulation, ShowRegulation );
-        DXUtil_ReadIntRegKey( hkey, TEXT("ShowShadowFlag"), &ShowShadowFlag, ShowShadowFlag );
         DXUtil_ReadIntRegKey( hkey, TEXT("ShowMessage"), &ShowMessage, ShowMessage );
         DXUtil_ReadIntRegKey( hkey, TEXT("ShowVariable"), &ShowVariable, ShowVariable );
         DXUtil_ReadIntRegKey( hkey, TEXT("ShowCowl"), &ShowCowl, ShowCowl );
@@ -3578,7 +3612,9 @@ VOID CMyD3DApplication::ReadSettings()
 		DXUtil_ReadIntRegKey( hkey, TEXT("LimidFPS"), &m_dLimidFPS, m_dLimidFPS );
 		DXUtil_ReadIntRegKey( hkey, TEXT("FastShadow"), &FastShadow, FastShadow );
 		if(m_dLimidFPS==(1000/15)) LIMITFPS=15;
-		else  LIMITFPS=30;
+		else if(m_dLimidFPS==(1000/60)) LIMITFPS=60;
+		else LIMITFPS=30;
+    	GDTSTEP=10*30/LIMITFPS;
 
 		DXUtil_ReadIntRegKey( hkey, TEXT("TextureAlpha"), &TextureAlpha, TextureAlpha );
         DXUtil_ReadIntRegKey( hkey, TEXT("BackFaces"), &BackFaces, BackFaces );
@@ -3600,6 +3636,7 @@ VOID CMyD3DApplication::ReadSettings()
 
 		DXUtil_ReadStringRegKey( hkey, TEXT("CurrWorkDir"), CurrDataDir,MAX_PATH, DataDir );
 
+        DXUtil_ReadIntRegKey( hkey, TEXT("setting_Network_HostFlag"), &setting_Network_HostFlag, setting_Network_HostFlag );
         DXUtil_ReadStringRegKey( hkey, TEXT("SessionName"), SessionName,256, "RigidChips" );
 		if(SessionName[0]=='\0') strcpy(SessionName,"RigidChips");
         DXUtil_ReadStringRegKey( hkey, TEXT("PlayerName"), PlayerName,MAX_PLAYER_NAME, "Player" );
@@ -3641,7 +3678,6 @@ VOID CMyD3DApplication::WriteSettings()
         DXUtil_WriteIntRegKey( hkey, TEXT("Sound"), SoundType );
 		DXUtil_WriteIntRegKey( hkey, TEXT("ShowMeter"), ShowMeter );
         DXUtil_WriteIntRegKey( hkey, TEXT("ShowRegulation"),  ShowRegulation );
-        DXUtil_WriteIntRegKey( hkey, TEXT("ShowShadowFlag"),  ShowShadowFlag );
         DXUtil_WriteIntRegKey( hkey, TEXT("ShowMessage"), ShowMessage );
         DXUtil_WriteIntRegKey( hkey, TEXT("ShowVariable"), ShowVariable );
         DXUtil_WriteIntRegKey( hkey, TEXT("ShowCowl"), ShowCowl );
@@ -3663,6 +3699,7 @@ VOID CMyD3DApplication::WriteSettings()
         DXUtil_WriteIntRegKey( hkey, TEXT("NameSize"),  v );
         DXUtil_WriteStringRegKey( hkey, TEXT("CurrWorkDir"), CurrDataDir );
 		
+        DXUtil_WriteIntRegKey( hkey, TEXT("setting_Network_HostFlag"), setting_Network_HostFlag );
         DXUtil_WriteStringRegKey( hkey, TEXT("SessionName"), SessionName );
         DXUtil_WriteStringRegKey( hkey, TEXT("PlayerName"), PlayerName );
         DXUtil_WriteStringRegKey( hkey, TEXT("HostName"), HostName );
@@ -6198,11 +6235,11 @@ if( win == FALSE )
 		for(i=0;i<GVALMAX;i++) {
 			if(ValList[i].Updated==false) {
 				if(ValList[i].Val>ValList[i].Def){
-					ValList[i].Val-=(GFloat)fabs(ValList[i].Dec);
+					ValList[i].Val-=(GFloat)fabs(ValList[i].Dec*30.0f/LIMITFPS);
 					if(ValList[i].Val<ValList[i].Def) ValList[i].Val=ValList[i].Def;
 				}
 				if(ValList[i].Val<ValList[i].Def){
-					ValList[i].Val+=(GFloat)fabs(ValList[i].Dec);
+					ValList[i].Val+=(GFloat)fabs(ValList[i].Dec*30.0f/LIMITFPS);
 					if(ValList[i].Val>ValList[i].Def) ValList[i].Val=ValList[i].Def;
 				}
 			}
@@ -6287,7 +6324,7 @@ if( win == FALSE )
 					}
 					SAFE_RELEASE( pAllHitsBuffer );
 					GVector p=Chip[i]->X+dir2*dist;
-					GBulletVertex *bul=Bullet->Add(Chip[i],Chip[i]->X,d*as*30.0f/(GFloat)LIMITFPS+Chip[i]->V*Chip[i]->World->Dt*(GFloat)GDTSTEP,Chip[i]->ArmEnergy,(GFloat)f*0.3f,dist,p,-1);
+					GBulletVertex *bul=Bullet->Add(Chip[i],Chip[i]->X,d*as*30.0f/(GFloat)LIMITFPS+Chip[i]->V*Chip[i]->World->Dt*(GFloat)GDTSTEP,Chip[i]->ArmEnergy,(GFloat)f*0.3f,dist,p,-1,true);
 					if(Chip[i]->X.y<WaterLine) bul->Life=150.0f;
 
 					//pVB->Unlock();
@@ -7036,6 +7073,7 @@ HRESULT CMyD3DApplication::Render()
 		m_pd3dDevice->SetTextureStageState( 0, D3DTSS_ADDRESSV,  D3DTADDRESS_WRAP );
 		m_pd3dDevice->SetTextureStageState( 0, D3DTSS_COLOROP,   D3DTOP_MODULATE );
 		m_pd3dDevice->SetTransform( D3DTS_VIEW, &GMatView );
+		//m_pd3dDevice->SetRenderState( D3DRS_FILLMODE, D3DFILL_WIREFRAME);
 		//スクリプトの呼び出し
 		// TODO: update world
 		FPS=m_fFPS;
@@ -7177,8 +7215,10 @@ HRESULT CMyD3DApplication::Render()
 			m_pd3dDevice->SetRenderState( D3DRS_CULLMODE, D3DCULL_NONE);	// カリングモード
 			m_pd3dDevice->SetRenderState( D3DRS_ALPHABLENDENABLE,TRUE );
 			m_pd3dDevice->SetRenderState( D3DRS_ZWRITEENABLE, FALSE );
-			m_pd3dDevice->SetTextureStageState( 0, D3DTSS_TEXTURETRANSFORMFLAGS, D3DTTFF_COUNT2 );
-			//m_pd3dDevice->SetTextureStageState(0, D3DTSS_MIPFILTER, D3DTEXF_POINT);
+			m_pd3dDevice->SetTextureStageState(0, D3DTSS_TEXTURETRANSFORMFLAGS, D3DTTFF_COUNT2 );
+			m_pd3dDevice->SetTextureStageState(0, D3DTSS_MIPFILTER, D3DTEXF_POINT);
+		//	m_pd3dDevice->SetTextureStageState(0, D3DTSS_MIPFILTER, D3DTEXF_LINEAR);
+			m_pd3dDevice->SetTextureStageState(0, D3DTSS_MIPMAPLODBIAS,  FtoDW(-3.5f));
 			D3DXMATRIX mat1,mat2;
 			FLOAT s=(FLOAT)(GFARMAX/600);
 			if(GFARMAX<=0) s=64;
@@ -7200,8 +7240,9 @@ HRESULT CMyD3DApplication::Render()
 			m_pd3dDevice->SetRenderState( D3DRS_CULLMODE, D3DCULL_CCW);	// カリングモード
 			m_pd3dDevice->SetRenderState( D3DRS_ALPHABLENDENABLE,FALSE );
 			m_pd3dDevice->SetRenderState( D3DRS_ZWRITEENABLE, TRUE );
-			m_pd3dDevice->SetTextureStageState( 0, D3DTSS_TEXTURETRANSFORMFLAGS, D3DTTFF_DISABLE );
-			//m_pd3dDevice->SetTextureStageState(0, D3DTSS_MIPFILTER, D3DTEXF_NONE);
+			m_pd3dDevice->SetTextureStageState(0, D3DTSS_TEXTURETRANSFORMFLAGS, D3DTTFF_DISABLE );
+			m_pd3dDevice->SetTextureStageState(0, D3DTSS_MIPFILTER, D3DTEXF_NONE);
+			m_pd3dDevice->SetTextureStageState(0, D3DTSS_MIPMAPLODBIAS,  FtoDW(0.0f));
 		}
 		
 		
@@ -7491,6 +7532,7 @@ HRESULT CMyD3DApplication::Render()
 		m_pd3dDevice->SetRenderState( D3DRS_ZWRITEENABLE, FALSE );
 		m_pd3dDevice->SetRenderState( D3DRS_ALPHABLENDENABLE,TRUE );
 		m_pd3dDevice->SetRenderState( D3DRS_DESTBLEND, D3DBLEND_ONE);  //DESTの設定
+		m_pd3dDevice->SetTextureStageState( 0, D3DTSS_ADDRESSV,  D3DTADDRESS_CLAMP );
 		D3DXMATRIX mat1,mat2;
 		k=0;
 //		GVector v=(EyePos-RefPos).normalize2();
@@ -7514,6 +7556,9 @@ HRESULT CMyD3DApplication::Render()
 				CD3DMesh *mesh;
 				//-----------------弾頭
 				if(va_dist==va){
+					x=(FLOAT)(pos.x);
+					y=(FLOAT)(pos.y);
+					z=(FLOAT)(pos.z);
 					mesh=m_pXMesh[32];
 					mesh->m_pMaterials[0].Diffuse.a=alpha;
 					D3DXMatrixRotationZ(&mat1,(FLOAT)i);
@@ -7523,9 +7568,6 @@ HRESULT CMyD3DApplication::Render()
 					mat2._41 = 0.0f; mat2._42 = 0.0f; mat2._43 = 0.0f;
 					D3DXMatrixInverse(&mat2,NULL,&mat2);
 					D3DXMatrixMultiply( &mat1 , &mat1, &mat2);
-					x=(FLOAT)(pos.x);
-					y=(FLOAT)(pos.y);
-					z=(FLOAT)(pos.z);
 					D3DXMatrixTranslation(&mat2,x,y,z);
 					D3DXMatrixMultiply( &mat2 , &mat1, &mat2);
 					D3DXMatrixMultiply( &mat2 , &mat2, &GMatWorld);
@@ -7540,7 +7582,6 @@ HRESULT CMyD3DApplication::Render()
 				x=(FLOAT)(pos.x-v.x*temp);
 				y=(FLOAT)(pos.y-v.y*temp);
 				z=(FLOAT)(pos.z-v.z*temp);
-				D3DXMatrixScaling(&mat1,size,(FLOAT)va_dist,size);
 				//-----------------尾ひれの向き
 				GVector Eye_norm=(EyePos2-pos).normalize2();
 				GVector PertVecY=Eye_norm.cross(v_norm);
@@ -7550,8 +7591,9 @@ HRESULT CMyD3DApplication::Render()
 			    D3DXVECTOR3 vLookatPt = D3DXVECTOR3( (FLOAT)PertVecZ.x, (FLOAT)PertVecZ.y, (FLOAT)PertVecZ.z );
 			    D3DXVECTOR3 vUpVec    = D3DXVECTOR3( (FLOAT)v_norm.x, (FLOAT)v_norm.y, (FLOAT)v_norm.z );
 			    D3DXMatrixLookAtLH( &mat2, &vFromPt, &vLookatPt, &vUpVec );
-				//-----------------
 				D3DXMatrixInverse(&mat2,NULL,&mat2);
+				//-----------------
+				D3DXMatrixScaling(&mat1,size,(FLOAT)va_dist,size);
 				D3DXMatrixMultiply( &mat1 , &mat1, &mat2);
 				D3DXMatrixTranslation(&mat2,x,y,z);
 				D3DXMatrixMultiply( &mat2 , &mat1, &mat2);
@@ -7571,6 +7613,7 @@ HRESULT CMyD3DApplication::Render()
 		m_pd3dDevice->SetRenderState( D3DRS_ZWRITEENABLE, TRUE );
 		m_pd3dDevice->SetRenderState( D3DRS_ALPHABLENDENABLE, FALSE );
 		m_pd3dDevice->SetRenderState( D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);  //DESTの設定
+		m_pd3dDevice->SetTextureStageState( 0, D3DTSS_ADDRESSV,  D3DTADDRESS_WRAP );
     	
 		
 		World->Disp(0,FALSE,TRUE,FALSE); //半透明ｶｳﾙ描画
@@ -8615,7 +8658,7 @@ LRESULT CMyD3DApplication::MsgProc( HWND hWnd, UINT msg, WPARAM wParam,
 					else CheckMenuItem(hMenu,IDM_DITHER,MF_UNCHECKED);
                     break;
 				}
-			/*case IDM_LIMIT60:
+			case IDM_LIMIT60:
 				{
 					HMENU hMenu = GetMenu( hWnd );
 					LIMITFPS=60;
@@ -8633,17 +8676,17 @@ LRESULT CMyD3DApplication::MsgProc( HWND hWnd, UINT msg, WPARAM wParam,
 					}
 
                     break;
-				}*/
+				}
 			case IDM_LIMIT30:
 				{
 					HMENU hMenu = GetMenu( hWnd );
 					LIMITFPS=30;
                     m_dLimidFPS = (m_dLimidFPS==(1000/LIMITFPS))?0L:(1000/LIMITFPS);
 					if(World) World->SetStepTime(1.0f/LIMITFPS);
-					//if(World) World->SetSubStep(10);
+					if(World) World->SetSubStep(10);
 					if(m_dLimidFPS==(1000/LIMITFPS)) {
 						CheckMenuItem(hMenu,IDM_LIMIT30,MF_CHECKED);
-						//CheckMenuItem(hMenu,IDM_LIMIT60,MF_UNCHECKED);
+						CheckMenuItem(hMenu,IDM_LIMIT60,MF_UNCHECKED);
 						CheckMenuItem(hMenu,IDM_LIMIT15,MF_UNCHECKED);
 					}
 					else {
@@ -8659,11 +8702,11 @@ LRESULT CMyD3DApplication::MsgProc( HWND hWnd, UINT msg, WPARAM wParam,
 					LIMITFPS=15;
                     m_dLimidFPS = (m_dLimidFPS==(1000/LIMITFPS))?0L:(1000/LIMITFPS);
 					if(World) World->SetStepTime(1.0f/LIMITFPS);
-					//if(World) World->SetSubStep(20);
+					if(World) World->SetSubStep(20);
 					if(m_dLimidFPS==(1000/LIMITFPS)) {
 						CheckMenuItem(hMenu,IDM_LIMIT15,MF_CHECKED);
 						CheckMenuItem(hMenu,IDM_LIMIT30,MF_UNCHECKED);
-						//CheckMenuItem(hMenu,IDM_LIMIT60,MF_UNCHECKED);
+						CheckMenuItem(hMenu,IDM_LIMIT60,MF_UNCHECKED);
 					}
 					else {
 						CheckMenuItem(hMenu,IDM_LIMIT15,MF_UNCHECKED);
@@ -9268,21 +9311,19 @@ HRESULT CMyD3DApplication::InvalidateDeviceObjects()
 	SAFE_RELEASE(pPointVB);
 	SAFE_RELEASE(pPointTexture);
 	
-    if( g_pFont )
-        g_pFont->OnLostDevice();
+	if( g_pFont ) g_pFont->OnLostDevice();
 	int i;
-	for(i=0;i<GMODELMAX;i++) 
-		if(m_pXMesh[i]) m_pXMesh[i]->InvalidateDeviceObjects();
-
-	m_pSkyMesh->InvalidateDeviceObjects();
-	m_pLandMesh->InvalidateDeviceObjects();
+	for(i=0;i<GMODELMAX;i++) if(m_pXMesh[i]) m_pXMesh[i]->InvalidateDeviceObjects();
+	
+	if(m_pSkyMesh) m_pSkyMesh->InvalidateDeviceObjects();
+	if(m_pLandMesh) m_pLandMesh->InvalidateDeviceObjects();
 	
 	SAFE_RELEASE(pSprite);
 	for(i=0;i<GTEXMAX;i++) SAFE_RELEASE(pMyTexture[i]);
 	
-	m_pFont->InvalidateDeviceObjects();
-	m_pFontL->InvalidateDeviceObjects();
-	m_pFont3D->InvalidateDeviceObjects();
+	if(m_pFont) m_pFont->InvalidateDeviceObjects();
+	if(m_pFontL) m_pFontL->InvalidateDeviceObjects();
+	if(m_pFont3D) m_pFont3D->InvalidateDeviceObjects();
 	SAFE_RELEASE( m_pDIConfigSurface );
 	
 	return S_OK;
@@ -9306,12 +9347,12 @@ HRESULT CMyD3DApplication::DeleteDeviceObjects()
 	for(int i=0;i<GMODELMAX;i++) 
 		if(m_pXMesh[i]) m_pXMesh[i]->Destroy();
 
-	m_pSkyMesh->Destroy();
-	m_pLandMesh->Destroy();
+	if(m_pSkyMesh) m_pSkyMesh->Destroy();
+	if(m_pLandMesh) m_pLandMesh->Destroy();
 	
-	m_pFont->DeleteDeviceObjects();
-	m_pFontL->DeleteDeviceObjects();
-	m_pFont3D->DeleteDeviceObjects();
+	if(m_pFont) m_pFont->DeleteDeviceObjects();
+	if(m_pFontL) m_pFontL->DeleteDeviceObjects();
+	if(m_pFont3D) m_pFont3D->DeleteDeviceObjects();
 	SAFE_RELEASE( g_pFont );
 
 	

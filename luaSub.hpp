@@ -134,6 +134,7 @@ int luaGetFuel(lua_State *L);
 int luaGetFuelMax(lua_State *L);
 void luaUpdateVal();
 //--------
+int luaGetRangeChip(lua_State *L);
 int luaRand(lua_State *L);
 int luaRandInit(lua_State *L);
 int luaGettimeGetTime(lua_State *L);
@@ -156,6 +157,7 @@ int luaGetNameSize(lua_State *L);
 int luaDummyFunc0(lua_State *L);
 int luaDummyFunc1(lua_State *L);
 int luaDummyFuncFunc(lua_State *L);
+int luaDummyFuncStr(lua_State *L);
 //--------ºΩ√—ä÷êî
 int luaGetNoiseTicks(lua_State *L);
 int luaSetScriptFunction(lua_State *L);

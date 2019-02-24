@@ -276,6 +276,7 @@
     <ClInclude Include="dmutil.h" />
     <ClInclude Include="dsutil.h" />
     <ClInclude Include="dxutil.h" />
+    <ClInclude Include="GRigid.hpp" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="GDPlay.hpp" />
     <ClInclude Include="GLand.hpp" />

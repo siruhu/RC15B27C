@@ -48,7 +48,6 @@
 #define IDC_HOSTRADIO                   1041
 #define IDC_CONNECTRADIO                1042
 #define IDC_STATICMES                   1043
-#define IDC_FARSLIDER2                  1043
 #define IDC_SPEEDLIMITSLIDER            1043
 #define IDC_PLAYERLIST                  1045
 #define IDC_CHATTEXT                    1050
@@ -177,6 +176,7 @@
 #define ID_SETTING_LIMIT60FPS           40189
 #define IDM_LIMIT60                     40190
 #define ID_Menu40191                    40191
+#define ID_Menu40192                    40192
 
 // Next default values for new objects
 // 
@@ -184,7 +184,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_3D_CONTROLS                     1
 #define _APS_NEXT_RESOURCE_VALUE        203
-#define _APS_NEXT_COMMAND_VALUE         40192
+#define _APS_NEXT_COMMAND_VALUE         40193
 #define _APS_NEXT_CONTROL_VALUE         1006
 #define _APS_NEXT_SYMED_VALUE           102
 #endif

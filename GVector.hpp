@@ -98,6 +98,8 @@ public:
     GVector pointOnFaceAndLine(const GVector& n, const GFloat d,const GVector& dir) const ;
     int pointOnFaceAndLine2(const GVector& n, const GVector& p,const GVector& dir,GVector &point) const ;
     int pointOnFaceAndLine2(const GVector& n, const GFloat d,const GVector& dir,GVector &point) const ;
+    GFloat pointOnFaceAndLine3(const GVector& n, const GVector& p,const GVector& dir,GVector &point) const ;
+    GFloat pointOnFaceAndLine3(const GVector& n, const GFloat d,const GVector& dir,GVector &point) const ;
 
 	// ãÖÇ∆ê¸ï™Ç∆ÇÃåì_
 	GFloat distanceOnBallAndLine(const GFloat r, const GVector& p,const GVector& dir) const;

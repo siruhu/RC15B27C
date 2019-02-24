@@ -1344,6 +1344,72 @@ int luaGetRange(lua_State *L) //地形までの距離
 	lua_pushnumber(L,dist);
 	return 1;
 }
+int luaGetRangeChip(lua_State *L) //ﾚｲと交差するﾁｯﾌﾟ(x,y,z,vx,vy,vz,flagAllhit)xyz:位置,vxyz:ﾚｲの向き,flagAllhit:false-最寄りのﾁｯﾌﾟ|true-全ﾋｯﾄﾘｽﾄ return chipno,dist,u,v or {{chipno,dist,u,v}...}
+{
+	GFloat x=(GFloat)lua_tonumber(L, 1);
+	GFloat y=(GFloat)lua_tonumber(L, 2);
+	GFloat z=(GFloat)lua_tonumber(L, 3);
+	GFloat vx=(GFloat)lua_tonumber(L, 4);
+	GFloat vy=(GFloat)lua_tonumber(L, 5);
+	GFloat vz=(GFloat)lua_tonumber(L, 6);
+	int flagAllhit=lua_toboolean(L, 7);
+	
+	if(flagAllhit){
+		lua_newtable(L);
+	}
+	
+	GVector pos=GVector(x,y,z);//ﾚｲの原点
+	GVector vec=GVector(vx,vy,vz);//ﾚｲの向き
+	GFloat vec_abs=vec.abs();
+	int chipNo=-1;
+	GFloat dist=10000000.0f;
+	GFloat u=0;
+	GFloat v=0;
+	int hitCount=0;
+	for(int i=0;i<ChipCount;i++){
+		GMatrix *R=&(Chip[i]->R);
+		GVector normalX=GVector(R->elem[0][0],R->elem[0][1],R->elem[0][2]);
+		GVector normalY=GVector(R->elem[1][0],R->elem[1][1],R->elem[1][2]);
+		GVector normalZ=GVector(R->elem[2][0],R->elem[2][1],R->elem[2][2]);
+		GFloat chipDotX=(Chip[i]->X).dot(normalX);
+		GFloat chipDotY=(Chip[i]->X).dot(normalY);
+		GFloat chipDotZ=(Chip[i]->X).dot(normalZ);
+		GVector crossPoint;
+		GFloat crossDistNorm=pos.pointOnFaceAndLine3(normalY,chipDotY,vec,crossPoint);
+		GFloat crossDist=crossDistNorm*vec_abs;
+		if(crossDistNorm<0 || crossDistNorm>1.0 || crossDist>=dist&&!flagAllhit) continue;
+		GFloat crossU=crossPoint.distanceFromFace(normalX,chipDotX);
+		if(fabs(crossU)>CHIPSIZE/2) continue;
+		GFloat crossV=crossPoint.distanceFromFace(normalZ,chipDotZ);
+		if(fabs(crossV)>CHIPSIZE/2) continue;
+		
+		hitCount++;
+		if(flagAllhit){
+			lua_newtable(L);
+			lua_pushnumber(L,i);
+			lua_rawseti(L,-2,1);
+			lua_pushnumber(L,crossDist);
+			lua_rawseti(L,-2,2);
+			lua_pushnumber(L,crossU);
+			lua_rawseti(L,-2,3);
+			lua_pushnumber(L,crossV);
+			lua_rawseti(L,-2,4);
+			lua_rawseti(L,-2,hitCount);
+		}
+		if(crossDist<dist){
+			chipNo=i;
+			dist=crossDist;
+			u=crossU;
+			v=crossV;
+		}
+	}
+	if(flagAllhit) return 1;
+	lua_pushnumber(L,chipNo);
+	lua_pushnumber(L,dist);
+	lua_pushnumber(L,u);
+	lua_pushnumber(L,v);
+	return 4;
+}
 //---------------------ｽﾋﾟ誤魔化し用ﾀﾞﾐｰ関数
 int luaDummyFunc0(lua_State *L)
 {
@@ -1357,6 +1423,11 @@ int luaDummyFunc1(lua_State *L)
 int luaDummyFuncFunc(lua_State *L)
 {
 	lua_pushcfunction (L, luaDummyFunc0 );
+	return 1;
+}
+int luaDummyFuncStr(lua_State *L)
+{
+	lua_pushstring(L,"");
 	return 1;
 }
 //---------------------ｼﾅﾘｵ関数

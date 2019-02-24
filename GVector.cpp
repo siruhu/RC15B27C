@@ -54,6 +54,13 @@ int GVector::pointOnFaceAndLine2(const GVector& n, const GVector& p,const GVecto
     if(t>1.0 || t<0) return  1;
 	return 0;
 }
+GFloat GVector::pointOnFaceAndLine3(const GVector& n, const GVector& p,const GVector& dir ,GVector &point) const {
+	GFloat ab=n.dot(dir);
+	if(ab==0.0f) ab=(GFloat)gEpsilon;
+	GFloat t=-(n.dot(*this)-n.dot(p))/ab;
+	point=dir*t+(*this);
+	return t;
+}
 // ‹…‚Æü•ª‚Æ‚ÌŒð“_
 GFloat GVector::distanceOnBallAndLine(const GFloat r, const GVector& p,const GVector& dir) const {
      // ü•ª‚Æ‹…‚Ì”»’è
@@ -73,6 +80,13 @@ GFloat GVector::distanceOnBallAndLine(const GFloat r, const GVector& p,const GVe
 	 }
 	 if(tn>=0) return tn;
 	 return tp;
+}
+GFloat GVector::pointOnFaceAndLine3(const GVector& n, const GFloat d,const GVector& dir,GVector &point) const {
+	GFloat ab=n.dot(dir);
+	if(ab==0.0) ab=(GFloat)gEpsilon;
+	GFloat t=-(n.dot(*this)-d)/ab;
+	point=dir*t+(*this);
+	return t;
 }
 int GVector::pointOnFaceAndLine2(const GVector& n, const GFloat d,const GVector& dir,GVector &point) const {
 	GFloat ab=n.dot(dir);

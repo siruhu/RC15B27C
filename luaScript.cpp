@@ -83,6 +83,7 @@ lua_State *luaScriptInit(char *buff) {
     //
 	lua_State *L = lua_open();  /* create state */
 	// ä÷êîÇìoò^Ç∑ÇÈ(v1.5C)
+	lua_register(L, "_RANGECHIP",luaGetRangeChip);
     lua_register(L, "_GETSPPEDLIM", luaGetSpeedLimit);
     lua_register(L, "_GETFOGRANGE", luaGetFogRange);
     lua_register(L, "_GETNAMESIZE", luaGetNameSize);
@@ -116,6 +117,14 @@ lua_State *luaScriptInit(char *buff) {
 	lua_register(L, "_EXFCLOSE",luaDummyFunc1);
 	lua_register(L, "_EXFPUTS",luaDummyFunc1);
 	lua_register(L, "_EXFGETS",luaDummyFunc1);
+    lua_register(L, "_GETY", luaDummyFunc1);
+    lua_register(L, "_STICKS", luaGetTickCount);
+    lua_register(L, "_SKEY", luaDummyFunc1);
+    lua_register(L, "_SKEYUP", luaDummyFunc1);
+    lua_register(L, "_SKEYDOWN", luaDummyFunc1);
+    lua_register(L, "_SENDALL", luaDummyFunc1);
+    lua_register(L, "_RECEIVE", luaDummyFuncStr);
+    lua_register(L, "_RECEIVECLEAR", luaDummyFunc0);
 	
 	
     // ä÷êîÇìoò^Ç∑ÇÈ
@@ -252,6 +261,7 @@ lua_State *luaScriptInit(char *buff) {
       luaopen_table(L);
       luaopen_math(L);
 //      luaopen_io(L);
+	//Ç±ÇÃï”ÇËÇ≈º≈ÿµLuaåƒÇ—èoÇµà íuíuÇØÇŒëSä÷êîí◊ÇπÇÈÇ©Ç»?
 	int e=lua_dobuffer (L,buff,strlen(buff),szUpdateFileName0);
 	if(e!=0) {
 		ScriptErrorCode=-1;

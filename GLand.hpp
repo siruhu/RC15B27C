@@ -423,7 +423,7 @@ public:
 				Ud=Face[List0[i]].Ud;
 				Us=Face[List0[i]].Us;
 			}
-			if(dmin2>d && d>0){ //一番近い裏面ﾎﾟﾘ取得
+			if(dmin2>d && d>0){ //一番近い裏面ﾎﾟﾘ取得 遮蔽裏面ﾎﾟﾘが速度と直交する場合はこれじゃ取れない ﾍﾟﾗの円周と裏面ﾎﾟﾘの接線がまずい この判定時点では拘束処理前っぽい? JetとかWheelの1F分の力適用のせい?
 				dmin2=d;
 				norm2=norm;
 			}
