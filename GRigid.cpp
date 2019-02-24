@@ -2092,7 +2092,7 @@ void GWorld::Move(bool initFlag)
 		Land->List3Reset();
 		for(j=0;j<ChipCount;j++) {
 			if(Rigid[j]->Parent==NULL) {
-				Land->List3up(Rigid[j]->TotalCenter+Rigid[j]->V/2,Rigid[j]->TotalRadius+7.0f/StepTime+Rigid[j]->V.abs()/2); //固定ﾊﾞｲｱｽはやめて、速度ﾊﾞｲｱｽを掛けるべき  1.0f/StepTime==加速度許容値
+				Land->List3up(Rigid[j]->TotalCenter+Rigid[j]->V/2,Rigid[j]->TotalRadius+7.0f/StepTime+Rigid[j]->V.abs()/2); //固定ﾊﾞｲｱｽはやめて、速度ﾊﾞｲｱｽを掛けるべき  1.0f/StepTime==加速度許容値 ←/StepTimeっておかしい気がする･･･ここ通るのはStepTimeによらず毎秒だし
 			}
 		}
 //		if(ObjectBallFlag) {

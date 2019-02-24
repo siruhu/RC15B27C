@@ -643,8 +643,7 @@ HRESULT MyReceiveFunc( MYAPP_PLAYER_INFO* playerInfo,DWORD size,BYTE *stream ) {
 		int s=(size-sizeof(short))/sizeof(GBULLETDATA);
 		GBULLETDATA *bullet=(GBULLETDATA*)data;
 		for(int j=0;j<s;j++) {
-			GBulletVertex *b=Bullet->Add(NULL,bullet[j].Pos,bullet[j].Vec,bullet[j].Power,bullet[j].Size,bullet[j].Dist,bullet[j].Tar,playerInfo->dpnidPlayer,false);
-			b->Net=0;
+			GBulletVertex *b=Bullet->Add(NULL,bullet[j].Pos,(GVector)bullet[j].Vec*30.0f/(GFloat)LIMITFPS,bullet[j].Power,bullet[j].Size,bullet[j].Dist,bullet[j].Tar,playerInfo->dpnidPlayer,false);
 		}
 	}
 	else if(World->B26Bullet && code==31){
@@ -657,8 +656,7 @@ HRESULT MyReceiveFunc( MYAPP_PLAYER_INFO* playerInfo,DWORD size,BYTE *stream ) {
 			int s=(size-sizeof(short))/sizeof(GBULLETDATA);
 			GBULLETDATA *bullet=(GBULLETDATA*)data;
 			for(int j=0;j<s;j++) {
-				GBulletVertex *b=Bullet->Add(NULL,bullet[j].Pos,bullet[j].Vec,bullet[j].Power,bullet[j].Size,bullet[j].Dist,bullet[j].Tar,playerInfo->dpnidPlayer,false);
-				b->Net=0;
+				GBulletVertex *b=Bullet->Add(NULL,bullet[j].Pos,(GVector)bullet[j].Vec*30.0f/(GFloat)LIMITFPS,bullet[j].Power,bullet[j].Size,bullet[j].Dist,bullet[j].Tar,playerInfo->dpnidPlayer,false);
 			}
 		}
 	}
@@ -666,8 +664,7 @@ HRESULT MyReceiveFunc( MYAPP_PLAYER_INFO* playerInfo,DWORD size,BYTE *stream ) {
 		int s=(size-sizeof(short))/sizeof(GBULLETDATA);
 		GBULLETDATA *bullet=(GBULLETDATA*)data;
 		for(int j=0;j<s;j++) {
-			GBulletVertex *b=Bullet->Add(NULL,bullet[j].Pos,bullet[j].Vec,bullet[j].Power,bullet[j].Size,bullet[j].Dist,bullet[j].Tar,playerInfo->dpnidPlayer,false);
-			b->Net=0;
+			GBulletVertex *b=Bullet->Add(NULL,bullet[j].Pos,(GVector)bullet[j].Vec*30.0f/(GFloat)LIMITFPS,bullet[j].Power,bullet[j].Size,bullet[j].Dist,bullet[j].Tar,playerInfo->dpnidPlayer,false);
 		}
 	}
 	else if(code==100){
@@ -694,7 +691,6 @@ HRESULT MyReceiveFunc( MYAPP_PLAYER_INFO* playerInfo,DWORD size,BYTE *stream ) {
 			else {
 				part=JetParticle->Add(2,expo[j].Pos,GVector(0,0,0),GVector(0,0,0),(0.2f+(rand()%50/200.0f))*expo[j].Power*0.08f,expo[j].Power,0.04f,GVector(1,1,1),0,false);
 			}
-			part->Net=0;
 		}
 	}
 	else if(World->B26Bullet && code==32){ //”š”­‚ðŽó‚¯Žæ‚Á‚½
@@ -716,7 +712,6 @@ HRESULT MyReceiveFunc( MYAPP_PLAYER_INFO* playerInfo,DWORD size,BYTE *stream ) {
 					part=JetParticle->Add(2,expo[j].Pos,GVector(0,0,0),GVector(0,0,0),(0.2f+(rand()%50/200.0f))*expo[j].Power*0.08f,expo[j].Power,0.04f,GVector(1,1,1),0,false);
 					if(expo->dpnid==DPlay->GetLocalPlayerDPNID()) AttackDataDisp("O >> Hit ",playerInfo->dpnidPlayer,0);
 				}
-				part->Net=0;
 			}
 		}
 	}
@@ -733,7 +728,6 @@ HRESULT MyReceiveFunc( MYAPP_PLAYER_INFO* playerInfo,DWORD size,BYTE *stream ) {
 				part=JetParticle->Add(2,expo[j].Pos,GVector(0,0,0),GVector(0,0,0),(0.2f+(rand()%50/200.0f))*expo[j].Power*0.08f,expo[j].Power,0.04f,GVector(1,1,1),0,false);
 				if(expo->dpnid==DPlay->GetLocalPlayerDPNID()) AttackDataDisp("O >> Hit ",playerInfo->dpnidPlayer,0);
 			}
-			part->Net=0;
 		}
 	}
 	else if(code==62) {
@@ -906,6 +900,16 @@ HRESULT MyReceiveFunc( MYAPP_PLAYER_INFO* playerInfo,DWORD size,BYTE *stream ) {
 				strcat(str,buf);
 			}
 			strcat(str,")");
+			DWORD size=strlen(str)+1+sizeof(short);
+			DPlay->SendTo(playerInfo->dpnidPlayer,(BYTE*)&strm2,size,180,DPNSEND_NOLOOPBACK|DPNSEND_NOCOMPLETE);
+		}
+	}
+	else if(code==60) { //Player num
+		if(NetworkDlg) {
+			GSTREAM strm2;
+			strm2.code=1;
+			char *str=(char*)strm2.data;
+			sprintf(str,"Players=%d ",DPlay->GetNumPlayers());
 			DWORD size=strlen(str)+1+sizeof(short);
 			DPlay->SendTo(playerInfo->dpnidPlayer,(BYTE*)&strm2,size,180,DPNSEND_NOLOOPBACK|DPNSEND_NOCOMPLETE);
 		}
@@ -1910,6 +1914,12 @@ int CALLBACK DlgNetworkProc(HWND hDlg,UINT uMsg,WPARAM wParam,LPARAM lParam)
 									stream.code=59;//Chips
 									char *w=(char*)stream.data;
 									sprintf(w,"chip");
+									size=5+sizeof(short);
+								}
+								else if(str1[1]=='A' || str1[1]=='a') {
+									stream.code=60;//Player num
+									char *w=(char*)stream.data;
+									sprintf(w,"pnum");
 									size=5+sizeof(short);
 								}
 								if(id>=0) {
@@ -3454,23 +3464,12 @@ HRESULT CMyD3DApplication::OneTimeSceneInit()
 	else CheckMenuItem(hMenu,IDM_SETTING_TEXTUREALPHA,MF_UNCHECKED);
 	if(BackFaces) CheckMenuItem(hMenu,IDM_SETTING_SHOWBACKFACE,MF_CHECKED);
 	else CheckMenuItem(hMenu,IDM_SETTING_SHOWBACKFACE,MF_UNCHECKED);
-	if(m_dLimidFPS==(1000/15)) {
-		CheckMenuItem(hMenu,IDM_LIMIT15,MF_CHECKED);
-		CheckMenuItem(hMenu,IDM_LIMIT30,MF_UNCHECKED);
-	}
-	else if(m_dLimidFPS==(1000/30)){
-		CheckMenuItem(hMenu,IDM_LIMIT30,MF_CHECKED);
-		CheckMenuItem(hMenu,IDM_LIMIT15,MF_UNCHECKED);
-	}
-	else if(m_dLimidFPS==(1000/60)){
-		CheckMenuItem(hMenu,IDM_LIMIT60,MF_CHECKED);
-		CheckMenuItem(hMenu,IDM_LIMIT30,MF_UNCHECKED);
-		CheckMenuItem(hMenu,IDM_LIMIT15,MF_UNCHECKED);
-	}
-	else {
-		CheckMenuItem(hMenu,IDM_LIMIT30,MF_UNCHECKED);
-		CheckMenuItem(hMenu,IDM_LIMIT15,MF_UNCHECKED);
-	}
+	if(m_dLimidFPS==(1000/15)) CheckMenuItem(hMenu,IDM_LIMIT15,MF_CHECKED);
+	else CheckMenuItem(hMenu,IDM_LIMIT15,MF_UNCHECKED);
+	if(m_dLimidFPS==(1000/30)) CheckMenuItem(hMenu,IDM_LIMIT30,MF_CHECKED);
+	else CheckMenuItem(hMenu,IDM_LIMIT30,MF_UNCHECKED);
+	if(m_dLimidFPS==(1000/60)) CheckMenuItem(hMenu,IDM_LIMIT60,MF_CHECKED);
+	else CheckMenuItem(hMenu,IDM_LIMIT60,MF_UNCHECKED);
 
 	// Initialize DirectInput
     InitInput( m_hWnd );
@@ -4998,39 +4997,18 @@ if( win == FALSE )
 		if(DPlay->GetLocalPlayerDPNID()==0) {
 			//FPS‚ðŒ³‚É–ß‚·
 			if(netON) {
-				m_dLimidFPS=saveLIMITFPS;
-				if(m_dLimidFPS==(1000/15)) {
-					CheckMenuItem(GetMenu( m_hWnd ),IDM_LIMIT15,MF_CHECKED);
-					CheckMenuItem(GetMenu( m_hWnd ),IDM_LIMIT30,MF_UNCHECKED);
-					LIMITFPS=15;
-				}
-				else if(m_dLimidFPS==(1000/30)){
-					CheckMenuItem(GetMenu( m_hWnd ),IDM_LIMIT30,MF_CHECKED);
-					CheckMenuItem(GetMenu( m_hWnd ),IDM_LIMIT15,MF_UNCHECKED);
-					LIMITFPS=30;
-				}
-				else {
-					CheckMenuItem(GetMenu( m_hWnd ),IDM_LIMIT30,MF_UNCHECKED);
-					CheckMenuItem(GetMenu( m_hWnd ),IDM_LIMIT15,MF_UNCHECKED);
-					LIMITFPS=30;
-				}
+				//m_dLimidFPS=saveLIMITFPS;
 			}
 			netON=0;
 		}
 		else {
-			if(netON==0 || m_dLimidFPS==0) {
-				saveLIMITFPS=m_dLimidFPS;
-				if(m_dLimidFPS==(1000/15)) {
-					CheckMenuItem(GetMenu( m_hWnd ),IDM_LIMIT15,MF_CHECKED);
-					CheckMenuItem(GetMenu( m_hWnd ),IDM_LIMIT30,MF_UNCHECKED);
-					LIMITFPS=15;
-				}
-				else {
-					CheckMenuItem(GetMenu( m_hWnd ),IDM_LIMIT15,MF_UNCHECKED);
-					CheckMenuItem(GetMenu( m_hWnd ),IDM_LIMIT30,MF_CHECKED);
-					LIMITFPS=30;
-					m_dLimidFPS=1000L/30;
-				}
+			if(m_dLimidFPS==0) {
+				//saveLIMITFPS=m_dLimidFPS;
+				m_dLimidFPS=1000L/LIMITFPS;
+				HMENU hMenu = GetMenu( m_hWnd );
+				if(m_dLimidFPS==(1000/15)) CheckMenuItem(hMenu,IDM_LIMIT15,MF_CHECKED);
+				if(m_dLimidFPS==(1000/30)) CheckMenuItem(hMenu,IDM_LIMIT30,MF_CHECKED);
+				if(m_dLimidFPS==(1000/60)) CheckMenuItem(hMenu,IDM_LIMIT60,MF_CHECKED);
 			}
 			netON=1;
 		}
@@ -5043,46 +5021,11 @@ if( win == FALSE )
 			int n=DPlay->GetNumPlayers();
 			if(DPlay->GetLocalPlayerDPNID()==0) {
 				sprintf(str,"Push 'Start' to Hosting or Connecting");
-				//FPS‚ðŒ³‚É–ß‚·
-				if(netON) {
-					m_dLimidFPS=saveLIMITFPS;
-					if(m_dLimidFPS==(1000/15)) {
-						CheckMenuItem(GetMenu( m_hWnd ),IDM_LIMIT15,MF_CHECKED);
-						CheckMenuItem(GetMenu( m_hWnd ),IDM_LIMIT30,MF_UNCHECKED);
-						LIMITFPS=15;
-					}
-					else if(m_dLimidFPS==(1000/30)){
-						CheckMenuItem(GetMenu( m_hWnd ),IDM_LIMIT30,MF_CHECKED);
-						CheckMenuItem(GetMenu( m_hWnd ),IDM_LIMIT15,MF_UNCHECKED);
-						LIMITFPS=30;
-					}
-					else {
-						CheckMenuItem(GetMenu( m_hWnd ),IDM_LIMIT30,MF_UNCHECKED);
-						CheckMenuItem(GetMenu( m_hWnd ),IDM_LIMIT15,MF_UNCHECKED);
-						LIMITFPS=30;
-					}
-				}
-				netON=0;
 			}
 			else {
 				if(DPlay->GetHostPlayerDPNID()==DPlay->GetLocalPlayerDPNID()) 
 					sprintf(str,"Hosting. %d players in this session.",n);
 				else sprintf(str,"Connecting. %d players in this session.",n);
-				if(netON==0 || m_dLimidFPS==0) {
-					saveLIMITFPS=m_dLimidFPS;
-					if(m_dLimidFPS==(1000/15)) {
-						CheckMenuItem(GetMenu( m_hWnd ),IDM_LIMIT15,MF_CHECKED);
-						CheckMenuItem(GetMenu( m_hWnd ),IDM_LIMIT30,MF_UNCHECKED);
-						LIMITFPS=15;
-					}
-					else {
-						CheckMenuItem(GetMenu( m_hWnd ),IDM_LIMIT15,MF_UNCHECKED);
-						CheckMenuItem(GetMenu( m_hWnd ),IDM_LIMIT30,MF_CHECKED);
-						LIMITFPS=30;
-						m_dLimidFPS=1000L/30;
-					}
-				}
-				netON=1;
 			}
 			SendDlgItemMessage(NetworkDlg,IDC_STATICMES,WM_SETTEXT,0,(LPARAM)str);
 			if(DPlay->GetLocalPlayerDPNID()!=0) {
@@ -5131,7 +5074,7 @@ if( win == FALSE )
 				stream.data[j].Power=(GFloat_32)Bullet->Vertex[i].Power;
 				stream.data[j].Size=(GFloat_32)Bullet->Vertex[i].Size;
 				stream.data[j].Tar=(GVector_32)Bullet->Vertex[i].Tar;
-				stream.data[j].Vec=(GVector_32)Bullet->Vertex[i].Vec;
+				stream.data[j].Vec=(GVector_32)(Bullet->Vertex[i].Vec*(GFloat)LIMITFPS/30.0f); //’e‚Ì’PˆÊŽžŠÔ‚ª/frame‚È‚Ì‚Å30FPS‚Å³‹K‰»
 				Bullet->Vertex[i].Net=0;
 				j++;
 				if(j>=GBULLETDATAMAX) break;
@@ -8710,9 +8653,7 @@ LRESULT CMyD3DApplication::MsgProc( HWND hWnd, UINT msg, WPARAM wParam,
 					}
 					else {
 						CheckMenuItem(hMenu,IDM_LIMIT15,MF_UNCHECKED);
-						LIMITFPS=30;
-						m_dLimidFPS = (m_dLimidFPS==(1000/LIMITFPS))?0L:(1000/LIMITFPS);
-						if(World) World->SetStepTime(1.0f/LIMITFPS);
+						LIMITFPS=15;
 					}
                     break;
 				}
@@ -8751,6 +8692,7 @@ LRESULT CMyD3DApplication::MsgProc( HWND hWnd, UINT msg, WPARAM wParam,
 					m_dLimidFPS =(1000/LIMITFPS);
 					CheckMenuItem(hMenu,IDM_LIMIT15,MF_UNCHECKED);
 					CheckMenuItem(hMenu,IDM_LIMIT30,MF_CHECKED);
+					CheckMenuItem(hMenu,IDM_LIMIT60,MF_UNCHECKED);
 					FastShadow=1;
                     ShowGhost = 0;
 					CheckMenuItem(hMenu,IDM_SETTING_SHOWGHOST,MF_UNCHECKED);

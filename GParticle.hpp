@@ -13,11 +13,12 @@
 
 #define GPARTMAX 10000
 extern GFloat ARMSPEED;
+extern int LIMITFPS;
 
 extern GFloat WaterLine;
 
 int myrand();
-class GParticleVertex {
+class GParticleVertex {// ここのVec,Acc,SizeD,LifeSpanの時間単位は1/30s  例えばVecはm/(1/30s)  まともにすると修正箇所が多くなるからこんな妙な形に･･･
 public:
 	int Net;
 	int Type;
@@ -67,7 +68,7 @@ public:
 	GParticleVertex *Add(int type,GVector pos,GVector vec,GVector acc,GFloat sizeD,GFloat life,GFloat lifeSpan,GVector col,DWORD  dpnid,bool net){
 		GParticleVertex *ret=&Vertex[NextVertex];
 		Vertex[NextVertex].Type=type;
-		if(type!=0 && net) Vertex[NextVertex].Net=1;
+		Vertex[NextVertex].Net=(type!=0 && net);
 		Vertex[NextVertex].Pos=pos;
 		Vertex[NextVertex].Vec=vec;
 		Vertex[NextVertex].Acc=acc;
@@ -95,22 +96,23 @@ public:
 		for(int i=0;i<MaxVertex;i++) {
 			if(Vertex[i].Life>0) {
 				GFloat y=Vertex[i].Pos.y;
-				if(y>WaterLine && Vertex[i].Pos.y+Vertex[i].Vec.y<WaterLine)  {
+				GFloat FPS_mag=(GFloat)LIMITFPS/30.0f;
+				if(y>WaterLine && y+Vertex[i].Vec.y/FPS_mag<WaterLine)  {
 					Vertex[i].Vec.x=(GFloat)(Vertex[i].Vec.x+((myrand()%100)/100.0-0.5)*Vertex[i].Vec.y);
 					Vertex[i].Vec.z=(GFloat)(Vertex[i].Vec.z+((myrand()%100)/100.0-0.5)*Vertex[i].Vec.y);
 					Vertex[i].Vec.y=(GFloat)(-Vertex[i].Vec.y/10.0);
 				}
-				Vertex[i].Pos+=Vertex[i].Vec;
-				Vertex[i].Vec=Vertex[i].Vec*0.995f+Vertex[i].Acc;
-				Vertex[i].Size=Vertex[i].Size+Vertex[i].SizeD;
-				Vertex[i].Life-=Vertex[i].LifeSpan;
+				Vertex[i].Pos+=Vertex[i].Vec/FPS_mag;
+				Vertex[i].Vec=Vertex[i].Vec*(1-0.005/FPS_mag)+Vertex[i].Acc/FPS_mag;
+				Vertex[i].Size=Vertex[i].Size+Vertex[i].SizeD/FPS_mag;
+				Vertex[i].Life-=Vertex[i].LifeSpan/FPS_mag;
 				if(Vertex[i].Net>0) Vertex[i].Net++;
 			}
 		}
 	}
 };
 
-class GBulletVertex {
+class GBulletVertex {// ここのVec,Acc,SizeD,LifeSpanの時間単位は1/LIMITFPS 時間単位を固定したかったが影響範囲が大きすぎる･･･
 public:
 	int Net;
 	GVector Pos;
@@ -139,7 +141,7 @@ public:
 	~GBullet() {
 		delete []Vertex;
 	}
-	GBulletVertex *Add(GRigid *rigid,GVector pos,GVector vec,GFloat power,GFloat size,GFloat dist,GVector t,DWORD dpnid,int Net){
+	GBulletVertex *Add(GRigid *rigid,GVector pos,GVector vec,GFloat power,GFloat size,GFloat dist,GVector t,DWORD dpnid,bool Net){
 		
 		GBulletVertex *ret=&Vertex[NextVertex];
 		Vertex[NextVertex].Pos=pos;
