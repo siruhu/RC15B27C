@@ -318,14 +318,14 @@ GVector CompassTarget;
 int RunScript();
 extern char *ScriptSource;
 extern int ScriptType;
-extern char ScriptOutput[][512];
+extern char ScriptOutput[][GOUTPUTMAXCHAR];
 extern int ScriptErrorCode;
 extern int ScriptErrorPc;
 extern char ScriptErrorStr[];
 
 extern lua_State *SystemL;
 extern char *SystemSource;
-extern char SystemOutput[][512];
+extern char SystemOutput[][GOUTPUTMAXCHAR];
 extern int SystemErrorCode;
 extern char SystemErrorStr[];
 

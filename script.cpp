@@ -98,7 +98,7 @@ void Line(GVector &p1,GVector &p2,unsigned int col);
 void Line2D(GFloat x0,GFloat y0,GFloat x1,GFloat y1,int col);
 
 //•Ï”‚Ì“à—e‚ğXV
-char ScriptOutput[GOUTPUTMAX][512];
+char ScriptOutput[GOUTPUTMAX][GOUTPUTMAXCHAR];
 
 static long myrandval = 1L;
 int myrand(){

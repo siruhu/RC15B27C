@@ -51,7 +51,7 @@ extern int ViewUpdate;
 extern DWORD LoadlibDummy;
 
 
-char SystemOutput[GOUTPUTMAX][512];
+char SystemOutput[GOUTPUTMAX][GOUTPUTMAXCHAR];
 char *SystemSource=NULL;
 int SystemErrorCode;
 char SystemErrorStr[512];
@@ -1144,31 +1144,39 @@ int luaSetChip(lua_State *L)
 	}
 	return 0;
 }
+
+//snprintfがないってﾏｼﾞかよ   ということで似た関数とﾏｸﾛでｺﾞﾘ押し解決
+static int snprintf_temporary_var_stringlength;
+#define snprintf(pBuf,cnt,fmt,...) (snprintf_temporary_var_stringlength=_snprintf((pBuf),((!(cnt))?0:((cnt)-1+(*((pBuf)+(cnt)-1)='\0'))),(fmt),__VA_ARGS__)<0?cnt:snprintf_temporary_var_stringlength)
+
 int luaSystemPrint(lua_State *L)
 {
 	int n=lua_gettop(L);
 	if(n<1) return 0;
 	int a=(int)lua_tonumber(L, 1);
+	if(a<0 || a>=GOUTPUTMAX) return 0;
+
 	int i;
-	char str[256];
+	int len=0;
 	SystemOutput[a][0]='\0';
 	for (i=2; i<=n; i++){
+		char* pOutBuff=SystemOutput[a]+len;
 		if (lua_isnumber(L,i)) {
-			sprintf(str,"%.2f",lua_tonumber(L,i));
+			len+=snprintf(pOutBuff,GOUTPUTMAXCHAR-len,"%.2f",lua_tonumber(L,i));
 		}
 		else if (lua_isstring(L,i)) {
-			sprintf(str,"%s",lua_tostring(L,i));
+			len+=snprintf(pOutBuff,GOUTPUTMAXCHAR-len,"%s",lua_tostring(L,i));
 		}
 		else if (lua_isnil(L,i)) {
-			sprintf(str,"%s","nil");
+			len+=snprintf(pOutBuff,GOUTPUTMAXCHAR-len,"%s","nil");
 		}
 		else if (lua_isboolean(L,i)) {
-			sprintf(str,"%s",lua_toboolean(L,i) ? "true" : "false");
+			len+=snprintf(pOutBuff,GOUTPUTMAXCHAR-len,"%s",lua_toboolean(L,i) ? "true" : "false");
 		}	
 		else {
-			sprintf(str,"%s:%p",lua_typename(L,lua_type(L,i)),lua_topointer(L,i));
+			len+=snprintf(pOutBuff,GOUTPUTMAXCHAR-len,"%s:%p",lua_typename(L,lua_type(L,i)),lua_topointer(L,i));
 		}
-		strcat(SystemOutput[a],str);
+		if (len>=GOUTPUTMAXCHAR) return 0;
 	}
 	return 0;
 }
@@ -1504,7 +1512,10 @@ int luaSystemRun (char *funcName) {
     // 関数を呼ぶ。lua_callの第2引数は渡す引数の数、第3引数は戻り値の数。
     // 関数とその引数はスタックから取り除かれ、戻り値がスタックに残る。
     SystemErrorCode=lua_pcall(SystemL, 0, 0,0);
-	if(SystemErrorCode)sprintf(SystemErrorStr,"%s %s\n",lua_tostring(SystemL,-1));
+	if(SystemErrorCode){
+		sprintf(SystemErrorStr,"%s %s\n",lua_tostring(SystemL,-1));
+		lua_pop(SystemL,1);//使い終わったｴﾗｰﾒｯｾｰｼﾞを捨てる
+	}
 	for(int i=0;i<VarCount;i++) {
 		lua_pushstring( SystemL , ValList[i].Name ); // (1) Luaの変数名toCを指定
 		lua_gettable( SystemL , LUA_GLOBALSINDEX ); // (2)と(3)の動作

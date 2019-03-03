@@ -42,7 +42,7 @@ extern int	MouseR;
 extern int	MouseM;
 extern int	CtrlKey;
 extern GFloat CCDZoom;
-extern char ScriptOutput[][512];
+extern char ScriptOutput[][GOUTPUTMAXCHAR];
 //extern bool ObjectBallFlag;
 extern int ScriptErrorCode;
 extern char ScriptErrorStr[];

@@ -31,6 +31,7 @@
 #define GSYSKEYMAX 4
 #define GREFMAX 1024
 #define GOUTPUTMAX 25
+#define GOUTPUTMAXCHAR 512
 #define GRINGMAX	100
 
 typedef struct {
