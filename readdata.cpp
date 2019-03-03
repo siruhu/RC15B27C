@@ -40,6 +40,8 @@ extern int ScriptType;
 extern int ScriptPc;
 extern GMYDATA MyPlayerData;
 
+extern void BlockErrMessageBox(int errCode,int dataCheck);
+
 int ChipCount_tmp; //readDataのcheck読み込み時用ChipCount差し替え先
 int* pChipCount; //ChipCountを参照型にして差し替え出来るように
 
@@ -493,6 +495,7 @@ int readChildData(FILE *fp,int parentNo,int parentType,bool checkFlag)
 				if(type=='O') link2=World->AddCowl(Chip[parentNo],offA,Chip[*pChipCount],offB,axis[an],angle);
 				else link2=World->AddHinge(Chip[parentNo],offA,Chip[*pChipCount],offB,axis[an],angle,spring,damper);
 				//if(!link2) return 110; //Broken link. (too many childs?)  //ﾓﾃﾞﾙ実読み込み中にｴﾗｰ分かってもなぁ
+				if(!link2) BlockErrMessageBox(110,DataCheck);
 			}
 			else {
 				if(parentType=='O'&& type!='O') return 104;//The caul cannot be connected with the caul.
@@ -509,6 +512,7 @@ int readChildData(FILE *fp,int parentNo,int parentType,bool checkFlag)
 				link2=World->AddHinge(Chip[parentNo],offA,Chip[cno2],offB,axis[0],angle,1.0,0.5);
 				(*pChipCount)++;
 				//if(!link2) return 110; //Broken link. (too many childs?)
+				if(!link2) BlockErrMessageBox(110,DataCheck);
 
 				cno=*pChipCount;
 				MakeChip(GT_WHEEL,rn);
@@ -532,6 +536,7 @@ int readChildData(FILE *fp,int parentNo,int parentType,bool checkFlag)
 				link2=World->AddHinge(Chip[parentNo],offA,Chip[cno2],offB,axis[0],angle,1.0,0.5);
 				(*pChipCount)++;
 				//if (!link2) return 110; //Broken link. (too many childs?)
+				if(!link2) BlockErrMessageBox(110,DataCheck);
 
 				cno=*pChipCount;
 				MakeChip(GT_RLW,rn);
@@ -590,7 +595,7 @@ int readChildData(FILE *fp,int parentNo,int parentType,bool checkFlag)
 							ValList[n].RefCount++;
 							if(ValList[n].RefCount>=GREFMAX) ValList[n].RefCount=GREFMAX-1;
 						} else link2->Angle=value;
-					} else return 110; //Broken link. (too many childs?)
+					}// else return 110; //Broken link. (too many childs?)
 				}
 				else if(strcmp("SPRING",str)==0) {
 					if(link2){
@@ -601,7 +606,7 @@ int readChildData(FILE *fp,int parentNo,int parentType,bool checkFlag)
 							ValList[n].RefCount++;
 							if(ValList[n].RefCount>=GREFMAX) ValList[n].RefCount=GREFMAX-1;
 						} else link2->SpringK=value;
-					} else return 110; //Broken link. (too many childs?)
+					}// else return 110; //Broken link. (too many childs?)
 				}
 				else if((strcmp("DUMPER",str)==0 ||strcmp("DAMPER",str)==0)) {
 					if(link2){
@@ -612,7 +617,7 @@ int readChildData(FILE *fp,int parentNo,int parentType,bool checkFlag)
 							ValList[n].RefCount++;
 							if(ValList[n].RefCount>=GREFMAX) ValList[n].RefCount=GREFMAX-1;
 						} else link2->DamperK=value;
-					} else return 110; //Broken link. (too many childs?)
+					}// else return 110; //Broken link. (too many childs?)
 				}
 				else if(strcmp("POWER",str)==0) {
 					if(c3==1) {
@@ -636,7 +641,7 @@ int readChildData(FILE *fp,int parentNo,int parentType,bool checkFlag)
 							ValList[n].RefCount++;
 							if(ValList[n].RefCount>=GREFMAX) ValList[n].RefCount=GREFMAX-1;
 						} else link1->FrictionK=value;
-					} else return 110; //Broken link. (too many childs?)
+					}// else return 110; //Broken link. (too many childs?)
 				}
 				else if(strcmp("NAME",str)==0) {
 					lstrcpy(Chip[cno]->Name,str3);
@@ -700,6 +705,7 @@ int readChildData(FILE *fp,int parentNo,int parentType,bool checkFlag)
 					}
 				}
 				//else return 107;// It is a key-word doesn't know  //ここのｴﾗｰがﾁｪｯｸ時拾えてない･･･
+				else BlockErrMessageBox(107,DataCheck);
 			} else{
 				if(strcmp("ANGLE",str)==0 && type!='X') {} //type!='X'(=ｺｱ)以外のときはlink2(親との接続)が存在するはず  (子の数が上限超えてた場合は無いけど･･･実ﾃﾞｰﾀ非破壊での検出は大工事
 				else if(strcmp("SPRING",str)==0 && type!='X') {}

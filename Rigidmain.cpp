@@ -1052,6 +1052,11 @@ void BlockErrStr(int errCode,int dataCheck,char *str) {
 	}
 	strcat(str,"     ");
 }
+void BlockErrMessageBox(int errCode,int dataCheck) {
+	char str[256];
+	BlockErrStr(errCode,dataCheck,str);
+	MessageBox( g_hWnd, str, NULL, MB_ICONERROR|MB_OK|MB_APPLMODAL );
+}
 void CopyChip(GRigid *rd[],GRigid *rs[])
 {
 	for(int i=0;i<World->ChipCount;i++) {
@@ -5438,11 +5443,7 @@ if( win == FALSE )
 			
 			if(GetOpenFileName(&ofn)) {
 				int errCode=0;
-				if((errCode=LoadData(szFileName))!=0) {
-					char str[256];
-					BlockErrStr(errCode,DataCheck,str);
-					MessageBox( g_hWnd, str, NULL, MB_ICONERROR|MB_OK|MB_APPLMODAL );
-				}
+				if((errCode=LoadData(szFileName))!=0) BlockErrMessageBox(errCode,DataCheck);
 				if(DPlay->GetNumPlayers()>0 ) {	//èâä˙âªÇëóêMÇ∑ÇÈ
 					GINFOSTREAM stream;
 					stream.code=100; //èâä˙âª
@@ -5498,12 +5499,7 @@ if( win == FALSE )
 				}
 	//			if(SystemL!=NULL) luaSystemRun("OnOpenChips");
 			}
-			else {
-					char str[100];
-					BlockErrStr(errCode,DataCheck,str);
-					MessageBox( g_hWnd, str, NULL, MB_ICONERROR|MB_OK|MB_APPLMODAL );
-	//				MessageBox(NULL,str,NULL,MB_OK|MB_ICONEXCLAMATION);
-			}
+			else BlockErrMessageBox(errCode,DataCheck);
 			Pause(FALSE);
 		}
 		else {
@@ -8603,11 +8599,7 @@ LRESULT CMyD3DApplication::MsgProc( HWND hWnd, UINT msg, WPARAM wParam,
         for(int i = 0; i < (int)uFileNo; i++) {
             DragQueryFile(hDrop, i, szFileName, sizeof(szFileName));
 			int errCode=0;
-			if((errCode=LoadData(szFileName))!=0) {
-				char str[256];
-				BlockErrStr(errCode,DataCheck,str);
-				MessageBox( g_hWnd, str, NULL, MB_ICONERROR|MB_OK|MB_APPLMODAL );
-			}
+			if((errCode=LoadData(szFileName))!=0) BlockErrMessageBox(errCode,DataCheck);
         }
         DragFinish(hDrop);
         break;
