@@ -1046,6 +1046,8 @@ void BlockErrStr(int errCode,int dataCheck,char *str) {
 		case 106:strcat(str,"The numerical value or the variable is necessary.");break;
 		case 107:strcat(str,"It is a key-word doesn't know.");break;
 		case 108:strcat(str,"')' is necessary.");break;
+		case 109:strcat(str, "There are a lot of Chips."); break;
+		case 110:strcat(str, "Broken link. (too many childs?)"); break;
 		default:strcat(str,"Syntax error.");
 	}
 	strcat(str,"     ");
@@ -2903,7 +2905,7 @@ void GRigid::DispJet()
 		G3dDevice->SetTransform( D3DTS_WORLD, &matLocal );
 		m_pXMesh[11]->Render(G3dDevice);
 	}
-	else if(ChipType==10 && Power!=0 && Energy<=0.1) { //ARM
+	else if(ChipType==GT_ARM && Power!=0 && Energy<=0.1) { //ARM
 		GMatrix m(TM);
 		D3DXMATRIX mat1;
 		D3DXMATRIX matLocal=D3DXMATRIX((FLOAT)m.elem[0][0],(FLOAT)m.elem[0][1],(FLOAT)m.elem[0][2],(FLOAT)m.elem[0][3],
@@ -2992,7 +2994,7 @@ void GRigid::DispShadow()
 			GFloat tmin=0.1f;
 			int jj=0;
 			for(int j=0;j<Shape.PointN-1;j++) {
-				if(ChipType==7 && (Option==1 || Option==2)) { //ãCãÖ
+				if(ChipType==GT_JET && (Option==1 || Option==2)) { //ãCãÖ
 					GVector v=Shape.Point[j]*m1;
 					GFloat t=v.distanceOnFaceAndLine(norm,vert,n);
 					if(t>0.1) {flag=true;break;}
@@ -3140,7 +3142,7 @@ void GRigid::ApplyExtForce()
 	GFloat px=Param.x;
 	GFloat pz=Param.z;
 	GFloat volume=Volume;
-	if(ChipType==7 && (Option==1||Option==2)) {
+	if(ChipType==GT_JET && (Option==1||Option==2)) {
 		cd=0.1f;
 		type=GTYPE_BALL;
 		GFloat f=(GFloat)(pow((double)fabs((double)PowerByFuel*(GFloat)GDTSTEP/6.0),1.0/3.0)/5.0);
@@ -3391,7 +3393,7 @@ CMyD3DApplication::CMyD3DApplication()
 
 	m_dwCreationWidth           = 640;
     m_dwCreationHeight          = 480;
-    m_strWindowTitle            = TEXT( "RigidChips 1.5.B27C12pre" );
+    m_strWindowTitle            = TEXT( "RigidChips 1.5.B27C13pre" );
     m_bUseDepthBuffer           = TRUE;
 
 	m_dLimidFPS=1000/LIMITFPS;
@@ -3579,7 +3581,7 @@ HRESULT CMyD3DApplication::OneTimeSceneInit()
 		}
 	}
 	for(int c=0;c<ChipCount;c++) {
-		if(Chip[c]->ChipType==0) {
+		if(Chip[c]->ChipType==GT_CORE) {
 			ResetChip(c,0);
 		}
 
@@ -4593,7 +4595,7 @@ HFONT hFont = CreateFont(
 		}
 	}
 	for(int c=0;c<ChipCount;c++) {
-		if(Chip[c]->ChipType==0) {
+		if(Chip[c]->ChipType==GT_CORE) {
 			Chip[c]->X.y=World->Land->GetY(0,0);
 			GFloat a=-(GVector(0,0,1)*Chip[c]->R).Cut2(GVector(0,1,0)).angle2(GVector(0,0,1),GVector(0,1,0));
 			if(Chip[c]->X.y<=-100000.0f)Chip[c]->X.y=0.0f;
@@ -4813,7 +4815,7 @@ HRESULT CMyD3DApplication::ResetChips(GFloat x,GFloat z,GFloat a)
 	waitCount=0;
 	for(int c=0;c<ChipCount;c++) {
 		Chip[c]->Crush=false;
-		if(Chip[c]->ChipType==0) {
+		if(Chip[c]->ChipType==GT_CORE) {
 			if(m_pLandMesh) {
 				Chip[c]->X=GVector(x,0,z);
 				Chip[c]->X.y=World->Land->GetY(x,z);
@@ -4853,7 +4855,7 @@ HRESULT CMyD3DApplication::ResetChips(GFloat y,GFloat a)
 	LastBye=0;
 	for(int c=0;c<ChipCount;c++) {
 		Chip[c]->Crush=false;
-		if(Chip[c]->ChipType==0) {
+		if(Chip[c]->ChipType==GT_CORE) {
 			Chip[c]->X.y=y;
 			ResetChip2(c,a);
 		}
@@ -4883,7 +4885,7 @@ HRESULT CMyD3DApplication::InitChips(GFloat a,int hereFlag)
 		for(int c=0;c<ChipCount;c++) {
 			Chip[c]->Crush=false;
 			Chip[c]->Fuel=Chip[c]->FuelMax;
-			if(Chip[c]->ChipType==0) {
+			if(Chip[c]->ChipType==GT_CORE) {
 				Chip[c]->X=GVector(0,0,0);
 				Chip[c]->X.y=World->Land->GetY(0,0);
 				if(Chip[c]->X.y<=-100000.0f)Chip[c]->X.y=0.0f;
@@ -5439,7 +5441,7 @@ if( win == FALSE )
 				if((errCode=LoadData(szFileName))!=0) {
 					char str[256];
 					BlockErrStr(errCode,DataCheck,str);
-					MessageBox( NULL, str, NULL, MB_ICONERROR|MB_OK );
+					MessageBox( g_hWnd, str, NULL, MB_ICONERROR|MB_OK|MB_APPLMODAL );
 				}
 				if(DPlay->GetNumPlayers()>0 ) {	//èâä˙âªÇëóêMÇ∑ÇÈ
 					GINFOSTREAM stream;
@@ -5499,7 +5501,7 @@ if( win == FALSE )
 			else {
 					char str[100];
 					BlockErrStr(errCode,DataCheck,str);
-					MessageBox( NULL, str, NULL, MB_ICONERROR|MB_OK );
+					MessageBox( g_hWnd, str, NULL, MB_ICONERROR|MB_OK|MB_APPLMODAL );
 	//				MessageBox(NULL,str,NULL,MB_OK|MB_ICONEXCLAMATION);
 			}
 			Pause(FALSE);
@@ -5565,7 +5567,7 @@ if( win == FALSE )
 					KeyRecordMax=0;
 					KeyRecordCount=0;
 					for(int i=0;i<ChipCount;i++) {
-						if(Chip[i]->ChipType==0) {
+						if(Chip[i]->ChipType==GT_CORE) {
 							GFloat y=World->Land->GetY(0,0);
 							if(y<-9000.0f)y =0.0f;
 							Chip[i]->CalcTotalCenter();
@@ -5906,7 +5908,7 @@ if( win == FALSE )
 			else {
 				char str[256];
 				sprintf(str,"Error  ");
-				MessageBox( NULL, str, NULL, MB_ICONERROR|MB_OK );
+				MessageBox( g_hWnd, str, NULL, MB_ICONERROR|MB_OK|MB_APPLMODAL );
 			}
 			Resize3DEnvironment();
 		}
@@ -6102,7 +6104,7 @@ if( win == FALSE )
 				}
 			}
 			for(int c=0;c<ChipCount;c++) {
-				if(Chip[c]->ChipType==0) {
+				if(Chip[c]->ChipType==GT_CORE) {
 					a=-(GVector(0,0,1)*Chip[c]->R).Cut2(GVector(0,1,0)).angle2(GVector(0,0,1),GVector(0,1,0));
 					ResetChip(c,a);
 				}
@@ -6268,7 +6270,7 @@ if( win == FALSE )
 					TotalPower+=(GFloat)fabs(po/(1+Chip[i]->W.abs()/100));
 				}
 				//ARMíeî≠éÀ
-				else if(Chip[i]->ChipType==10 && Chip[i]->ArmEnergy>0 && Chip[i]->Energy>=Chip[i]->ArmEnergy && Chip[i]->Power>=Chip[i]->ArmEnergy && TickCount*30/LIMITFPS>150) {
+				else if(Chip[i]->ChipType==GT_ARM && Chip[i]->ArmEnergy>0 && Chip[i]->Energy>=Chip[i]->ArmEnergy && Chip[i]->Power>=Chip[i]->ArmEnergy && TickCount*30/LIMITFPS>150) {
 					GVector dir;
 					switch(Chip[i]->Dir) {
 						case 1:dir=GVector(1,0,0);break;
@@ -6328,7 +6330,7 @@ if( win == FALSE )
 
 				}
 				//JET
-				else if(Chip[i]->ChipType==7) {
+				else if(Chip[i]->ChipType==GT_JET) {
 					if(!EfficientFlag) {
 						double f=Chip[i]->CheckFuel(Chip[i]->Power/JET_EFF);
 						Chip[i]->PowerByFuel=Chip[i]->Power=(GFloat)(f*JET_EFF);
@@ -8604,7 +8606,7 @@ LRESULT CMyD3DApplication::MsgProc( HWND hWnd, UINT msg, WPARAM wParam,
 			if((errCode=LoadData(szFileName))!=0) {
 				char str[256];
 				BlockErrStr(errCode,DataCheck,str);
-				MessageBox( NULL, str, NULL, MB_ICONERROR|MB_OK );
+				MessageBox( g_hWnd, str, NULL, MB_ICONERROR|MB_OK|MB_APPLMODAL );
 			}
         }
         DragFinish(hDrop);
@@ -9345,7 +9347,7 @@ LRESULT CMyD3DApplication::MsgProc( HWND hWnd, UINT msg, WPARAM wParam,
 						m_UserInput.bDoSaveLog = TRUE;
 					}
 					else {
-						MessageBox(NULL,"No Log-Data!",NULL,MB_OK|MB_ICONEXCLAMATION);
+						MessageBox(g_hWnd,"No Log-Data!",NULL,MB_OK|MB_ICONEXCLAMATION|MB_APPLMODAL);
 					}
 					break;
 				}

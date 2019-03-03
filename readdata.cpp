@@ -40,6 +40,9 @@ extern int ScriptType;
 extern int ScriptPc;
 extern GMYDATA MyPlayerData;
 
+int ChipCount_tmp; //readDataのcheck読み込み時用ChipCount差し替え先
+int* pChipCount; //ChipCountを参照型にして差し替え出来るように
+
 
 
 lua_State *ScriptL=NULL;
@@ -266,10 +269,10 @@ int getValNo2(char *name,bool *minusFlag)
 void setOption(GRigid *rigid,GFloat value)
 {
 	rigid->Option=value;
-	if(rigid->ChipType==10) {	//ARM
+	if(rigid->ChipType==GT_ARM) {	//ARM
 		rigid->ArmEnergy=value;
 	}
-	else if(rigid->ChipType==4 || rigid->ChipType==5) { //Wheel or RLW
+	else if(rigid->ChipType==GT_WHEEL || rigid->ChipType==GT_RLW) { //Wheel or RLW
 		if(value==1) {
 			World->UpdateRigid(rigid,GTYPE_DISK,false,CHIPSIZE*1.5f,CHIPSIZE/(6*1.5f*1.5f),CHIPSIZE*1.5f);
 			rigid->Ud=0.9f;
@@ -295,12 +298,12 @@ void setOption(GRigid *rigid,GFloat value)
 			rigid->SaveShape=rigid->Shape;
 		}
 	}
-	else if(rigid->ChipType==33 || rigid->ChipType==34 || rigid->ChipType==35) { //Frame
+	else if(rigid->ChipType==GT_CHIP2 || rigid->ChipType==GT_RUDDER2 || rigid->ChipType==GT_TRIM2) { //Frame
 		if(value==1) {
 			rigid->Ghost=(int)value;
 		}
 	}
-	else if(rigid->ChipType==7) {	//Jet
+	else if(rigid->ChipType==GT_JET) {	//Jet
 		rigid->Option=value;
 	}
 	else if(rigid->ChipType==GT_CHIPH) {	//Weight
@@ -310,7 +313,7 @@ void setOption(GRigid *rigid,GFloat value)
 		rigid->Reset();
 		rigid->FuelMax=rigid->Fuel=6000000.0f*value;
 	}
-	else if(rigid->ChipType==9) {	//Cowl
+	else if(rigid->ChipType==GT_COWL) {	//Cowl
 		if(value==1) {
 			rigid->FrameFlag=1;
 		}
@@ -339,6 +342,7 @@ int readChildData(FILE *fp,int parentNo,int parentType,bool checkFlag)
 	bool minus;
 	GLink *link1=NULL,*link2=NULL;
 	axis[1]=GVector(0,1,0);
+
 	while(1) {
 		c=getToken(fp,str);
 		switch(str[0]) {
@@ -412,6 +416,9 @@ int readChildData(FILE *fp,int parentNo,int parentType,bool checkFlag)
 		else if(strcmp(str,"WHEEL")==0) type='W';
 		else if(strcmp(str,"RLW")==0) type='N';
 		else return 102;//The chip-type is necessary.
+
+		if(*pChipCount >= GCHIPMAX) return 109;//There are a lot of Chips.
+
 		c=getToken(fp,str);
 		if(c!='(') return 103;//'(' is necessary.
 		link1=link2=NULL;
@@ -419,11 +426,11 @@ int readChildData(FILE *fp,int parentNo,int parentType,bool checkFlag)
 		if(type=='X') {
 			if(!checkFlag) {
 				MakeChip(GT_CORE,0);
-				cno=ChipCount;
+				cno=*pChipCount;
 				Chip[cno]->CheckShape=Chip[cno]->Shape;
 				Chip[cno]->SaveShape=Chip[cno]->Shape;
-				ChipCount++;
 			}
+			(*pChipCount)++;
 		}
 		else if(type=='C' || type=='c' || type=='H'  || type=='O' || type=='R' || type=='r' || type=='T' || type=='t' || type=='J' || type=='A') {
 			if(type=='C') {if(!checkFlag)MakeChip(GT_CHIP,rn);an=0;}
@@ -438,7 +445,7 @@ int readChildData(FILE *fp,int parentNo,int parentType,bool checkFlag)
 			else if(type=='A') {if(!checkFlag)MakeChip(GT_ARM,rn);an=0;}
 			
 			if(!checkFlag){
-				cno=ChipCount;
+				cno=*pChipCount;
 				Chip[parentNo]->DirCode|=dirCode;
 				if(type=='C' || type=='c'|| type=='H'|| type=='O') {
 					if(dirCode==0x01) {
@@ -483,50 +490,61 @@ int readChildData(FILE *fp,int parentNo,int parentType,bool checkFlag)
 					Chip[cno]->CheckShape=Chip[cno]->Shape;
 					Chip[cno]->SaveShape=Chip[cno]->Shape;
 				}
-				if(type=='O') link2=World->AddCowl(Chip[parentNo],offA,Chip[ChipCount],offB,axis[an],angle);
-				else link2=World->AddHinge(Chip[parentNo],offA,Chip[ChipCount],offB,axis[an],angle,spring,damper);
-				ChipCount++;
+				if(type=='O') link2=World->AddCowl(Chip[parentNo],offA,Chip[*pChipCount],offB,axis[an],angle);
+				else link2=World->AddHinge(Chip[parentNo],offA,Chip[*pChipCount],offB,axis[an],angle,spring,damper);
+				//if(!link2) return 110; //Broken link. (too many childs?)  //ﾓﾃﾞﾙ実読み込み中にｴﾗｰ分かってもなぁ
 			}
 			else {
 				if(parentType=='O'&& type!='O') return 104;//The caul cannot be connected with the caul.
 			}
+			(*pChipCount)++;
 		}
 		else if(type=='W') {
 			if(!checkFlag) {
-				cno2=ChipCount;
+				cno2=*pChipCount;
 				MakeChip(GT_DUMMY,rn);
 				Chip[cno2]->CheckShape=Chip[cno2]->Shape;
 				Chip[cno2]->SaveShape=Chip[cno2]->Shape;
 
 				link2=World->AddHinge(Chip[parentNo],offA,Chip[cno2],offB,axis[0],angle,1.0,0.5);
-				ChipCount++;
-				cno=ChipCount;
+				(*pChipCount)++;
+				//if(!link2) return 110; //Broken link. (too many childs?)
+
+				cno=*pChipCount;
 				MakeChip(GT_WHEEL,rn);
 				Chip[cno]->CheckShape=Chip[cno]->Shape;
 				Chip[cno]->SaveShape=Chip[cno]->Shape;
 				Chip[parentNo]->DirCode|=dirCode;
 				link1=World->AddShaft(Chip[cno2],GVector(0,0,0),Chip[cno],GVector(0,0,0),axis[1],0);
-				ChipCount++;
 				an=2;
+			}else{
+				(*pChipCount)++;
+				if(*pChipCount >= GCHIPMAX) return 109;//There are a lot of Chips.
 			}
+			(*pChipCount)++;
 		}
 		else if(type=='N') {
 			if(!checkFlag) {
-				cno2=ChipCount;
+				cno2=*pChipCount;
 				MakeChip(GT_DUMMY,rn);
 				Chip[cno2]->CheckShape=Chip[cno2]->Shape;
 				Chip[cno2]->SaveShape=Chip[cno2]->Shape;
 				link2=World->AddHinge(Chip[parentNo],offA,Chip[cno2],offB,axis[0],angle,1.0,0.5);
-				ChipCount++;
-				cno=ChipCount;
+				(*pChipCount)++;
+				//if (!link2) return 110; //Broken link. (too many childs?)
+
+				cno=*pChipCount;
 				MakeChip(GT_RLW,rn);
 				Chip[cno]->CheckShape=Chip[cno]->Shape;
 				Chip[cno]->SaveShape=Chip[cno]->Shape;
 				Chip[parentNo]->DirCode|=dirCode;
 				link1=World->AddShaft(Chip[cno2],GVector(0,0,0),Chip[cno],GVector(0,0,0),axis[1],0);
-				ChipCount++;
 				an=2;
+			}else{
+				(*pChipCount)++;
+				if(*pChipCount >= GCHIPMAX) return 109;//There are a lot of Chips.
 			}
+			(*pChipCount)++;
 		}
 		do {
 			c=getToken(fp,str);
@@ -563,35 +581,38 @@ int readChildData(FILE *fp,int parentNo,int parentType,bool checkFlag)
 			}
 			else return 106;//The numerical value or the variable is necessary. 
 			if(!checkFlag){
-				if(strcmp("ANGLE",str)==0 && link2) {
-					if(c3==1) {
-						link2->Angle=ValList[n].Val;
-						ValList[n].Ref[ValList[n].RefCount]=&(link2->Angle);
-						ValList[n].Flag[ValList[n].RefCount]=minus;
-						ValList[n].RefCount++;
-						if(ValList[n].RefCount>=GREFMAX) ValList[n].RefCount=GREFMAX-1;
-					}
-					else link2->Angle=value;
+				if(strcmp("ANGLE",str)==0) { //ﾘﾝｸのﾁｪｯｸをif文の中に移動  107:It is a key-word doesn't know が子が多すぎる場合にも出てたのを修正
+					if(link2){
+						if(c3==1) {
+							link2->Angle=ValList[n].Val;
+							ValList[n].Ref[ValList[n].RefCount]=&(link2->Angle);
+							ValList[n].Flag[ValList[n].RefCount]=minus;
+							ValList[n].RefCount++;
+							if(ValList[n].RefCount>=GREFMAX) ValList[n].RefCount=GREFMAX-1;
+						} else link2->Angle=value;
+					} else return 110; //Broken link. (too many childs?)
 				}
-				else if(strcmp("SPRING",str)==0 && link2) {
-					if(c3==1) {
-						link2->SpringK=ValList[n].Val;
-						ValList[n].Ref[ValList[n].RefCount]=&(link2->SpringK);
-						ValList[n].Flag[ValList[n].RefCount]=minus;
-						ValList[n].RefCount++;
-						if(ValList[n].RefCount>=GREFMAX) ValList[n].RefCount=GREFMAX-1;
-					}
-					else link2->SpringK=value;
+				else if(strcmp("SPRING",str)==0) {
+					if(link2){
+						if(c3==1) {
+							link2->SpringK=ValList[n].Val;
+							ValList[n].Ref[ValList[n].RefCount]=&(link2->SpringK);
+							ValList[n].Flag[ValList[n].RefCount]=minus;
+							ValList[n].RefCount++;
+							if(ValList[n].RefCount>=GREFMAX) ValList[n].RefCount=GREFMAX-1;
+						} else link2->SpringK=value;
+					} else return 110; //Broken link. (too many childs?)
 				}
-				else if((strcmp("DUMPER",str)==0 ||strcmp("DAMPER",str)==0)&& link2) {
-					if(c3==1) {
-						link2->DamperK=ValList[n].Val;
-						ValList[n].Ref[ValList[n].RefCount]=&(link2->DamperK);
-						ValList[n].Flag[ValList[n].RefCount]=minus;
-						ValList[n].RefCount++;
-						if(ValList[n].RefCount>=GREFMAX) ValList[n].RefCount=GREFMAX-1;
-					}
-					else link2->DamperK=value;
+				else if((strcmp("DUMPER",str)==0 ||strcmp("DAMPER",str)==0)) {
+					if(link2){
+						if(c3==1) {
+							link2->DamperK=ValList[n].Val;
+							ValList[n].Ref[ValList[n].RefCount]=&(link2->DamperK);
+							ValList[n].Flag[ValList[n].RefCount]=minus;
+							ValList[n].RefCount++;
+							if(ValList[n].RefCount>=GREFMAX) ValList[n].RefCount=GREFMAX-1;
+						} else link2->DamperK=value;
+					} else return 110; //Broken link. (too many childs?)
 				}
 				else if(strcmp("POWER",str)==0) {
 					if(c3==1) {
@@ -606,15 +627,16 @@ int readChildData(FILE *fp,int parentNo,int parentType,bool checkFlag)
 						Chip[cno]->Power2=value;
 					}
 				}
-				else if((strcmp("BREAK",str)==0 ||strcmp("BRAKE",str)==0)&& link1) {
-					if(c3==1) {
-						link1->FrictionK=ValList[n].Val;
-						ValList[n].Ref[ValList[n].RefCount]=&(link1->FrictionK);
-						ValList[n].Flag[ValList[n].RefCount]=minus;
-						ValList[n].RefCount++;
-						if(ValList[n].RefCount>=GREFMAX) ValList[n].RefCount=GREFMAX-1;
-					}
-					else link1->FrictionK=value;
+				else if((strcmp("BREAK",str)==0 ||strcmp("BRAKE",str)==0)) {
+					if(link1){ //他の部分でのｴﾗｰﾁｪｯｸが正しい限りここは常に真になるはず (親作成直後の最初の子接続に失敗は起こりえない)
+						if(c3==1) {
+							link1->FrictionK=ValList[n].Val;
+							ValList[n].Ref[ValList[n].RefCount]=&(link1->FrictionK);
+							ValList[n].Flag[ValList[n].RefCount]=minus;
+							ValList[n].RefCount++;
+							if(ValList[n].RefCount>=GREFMAX) ValList[n].RefCount=GREFMAX-1;
+						} else link1->FrictionK=value;
+					} else return 110; //Broken link. (too many childs?)
 				}
 				else if(strcmp("NAME",str)==0) {
 					lstrcpy(Chip[cno]->Name,str3);
@@ -677,8 +699,22 @@ int readChildData(FILE *fp,int parentNo,int parentType,bool checkFlag)
 						Chip[cno]->UserOption=value;
 					}
 				}
-				else return 107;// It is a key-word doesn't know
+				//else return 107;// It is a key-word doesn't know  //ここのｴﾗｰがﾁｪｯｸ時拾えてない･･･
+			} else{
+				if(strcmp("ANGLE",str)==0 && type!='X') {} //type!='X'(=ｺｱ)以外のときはlink2(親との接続)が存在するはず  (子の数が上限超えてた場合は無いけど･･･実ﾃﾞｰﾀ非破壊での検出は大工事
+				else if(strcmp("SPRING",str)==0 && type!='X') {}
+				else if((strcmp("DUMPER",str)==0 ||strcmp("DAMPER",str)==0)&& type!='X') {}
+				else if(strcmp("POWER",str)==0) {}
+				else if((strcmp("BREAK",str)==0 ||strcmp("BRAKE",str)==0)&& (type=='W'||type=='N')) {} //自身がWheel系
+				else if(strcmp("NAME",str)==0) {}
+				else if(strcmp("COLOR",str)==0) {}
+				else if(strcmp("EFFECT",str)==0) {}
+				else if(strcmp("OPTION",str)==0) {}
+				else if(strcmp("USER1",str)==0) {}
+				else if(strcmp("USER2",str)==0) {} 
+				else return 107;// It is a key-word doesn't know  //良くない書き方だけどこれが一番手間が掛からない
 			}
+
 			c=getToken(fp,str);
 		} while (c==',');
 		if(c!=')') return 108;//')' is necessary.
@@ -722,15 +758,21 @@ int  readData2(FILE *fp,bool checkFlag)
 	DataCheck=1;
 	int i,cw,cw2,cw3,n,vn;
 	GetTokenCh();
+
+	//ChipCountがあちこちと癒着してるためcheck読み時に変更できないので別参照に差し替え  ほんとは全部のﾓﾃﾞﾙﾃﾞｰﾀをこうやって別位置に読んでからｺﾋﾟｰしたほうがいいんだけど･･･
+	if(checkFlag) pChipCount=&ChipCount_tmp;
+	else pChipCount=&ChipCount;
+
 	if(!checkFlag) {
 		World->DeleteRigids();
 		for(i=0;i<GKEYMAX;i++) KeyList[i].Count=0;
 		for(i=0;i<GVALMAX;i++) ValList[i].RefCount=0;
 		if(ScriptL) luaScriptEnd(ScriptL);
 		ScriptL=NULL;
-		ChipCount=0;
 		VarCount=0;
 	}
+	*pChipCount=0;
+
 	cw=getToken(fp,str);
 	if(strcmp("VAL",str)==0||strcmp("VAR",str)==0) {
 		cw=getToken(fp,str);
@@ -839,9 +881,11 @@ int  readData2(FILE *fp,bool checkFlag)
 		int err=0;
 		if(cw=='{') {
 			err=readChildData(fp,0,0,checkFlag);
-			if(err) {return err;}
-			for(int i=0;i<ChipCount;i++) {
-				if(Chip[i]->ChipType==GT_CORE) Chip[i]->Reset();
+			if(err) { return err; }
+			if(!checkFlag) {
+				for(int i=0;i<ChipCount;i++) {
+					if(Chip[i]->ChipType==GT_CORE) Chip[i]->Reset();
+				}
 			}
 		}
 		cw=getToken(fp,str);

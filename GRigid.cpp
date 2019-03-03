@@ -1043,7 +1043,7 @@ void GRigid::Impulse() {
 					ux=Hit[i].Target->Ux;
 				}
 				//‚±‚ë‚ª‚è–€ŽC
-				if((ChipType==4 || ChipType==5)&&ux>0) {
+				if((ChipType==GT_WHEEL || ChipType==GT_RLW)&&ux>0) {
 					ApplyTorque(-L/Dt*ux); //‚±‚ê‰ñ“]’ïR‚¾‚æ‚Ë  “]‚ª‚è’ïR‚¶‚á‚È‚¢‚æ‚Ë
 				}
 				//-----------
@@ -1541,7 +1541,7 @@ void GWorld::RestoreLink(GRigid* rigid,GRigid* top)
 GLink *GWorld::AddJoint(GRigid* rigidA, GVector &offsetA, GRigid* rigidB, GVector &offsetB,GFloat friction)
 {
 	if(rigidB->Parent) return NULL; //‚·‚Å‚ÉS‘©‚ª‚ ‚é‚à‚Ì‚ðS‘©‚Å‚«‚È‚¢B
-	if(rigidB->ChildCount>=GCHILDMAX) return NULL;
+	if(rigidA->ChildCount>=GCHILDMAX) return NULL;
 	rigidB->Parent=rigidA;
 	rigidB->Top=rigidA->Top;
 	GLink *l=&rigidA->Child[rigidA->ChildCount];
@@ -1564,7 +1564,7 @@ GLink *GWorld::AddJoint(GRigid* rigidA, GVector &offsetA, GRigid* rigidB, GVecto
 GLink *GWorld::AddShaft(GRigid* rigidA, GVector &offsetA, GRigid* rigidB, GVector &offsetB, GVector &axis,GFloat friction)
 {
 	if(rigidB->Parent) return NULL; //‚·‚Å‚ÉS‘©‚ª‚ ‚é‚à‚Ì‚ðS‘©‚Å‚«‚È‚¢B
-	if(rigidB->ChildCount>=GCHILDMAX) return NULL;
+	if(rigidA->ChildCount>=GCHILDMAX) return NULL;
 	rigidB->Parent=rigidA;
 	rigidB->Top=rigidA->Top;
 	GLink *l=&rigidA->Child[rigidA->ChildCount];
@@ -1588,7 +1588,7 @@ GLink *GWorld::AddShaft(GRigid* rigidA, GVector &offsetA, GRigid* rigidB, GVecto
 GLink *GWorld::AddHinge(GRigid* rigidA, GVector &offsetA, GRigid* rigidB, GVector &offsetB, GVector &axis,GFloat angle,GFloat k,GFloat damper)
 {
 	//‚·‚Å‚ÉS‘©‚ª‚ ‚é‚à‚Ì‚ðS‘©‚Å‚«‚È‚¢B
-	if(rigidB->Parent ||rigidB->ChildCount>=GCHILDMAX) return NULL;
+	if(rigidB->Parent ||rigidA->ChildCount>=GCHILDMAX) return NULL;
 	rigidB->Parent=rigidA;
 	rigidB->Top=rigidA->Top;
 	GLink *l=&rigidA->Child[rigidA->ChildCount];
@@ -1612,7 +1612,7 @@ GLink *GWorld::AddHinge(GRigid* rigidA, GVector &offsetA, GRigid* rigidB, GVecto
 GLink *GWorld::AddCowl(GRigid* rigidA, GVector &offsetA, GRigid* rigidB, GVector &offsetB, GVector &axis,GFloat angle)
 {
 	//‚·‚Å‚ÉS‘©‚ª‚ ‚é‚à‚Ì‚ðS‘©‚Å‚«‚È‚¢B
-	if(rigidB->Parent ||rigidB->ChildCount>=GCHILDMAX) return NULL;
+	if(rigidB->Parent ||rigidA->ChildCount>=GCHILDMAX) return NULL;
 	rigidB->CowlTop=rigidA->CowlTop;
 //	if(rigidB->CowlTop==NULL)
 //		return NULL;
@@ -2061,7 +2061,7 @@ void GWorld::Move(bool initFlag)
 		Rigid[j]->P2.clear();
 		Rigid[j]->L2.clear();
 		Rigid[j]->Hit[0].FricV.clear();
-		if(Rigid[j]->ChipType==10) {
+		if(Rigid[j]->ChipType==GT_ARM) {
 			double e=5000.0*30.0/LIMITFPS;
 			if(!EfficientFlag) e=Rigid[j]->Top->CheckFuel(e/ARM_EFF)*ARM_EFF;
 			Rigid[j]->Energy+=(GFloat)e;

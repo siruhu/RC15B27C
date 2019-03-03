@@ -1085,7 +1085,7 @@ int luaSetChip(lua_State *L)
 		}
 		else if(strcmp(name,"OPTION")==0) {
 			setOption(World->Rigid[n],value);			
-			if(World->Rigid[n]->ChipType==4 || World->Rigid[n]->ChipType==5){
+			if(World->Rigid[n]->ChipType==GT_WHEEL || World->Rigid[n]->ChipType==GT_RLW){
 				int nn=World->Rigid[n]->Top->ID;
 				for(int i=0;i<VarCount;i++) {
 					ValList[i].Val=ValList[i].Def;
