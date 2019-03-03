@@ -15,7 +15,7 @@
 #define GCHIPMAX 512
 #define GOBJMAX	20
 
-#define GCHILDMAX 12
+#define GCHILDMAX 16
 
 #define GDESTROY_K 0.3f
 

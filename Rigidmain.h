@@ -30,7 +30,7 @@
 #define GKEYMAX 17
 #define GSYSKEYMAX 4
 #define GREFMAX 1024
-#define GOUTPUTMAX 25
+#define GOUTPUTMAX 64
 #define GOUTPUTMAXCHAR 512
 #define GRINGMAX	100
 
