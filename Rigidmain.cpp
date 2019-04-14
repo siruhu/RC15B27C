@@ -7095,16 +7095,16 @@ HRESULT CMyD3DApplication::Render()
 		}
 		Line(GVector(0,0,0),GVector(0,0,0),0xff000000); //LineÊÞ¯Ì§‹­§•`‰æ ¼ÅØµ•ª
 		Line2D(0,0,0,0,0xff000000); //LineÊÞ¯Ì§‹­§•`‰æ
-		if(ViewUpdate)	{
-			ViewSet();
-			//ViewUpdate=0; //‚È‚º‚©‚±‚±‚ÅÌ×¸Þ“|‚µ‚¿‚á‚¤‚ÆLINE2D‚Ì•`‰æ‚ª‹¶‚¤
-		}
 		if(World->Stop==false && World->NetStop==false) {
 			for (i=0;i<GOUTPUTMAX;i++) ScriptOutput[i][0]='\0';
 			if(ScriptFlag && waitCount<=0) {
 				if(ScriptType==1 && ScriptL!=NULL) luaScriptRun(ScriptL,"OnFrame");
 				else if(ScriptType==0) RunScript();
 			}
+		}
+		if(ViewUpdate)	{
+			ViewSet();
+			ViewUpdate=0; //SkyBox“ñd•`‰æÊÞ¸Þ‚Ì‘Îˆ‚Í‚±‚Á‚¿‚ÉˆÚ“®‚·‚é‚Ì‚ª³‰ð  ¥¥¥‚È‚ñ‚¾‚¯‚Ç‚±‚ê¡‚Ü‚Å¶Ò×’x‚ê—Ê”¼•ª‚ÅŠµ‚ê‚¿‚á‚Á‚Ä‚½‚©‚çˆá˜aŠ´‚ª¥¥¥
 		}
 
 		if(viewFlag==0 && ViewType<0) {
