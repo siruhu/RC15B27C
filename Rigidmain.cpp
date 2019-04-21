@@ -811,7 +811,7 @@ HRESULT MyReceiveFunc( MYAPP_PLAYER_INFO* playerInfo,DWORD size,BYTE *stream ) {
 			GSTREAM strm2;
 			strm2.code=1;
 			char *str=(char*)strm2.data;
-			sprintf(str,"Version=1.5 C12");
+			sprintf(str,"Version=1.5 C13pre2");
 			DWORD size=strlen(str)+1+sizeof(short);
 			DPlay->SendTo(playerInfo->dpnidPlayer,(BYTE*)&strm2,size,180,DPNSEND_NOLOOPBACK|DPNSEND_NOCOMPLETE);
 		}
@@ -3398,7 +3398,7 @@ CMyD3DApplication::CMyD3DApplication()
 
 	m_dwCreationWidth           = 640;
     m_dwCreationHeight          = 480;
-    m_strWindowTitle            = TEXT( "RigidChips 1.5.B27C13pre" );
+    m_strWindowTitle            = TEXT( "RigidChips 1.5.B27C13pre2" );
     m_bUseDepthBuffer           = TRUE;
 
 	m_dLimidFPS=1000/LIMITFPS;
@@ -7224,18 +7224,18 @@ HRESULT CMyD3DApplication::Render()
 		//	m_pd3dDevice->SetTextureStageState(0, D3DTSS_MIPFILTER, D3DTEXF_LINEAR);
 			m_pd3dDevice->SetTextureStageState(0, D3DTSS_MIPMAPLODBIAS,  FtoDW(-3.5f));
 			D3DXMATRIX mat1,mat2;
-			FLOAT s=(FLOAT)(GFARMAX/600);
-			if(GFARMAX<=0) s=64;
+			FLOAT s=(FLOAT)(GFARMAX/600); //Šm‚©‚±‚Ì600‚Íwater.x1–‡•ª‚Ì»²½Þ
+			if(s<=0) s=64;
 			GFloat si=(GFloat)sin(count/88.0*M_PI)-30;
 			
 			D3DXMatrixScaling(&mat2,2.0f*s,1.0f,2.0f*s);
-			D3DXMatrixTranslation(&mat1,(FLOAT)(EyePos.x+si),(FLOAT)WaterLine,(FLOAT)(EyePos.z-30));
+			D3DXMatrixTranslation(&mat1,(FLOAT)(EyePos.x),(FLOAT)WaterLine,(FLOAT)(EyePos.z));
 			D3DXMatrixMultiply( &mat1 , &mat2, &mat1);
 			D3DXMatrixMultiply( &mat1 , &mat1, &GMatWorld);
 			m_pd3dDevice->SetTransform( D3DTS_WORLD, &mat1 );
 			
 			D3DXMatrixScaling(&mat1,(FLOAT)(s),(FLOAT)(s),1);
-			mat1._31 = (FLOAT)fmod(EyePos.x/60,1.0); mat1._32 = (FLOAT)fmod(EyePos.z/60,1.0);
+			mat1._31 = (FLOAT)fmod((EyePos.x+s*600+si)/60,1.0); mat1._32 = (FLOAT)fmod((EyePos.z+s*-600-30)/60,1.0);
 			m_pd3dDevice->SetTransform( D3DTS_TEXTURE0, &mat1);
 			m_pXMesh[14]->Render(G3dDevice);
 			
