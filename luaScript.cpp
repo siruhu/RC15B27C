@@ -49,10 +49,6 @@ extern DWORD LoadlibDummy;
 // Luaに登録するCの関数は、intを返し、lua_State*を受け取るものである必要がある。
 // 返す値は戻り値の数。この場合数値を1個返す（スタックに積む）ので1。
 
-//snprintfがないってﾏｼﾞかよ   ということで似た関数とﾏｸﾛでｺﾞﾘ押し解決
-static int snprintf_temporary_var_stringlength;
-#define snprintf(pBuf,cnt,fmt,...) ((snprintf_temporary_var_stringlength=_snprintf((pBuf),((!(cnt))?0:((cnt)-1+(*((pBuf)+(cnt)-1)='\0'))),(fmt),__VA_ARGS__))<0?(cnt):snprintf_temporary_var_stringlength)
-
 int luaPrint(lua_State *L)
 {
 	int n=lua_gettop(L);

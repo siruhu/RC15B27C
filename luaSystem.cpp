@@ -1145,10 +1145,6 @@ int luaSetChip(lua_State *L)
 	return 0;
 }
 
-//snprintf‚ª‚È‚¢‚Á‚ÄÏ¼Ş‚©‚æ   ‚Æ‚¢‚¤‚±‚Æ‚Å—‚½ŠÖ”‚ÆÏ¸Û‚ÅºŞØ‰Ÿ‚µ‰ğŒˆ
-static int snprintf_temporary_var_stringlength;
-#define snprintf(pBuf,cnt,fmt,...) ((snprintf_temporary_var_stringlength=_snprintf((pBuf),((!(cnt))?0:((cnt)-1+(*((pBuf)+(cnt)-1)='\0'))),(fmt),__VA_ARGS__))<0?(cnt):snprintf_temporary_var_stringlength)
-
 int luaSystemPrint(lua_State *L)
 {
 	int n=lua_gettop(L);
