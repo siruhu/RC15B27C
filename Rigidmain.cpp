@@ -811,7 +811,7 @@ HRESULT MyReceiveFunc( MYAPP_PLAYER_INFO* playerInfo,DWORD size,BYTE *stream ) {
 			GSTREAM strm2;
 			strm2.code=1;
 			char *str=(char*)strm2.data;
-			sprintf(str,"Version=1.5 C13pre3");
+			sprintf(str,"Version=1.5 C13pre4");
 			DWORD size=strlen(str)+1+sizeof(short);
 			DPlay->SendTo(playerInfo->dpnidPlayer,(BYTE*)&strm2,size,180,DPNSEND_NOLOOPBACK|DPNSEND_NOCOMPLETE);
 		}
@@ -3398,7 +3398,7 @@ CMyD3DApplication::CMyD3DApplication()
 
 	m_dwCreationWidth           = 640;
     m_dwCreationHeight          = 480;
-    m_strWindowTitle            = TEXT( "RigidChips 1.5.B27C13pre3" );
+    m_strWindowTitle            = TEXT( "RigidChips 1.5.B27C13pre4" );
     m_bUseDepthBuffer           = TRUE;
 
 	m_dLimidFPS=1000/LIMITFPS;
@@ -7705,7 +7705,9 @@ HRESULT CMyD3DApplication::Render()
 				G3dDevice->SetTransform( D3DTS_WORLD, &GMatWorld );
 			}
 			if(w-128-94-94-94-79>0 && CCDFlag && ShowMeter) {
-				D3DXMatrixPerspectiveFovLH( &matProj, (FLOAT)(CCDZoom*M_PI/180.0f), 1.0f, 1.0f, 300.0f );
+				const GFloat ccd_GFARMAX = 19200.0;
+
+				D3DXMatrixPerspectiveFovLH( &matProj, (FLOAT)(CCDZoom*M_PI/180.0f), 1.0f, 1.0f, ccd_GFARMAX );
 				m_pd3dDevice->SetTransform( D3DTS_PROJECTION, &matProj );
 				GVector lv0=Chip[0]->X+(GVector(0,0,1)*Chip[0]->R)*0.75f;
 				GVector lv=Chip[0]->X+(GVector(0,0,-1)*Chip[0]->R)*3.0f;
@@ -7727,18 +7729,33 @@ HRESULT CMyD3DApplication::Render()
 				}
 				m_pd3dDevice->SetRenderState( D3DRS_ALPHABLENDENABLE,FALSE );
 				{	//水面の表示
-					D3DXMATRIX mat1;
-					float x,z;
-					x=(int)(Chip[0]->X.x/50)*50.0f;
-					z=(int)(Chip[0]->X.z/50)*50.0f;
-					D3DXMatrixTranslation(&mat1,x,(FLOAT)WaterLine,z);
-					D3DXMatrixMultiply( &mat1 , &mat1, &GMatWorld);
-					G3dDevice->SetTransform( D3DTS_WORLD, &mat1 );
 					G3dDevice->SetRenderState( D3DRS_ALPHABLENDENABLE,TRUE );
 					G3dDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);	// カリングモード
+					m_pd3dDevice->SetTextureStageState(0, D3DTSS_TEXTURETRANSFORMFLAGS, D3DTTFF_COUNT2 );
+					m_pd3dDevice->SetTextureStageState(0, D3DTSS_MIPFILTER, D3DTEXF_POINT);
+					m_pd3dDevice->SetTextureStageState(0, D3DTSS_MIPMAPLODBIAS,  FtoDW(-3.5f));
+
+					D3DXMATRIX mat1, mat2;
+					FLOAT s = (FLOAT)(ccd_GFARMAX/600); //確かこの600はwater.x1枚分のｻｲｽﾞ
+					if (s<=0) s = 64;
+					GFloat si = (GFloat)sin(count/88.0*M_PI)-30;
+
+					D3DXMatrixScaling(&mat2, 2.0f*s, 1.0f, 2.0f*s);
+					D3DXMatrixTranslation(&mat1, (FLOAT)(Chip[0]->X.x), (FLOAT)WaterLine, (FLOAT)(Chip[0]->X.z));
+					D3DXMatrixMultiply(&mat1, &mat2, &mat1);
+					D3DXMatrixMultiply(&mat1, &mat1, &GMatWorld);
+					m_pd3dDevice->SetTransform(D3DTS_WORLD, &mat1);
+
+					D3DXMatrixScaling(&mat1, (FLOAT)(s), (FLOAT)(s), 1);
+					mat1._31 = (FLOAT)fmod((Chip[0]->X.x+s*600+si)/60, 1.0); mat1._32 = (FLOAT)fmod((Chip[0]->X.z+s*-600-30)/60, 1.0);
+					m_pd3dDevice->SetTransform(D3DTS_TEXTURE0, &mat1);
 					m_pXMesh[14]->Render(G3dDevice);
+
 					G3dDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_CCW);	// カリングモード
 					G3dDevice->SetRenderState( D3DRS_ALPHABLENDENABLE,FALSE );
+					m_pd3dDevice->SetTextureStageState(0, D3DTSS_TEXTURETRANSFORMFLAGS, D3DTTFF_DISABLE );
+					m_pd3dDevice->SetTextureStageState(0, D3DTSS_MIPFILTER, D3DTEXF_NONE);
+					m_pd3dDevice->SetTextureStageState(0, D3DTSS_MIPMAPLODBIAS,  FtoDW(0.0f));
 					/*					{	//Zバッファからの深度情報読み込み（D3DFMT_D16_LOCKABLEでないと無理 
 					D3DLOCKED_RECT zLock;
 					LPDIRECT3DSURFACE8 ZBuffer;
@@ -7771,14 +7788,16 @@ HRESULT CMyD3DApplication::Render()
 						float widthRatio = 1.0f;
 						unsigned char *pLine,*pBase;
 						m_pd3dDevice->GetBackBuffer(0,D3DBACKBUFFER_TYPE_MONO,&backBuffer);
-						backBuffer->LockRect(&Lock, NULL, D3DLOCK_READONLY);//D3DLOCK_READONLY 
+
+						RECT rect = { viewData2.X, viewData2.Y, viewData2.X+viewData2.Width, viewData2.Y+viewData2.Height };
+						backBuffer->LockRect(&Lock, &rect, D3DLOCK_READONLY);//D3DLOCK_READONLY 
 						pBase = (unsigned char *)Lock.pBits;
 
 						if((int)(Lock.Pitch/w)==2) {
 							int y;
 							for(y = 0; y < 64; y++ )
 							{
-								pLine = &pBase[(y+viewData2.Y)*Lock.Pitch+viewData2.X*2];
+								pLine = &pBase[y*Lock.Pitch];
 								for(int x = 0; x < 64; x++ )
 								{
 									int v=pLine[0]+pLine[1]*256;
@@ -7794,7 +7813,7 @@ HRESULT CMyD3DApplication::Render()
 							int y;
 							for(y = 0; y < 64; y++ )
 							{
-								pLine = &pBase[(y+viewData2.Y)*Lock.Pitch+viewData2.X*4];
+								pLine = &pBase[y*Lock.Pitch];
 								for(int x = 0; x < 64; x++ )
 								{
 									int b=pLine[0]>>3;

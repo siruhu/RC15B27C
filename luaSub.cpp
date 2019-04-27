@@ -44,15 +44,51 @@ extern char LastChatData[];
 void Line(GVector &p1,GVector &p2,unsigned int col);
 void Line2D(GFloat x0,GFloat y0,GFloat x1,GFloat y1,int col);
 
+//snprintfがないってﾏｼﾞかよ   ということで似た関数とﾏｸﾛでｺﾞﾘ押し解決
+static int snprintf_temporary_var_stringlength;
+#define snprintf(pBuf,cnt,fmt,...) ((snprintf_temporary_var_stringlength=_snprintf((pBuf),((!(cnt))?0:((cnt)-1+(*((pBuf)+(cnt)-1)='\0'))),(fmt),__VA_ARGS__))<0?(cnt):snprintf_temporary_var_stringlength)
+
+int __luaPrintSub(lua_State *L, int s, int e, char* dest, int destSize) //スタックのs番目からe番目までの値を文字列化してdestへ書き込む  成功時は0,バッファオーバーラン時は1を返す  
+{
+	if (e<s) return 1;
+	for (int i = s; i <= e; i++){
+		if (destSize<=0) return 1;
+		int len = 0;
+		if (lua_isnumber(L, i)&&lua_type(L,i)!=LUA_TSTRING){
+			len = snprintf(dest, destSize, "%.2f ", lua_tonumber(L, i));
+			if(lua_type(L, i+1) != LUA_TNUMBER) len--; //数値型が連続したときのみｽﾍﾟｰｽ挿入
+		}else if(lua_isstring(L, i)){
+			len = snprintf(dest, destSize, "%s", lua_tostring(L, i));
+		}else if(lua_isnil(L, i)){
+			len = snprintf(dest, destSize, "%s", "nil");
+		}else if(lua_isboolean(L, i)){
+			len = snprintf(dest, destSize, "%s", lua_toboolean(L, i) ? "true" : "false");
+		}else{
+			int __nameType = luaL_getmetafield(L, i, "__name"); //値の__nameフィールドが文字列ならそれを名前に、そうでないなら型名を代わりに使う
+			if(__nameType) __nameType = lua_type(L, -1); //5.0時代のluaL_getmetafieldは型を返さず成功失敗を返すため取り直す	 ここで取得できる型は必ずnil以外になる
+			const char* pName = (__nameType==LUA_TSTRING)?lua_tostring(L, -1):lua_typename(L, lua_type(L, i));
+			len = snprintf(dest, destSize, "%s:%p", pName, lua_topointer(L, i));
+			if(__nameType!=LUA_TNIL) lua_pop(L, 1); //nilでない時、__nameフィールドの値が積まれてるので片付け
+		}
+
+		if (len < 0){ //本来のsnprintf用  上のﾏｸﾛ製偽snprintfであれば無意味なﾌﾞﾛｯｸ
+			*dest = '\0';
+			continue;
+		}
+		destSize -= len;
+		dest += len;
+	}
+	return 0;
+}
 int luaGetSMouseX(lua_State *L)
 {
-	static int m=0;
-	if(CtrlKey==0 && World->Stop==0) lua_pushnumber(L, m );
+	static int m = 0;
+	if (CtrlKey == 0 && World->Stop == 0) lua_pushnumber(L, m);
 	else {
-		lua_pushnumber(L, MouseX );
-		m=MouseX;
+		lua_pushnumber(L, MouseX);
+		m = MouseX;
 	}
-    return 1;
+	return 1;
 }
 int luaGetSMouseY(lua_State *L)
 {

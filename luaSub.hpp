@@ -2,6 +2,9 @@
 #define G_LUASUB_H
 #include "luaScript.hpp"
 #include "resource.h"
+
+int __luaPrintSub(lua_State *L, int s, int e, char* dest, int destSize);
+
 int luaGetSMouseX(lua_State *L);
 int luaGetSMouseY(lua_State *L);
 int luaGetSMouseL(lua_State *L);

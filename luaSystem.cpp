@@ -1156,28 +1156,7 @@ int luaSystemPrint(lua_State *L)
 	int a=(int)lua_tonumber(L, 1);
 	if(a<0 || a>=GOUTPUTMAX) return 0;
 
-	int i;
-	int len=0;
-	SystemOutput[a][0]='\0';
-	for (i=2; i<=n; i++){
-		char* pOutBuff=SystemOutput[a]+len;
-		if (lua_isnumber(L,i)) {
-			len+=snprintf(pOutBuff,GOUTPUTMAXCHAR-len,"%.2f",lua_tonumber(L,i));
-		}
-		else if (lua_isstring(L,i)) {
-			len+=snprintf(pOutBuff,GOUTPUTMAXCHAR-len,"%s",lua_tostring(L,i));
-		}
-		else if (lua_isnil(L,i)) {
-			len+=snprintf(pOutBuff,GOUTPUTMAXCHAR-len,"%s","nil");
-		}
-		else if (lua_isboolean(L,i)) {
-			len+=snprintf(pOutBuff,GOUTPUTMAXCHAR-len,"%s",lua_toboolean(L,i) ? "true" : "false");
-		}	
-		else {
-			len+=snprintf(pOutBuff,GOUTPUTMAXCHAR-len,"%s:%p",lua_typename(L,lua_type(L,i)),lua_topointer(L,i));
-		}
-		if (len>=GOUTPUTMAXCHAR) return 0;
-	}
+	__luaPrintSub(L, 2, n, SystemOutput[a], GOUTPUTMAXCHAR);
 	return 0;
 }
 int LoadSystem(char *fileName) {
