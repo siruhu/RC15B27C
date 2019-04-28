@@ -31,7 +31,6 @@ extern int Width;
 extern int Height;
 extern unsigned int NumFace;
 extern unsigned int NumVertice;
-extern int CCDImage[64][64];
 extern int LastBye;
 extern int Analog[];
 extern int Hat[];

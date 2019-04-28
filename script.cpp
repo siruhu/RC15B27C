@@ -66,7 +66,7 @@ extern int LIMITFPS;
 extern int Width;
 extern int Height;
 extern unsigned int NumFace;
-extern int CCDImage[64][64];
+extern int CCDImage[GCCDWIDTH][GCCDHEIGHT];
 extern int LastBye;
 extern int Analog[];
 extern int Hat[];

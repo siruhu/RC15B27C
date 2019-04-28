@@ -3,8 +3,15 @@
 #include "luaScript.hpp"
 #include "resource.h"
 
+//----------------------------------
+extern int CCDImage[GCCDWIDTH][GCCDHEIGHT];
+
+
+
+//----------------------------------
 int __luaPrintSub(lua_State *L, int s, int e, char* dest, int destSize);
 
+//----------
 int luaGetSMouseX(lua_State *L);
 int luaGetSMouseY(lua_State *L);
 int luaGetSMouseL(lua_State *L);

@@ -150,7 +150,7 @@ int	MouseL;
 int	MouseR;
 int	MouseM;
 int	CtrlKey;
-int CCDImage[64][64];
+int CCDImage[GCCDWIDTH][GCCDHEIGHT];
 int LastBye;
 HWND g_hWnd=NULL;              // The main app window
 
@@ -172,6 +172,7 @@ CD3DMesh*	m_pLandMesh;	// XMeshデータ
 D3DXMATRIX GMatWorld;
 D3DXMATRIX GMatView;
 
+LPDIRECT3DSURFACE8 pSurfaceCCD = NULL;
 //LPDIRECT3DVERTEXBUFFER8 pPointVB = NULL;
 LPDIRECT3DVERTEXBUFFER8 pPointVB = NULL;
 LPDIRECT3DTEXTURE8 pPointTexture = NULL;
@@ -4632,6 +4633,15 @@ HRESULT CMyD3DApplication::RestoreDeviceObjects()
 	SAFE_RELEASE(pPointVB);
 //	m_pd3dDevice->CreateVertexBuffer(sizeof(D3DPOINTVERTEX) * GPARTMAX,0  ,D3DFVF_POINTVERTEX,D3DPOOL_DEFAULT,&pPointVB);
 	m_pd3dDevice->CreateVertexBuffer(sizeof(D3DPOINTVERTEX) * 100, D3DUSAGE_POINTS | D3DUSAGE_DYNAMIC | D3DUSAGE_WRITEONLY ,D3DFVF_POINTVERTEX,D3DPOOL_DEFAULT,&pPointVB); //D3DUSAGE_WRITEONLY | D3DUSAGE_DYNAMICを指定してD3DLOCK_DISCARDを使うべき
+
+	LPDIRECT3DSURFACE8 backBuffer;
+	m_pd3dDevice->GetBackBuffer(0, D3DBACKBUFFER_TYPE_MONO, &backBuffer);
+	D3DSURFACE_DESC desc;
+	backBuffer->GetDesc(&desc);
+	backBuffer->Release();
+	SAFE_RELEASE(pSurfaceCCD);
+	m_pd3dDevice->CreateImageSurface(GCCDWIDTH, GCCDHEIGHT, desc.Format, &pSurfaceCCD); //CCD用ｻｰﾌｪｽ生成
+
 	SAFE_RELEASE(pPointTexture);
 //	D3DXCreateTextureFromFile(m_pd3dDevice,"dustw.png",&pPointTexture);
 	// Setup a material
@@ -7668,14 +7678,14 @@ HRESULT CMyD3DApplication::Render()
 		// メーターの表示----------------------
 		D3DVIEWPORT8 viewData = { (DWORD)0, (DWORD)0, (DWORD)w, (DWORD)h, 0.0f, 1.0f };
 		D3DVIEWPORT8 viewData1 = { (DWORD)(w-128-94-94-79), (DWORD)(h-71), 64, 64, 0.0f, 1.0f };
-		D3DVIEWPORT8 viewData2 = { (DWORD)(w-128-94-94-94-79), (DWORD)(h-71), 64, 64, 0.0f, 1.0f };
+		D3DVIEWPORT8 viewData2 = { (DWORD)(w-128-94-94-94-79+64-GCCDWIDTH), (DWORD)(h-71+64-GCCDHEIGHT), GCCDWIDTH, GCCDHEIGHT, 0.0f, 1.0f };
 		D3DXMATRIX matProj;
-		D3DXMATRIX matV;
+		D3DXMATRIX matV; 
 		D3DXMATRIX mat;
 		D3DXVECTOR3 vFromPt;
 		D3DXVECTOR3 vLookatPt;
 		D3DXVECTOR3 vUpVec;
-		if(w-128-94-94-79>0) {
+		if(w-128-94-94-79>0&&h-71>0) {
 			if(ShowMeter) {
 				GMatrix m(Chip[0]->R);
 				D3DXMATRIX matLocal=D3DXMATRIX((FLOAT)m.elem[0][0],(FLOAT)m.elem[0][1],(FLOAT)m.elem[0][2],(FLOAT)m.elem[0][3],
@@ -7704,10 +7714,10 @@ HRESULT CMyD3DApplication::Render()
 				m_pd3dDevice->SetRenderState( D3DRS_ZENABLE, TRUE );
 				G3dDevice->SetTransform( D3DTS_WORLD, &GMatWorld );
 			}
-			if(w-128-94-94-94-79>0 && CCDFlag && ShowMeter) {
+			if(w-128-94-94-94-79+64-GCCDWIDTH>0 && h-71+64-GCCDHEIGHT>0 && CCDFlag && ShowMeter) {
 				const GFloat ccd_GFARMAX = 19200.0;
 
-				D3DXMatrixPerspectiveFovLH( &matProj, (FLOAT)(CCDZoom*M_PI/180.0f), 1.0f, 1.0f, ccd_GFARMAX );
+				D3DXMatrixPerspectiveFovLH( &matProj, (FLOAT)(CCDZoom*M_PI/180.0f), (FLOAT)GCCDWIDTH/GCCDHEIGHT, 1.0f, (FLOAT)ccd_GFARMAX );
 				m_pd3dDevice->SetTransform( D3DTS_PROJECTION, &matProj );
 				GVector lv0=Chip[0]->X+(GVector(0,0,1)*Chip[0]->R)*0.75f;
 				GVector lv=Chip[0]->X+(GVector(0,0,-1)*Chip[0]->R)*3.0f;
@@ -7788,17 +7798,23 @@ HRESULT CMyD3DApplication::Render()
 						float widthRatio = 1.0f;
 						unsigned char *pLine,*pBase;
 						m_pd3dDevice->GetBackBuffer(0,D3DBACKBUFFER_TYPE_MONO,&backBuffer);
-
 						RECT rect = { viewData2.X, viewData2.Y, viewData2.X+viewData2.Width, viewData2.Y+viewData2.Height };
-						backBuffer->LockRect(&Lock, &rect, D3DLOCK_READONLY);//D3DLOCK_READONLY 
+						
+
+						POINT point = {0,0};
+						m_pd3dDevice->CopyRects(backBuffer, &rect, 1, pSurfaceCCD, &point);
+						backBuffer->Release();
+
+
+						pSurfaceCCD->LockRect(&Lock, NULL, D3DLOCK_READONLY);//D3DLOCK_READONLY 
 						pBase = (unsigned char *)Lock.pBits;
 
-						if((int)(Lock.Pitch/w)==2) {
+						if((int)(Lock.Pitch/GCCDWIDTH)==2) {
 							int y;
-							for(y = 0; y < 64; y++ )
+							for(y = 0; y < GCCDHEIGHT; y++ )
 							{
 								pLine = &pBase[y*Lock.Pitch];
-								for(int x = 0; x < 64; x++ )
+								for(int x = 0; x < GCCDWIDTH; x++ )
 								{
 									int v=pLine[0]+pLine[1]*256;
 									int r=v>>11;
@@ -7809,12 +7825,12 @@ HRESULT CMyD3DApplication::Render()
 								}
 							}
 						}
-						else if((int)(Lock.Pitch/w)==4) {
+						else if((int)(Lock.Pitch/GCCDWIDTH)==4) {
 							int y;
-							for(y = 0; y < 64; y++ )
+							for(y = 0; y < GCCDHEIGHT; y++ )
 							{
 								pLine = &pBase[y*Lock.Pitch];
-								for(int x = 0; x < 64; x++ )
+								for(int x = 0; x < GCCDWIDTH; x++ )
 								{
 									int b=pLine[0]>>3;
 									int g=pLine[1]>>3;
@@ -7825,14 +7841,13 @@ HRESULT CMyD3DApplication::Render()
 							}
 						}
 						
-						backBuffer->UnlockRect();
-						backBuffer->Release();
+						pSurfaceCCD->UnlockRect();
 					}
 				}
 			}
 			else {
-				for( int y = 0; y < 64; y++ ){
-					for(int x = 0; x < 64; x++ ){
+				for( int y = 0; y < GCCDHEIGHT; y++ ){
+					for(int x = 0; x < GCCDWIDTH; x++ ){
 						CCDImage[x][y]=0;
 					}
 				}
@@ -8065,10 +8080,11 @@ HRESULT CMyD3DApplication::Render()
 		}
 	}
 	
-	if(w-128-94-94-94-79>0 && CCDFlag && ShowMeter) {
-		pos.x=w-128-94-94-94-79;
-		pos.y=h-71;
-		pSprite->Draw(pMyTexture[20],NULL,NULL,NULL,D3DXToRadian(0),&pos,0x99ffffff);
+	if(w-128-94-94-94-79+64-GCCDWIDTH>0 && h-71+64-GCCDHEIGHT>0 && CCDFlag && ShowMeter) {
+		pos.x=w-128-94-94-94-79+64-GCCDWIDTH;
+		pos.y=h-71+64-GCCDHEIGHT;
+		D3DXVECTOR2 scalling = { GCCDWIDTH/64.0f, GCCDHEIGHT/64.0f};
+		pSprite->Draw(pMyTexture[20],NULL,&scalling,NULL,D3DXToRadian(0),&pos,0x99ffffff);
 	}
 	if(ShowTitle) {
 		if(TitleAlpha<=0xeeffffff) TitleAlpha+=0x11000000;
@@ -9389,6 +9405,7 @@ HRESULT CMyD3DApplication::InvalidateDeviceObjects()
     // TODO: Cleanup any objects created in RestoreDeviceObjects()
 	//**********
 	SAFE_RELEASE(pPointVB);
+	SAFE_RELEASE(pSurfaceCCD);
 	SAFE_RELEASE(pPointTexture);
 	
 	if( g_pFont ) g_pFont->OnLostDevice();
@@ -9423,6 +9440,7 @@ HRESULT CMyD3DApplication::DeleteDeviceObjects()
 	
 	//**********
 	SAFE_RELEASE(pPointVB);
+	SAFE_RELEASE(pSurfaceCCD);
 	SAFE_RELEASE(pPointTexture);
 	for(int i=0;i<GMODELMAX;i++) 
 		if(m_pXMesh[i]) m_pXMesh[i]->Destroy();

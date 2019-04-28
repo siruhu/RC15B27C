@@ -34,6 +34,9 @@
 #define GOUTPUTMAXCHAR 512
 #define GRINGMAX	100
 
+#define GCCDHEIGHT 64
+#define GCCDWIDTH 64
+
 typedef struct {
 	int State;
 	GVector Color;
