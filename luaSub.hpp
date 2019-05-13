@@ -4,7 +4,7 @@
 #include "resource.h"
 
 //----------------------------------
-extern int CCDImage[GCCDWIDTH][GCCDHEIGHT];
+extern int CCDImage[GCCDHEIGHT][GCCDWIDTH];
 
 
 
@@ -26,6 +26,7 @@ int luaGetTickCount(lua_State *L);
 int luaGetSystemTickCount(lua_State *L);
 int luaSetTicks(lua_State *L);
 int luaSetCCDZoom(lua_State *L);
+int luaGetCCD32(lua_State *L);
 int luaGetCCD(lua_State *L);
 int luaGetCCDRed(lua_State *L);
 int luaGetCCDGreen(lua_State *L);

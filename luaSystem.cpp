@@ -1192,10 +1192,12 @@ int luaSystemInit() {
     //
 	SystemL = lua_open();  /* create state */
 	
+	// ä÷êîÇìoò^Ç∑ÇÈ(C13)
+    lua_register(SystemL, "_CCD32", luaGetCCD32);
 	// ä÷êîÇìoò^Ç∑ÇÈ(v1.5C)
     lua_register(SystemL, "_GETVIEWUP", luaGetViewUp);
-    lua_register(SystemL, "_GETSPPEDLIM", luaGetSpeedLimit);
-    lua_register(SystemL, "_SETSPPEDLIM", luaSetSpeedLimit);
+    lua_register(SystemL, "_GETSPEEDLIM", luaGetSpeedLimit);
+    lua_register(SystemL, "_SETSPEEDLIM", luaSetSpeedLimit);
     lua_register(SystemL, "_GETFOGRANGE", luaGetFogRange);
     lua_register(SystemL, "_SETFOGRANGE", luaSetFogRange);
     lua_register(SystemL, "_GETNAMESIZE", luaGetNameSize);

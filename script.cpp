@@ -66,7 +66,7 @@ extern int LIMITFPS;
 extern int Width;
 extern int Height;
 extern unsigned int NumFace;
-extern int CCDImage[GCCDWIDTH][GCCDHEIGHT];
+extern int CCDImage[GCCDHEIGHT][GCCDWIDTH];
 extern int LastBye;
 extern int Analog[];
 extern int Hat[];
@@ -82,6 +82,9 @@ extern int ViewType;
 extern GVector UserEyePos;
 extern GVector UserRefPos;
 extern GVector UserUpVec;
+
+extern CMyD3DApplication* g_pApp;
+extern int ViewUpdate;
 
 extern GDPlay *DPlay;
 extern GPLAYERDATA PlayerData[];
@@ -163,19 +166,20 @@ double  setCCDZoom(double v)
 
 double  getCCD(double x,double y)
 {
-	return (double)CCDImage[(int)x][(int)y];
+	UINT32 rgb=CCDImage[(int)y][(int)x];
+	return (double)(((rgb&0xF80000)>>9)|((rgb&0xF800)>>6)|((rgb&0xF8)>>3));
 }
 double  getCCDRed(double x,double y)
 {
-	return (CCDImage[(int)x][(int)y]>>10)/32.0;
+	return ((CCDImage[(int)y][(int)x]&0xFF0000)>>16)/256.0;
 }
 double  getCCDGreen(double x,double y)
 {
-	return ((CCDImage[(int)x][(int)y]&0x3e0)>>5)/32.0;
+	return ((CCDImage[(int)y][(int)x]&0x00FF00)>>8)/256.0;
 }
 double  getCCDBlue(double x,double y)
 {
-	return (CCDImage[(int)x][(int)y]&0x1f)/32.0;
+	return (CCDImage[(int)y][(int)x]&0x0000FF)/256.0;
 }
 
 double  key(double no)
@@ -653,6 +657,10 @@ double move3D(double x,double y,double z)
 }
 double line3D(double x,double y,double z)
 {
+	if(ViewUpdate)	{
+		g_pApp->ViewSet();
+		ViewUpdate=0;
+	}
 	Line(GVector(l3dx,l3dy,l3dz),GVector((float)x,(float)y,(float)z),graColor);
 	l3dx=(float)x;
 	l3dy=(float)y;
@@ -667,6 +675,10 @@ double move2D(double x,double y)
 }
 double line2D(double x,double y)
 {
+	if(ViewUpdate)	{
+		g_pApp->ViewSet();
+		ViewUpdate=0;
+	}
 	Line2D(l2dx,l2dy,(GFloat)x,(GFloat)y,graColor);
 	l2dx=(float)x;
 	l2dy=(float)y;

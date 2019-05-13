@@ -65,9 +65,11 @@ lua_State *luaScriptInit(char *buff) {
 	setlocale(LC_ALL, "");
     //
 	lua_State *L = lua_open();  /* create state */
+	// ä÷êîÇìoò^Ç∑ÇÈ(C13)
+    lua_register(L, "_CCD32", luaGetCCD32);
 	// ä÷êîÇìoò^Ç∑ÇÈ(v1.5C)
 	lua_register(L, "_RANGECHIP",luaGetRangeChip);
-    lua_register(L, "_GETSPPEDLIM", luaGetSpeedLimit);
+    lua_register(L, "_GETSPEEDLIM", luaGetSpeedLimit);
     lua_register(L, "_GETFOGRANGE", luaGetFogRange);
     lua_register(L, "_GETNAMESIZE", luaGetNameSize);
     lua_register(L, "_GETMAKERSIZE", luaGetMakerSize);

@@ -150,7 +150,7 @@ int	MouseL;
 int	MouseR;
 int	MouseM;
 int	CtrlKey;
-int CCDImage[GCCDWIDTH][GCCDHEIGHT];
+int CCDImage[GCCDHEIGHT][GCCDWIDTH];
 int LastBye;
 HWND g_hWnd=NULL;              // The main app window
 
@@ -7784,7 +7784,7 @@ HRESULT CMyD3DApplication::Render()
 					  //							   pLine[0] =  0xe0;  // red, lower 4 bits
 					  //							   pLine[1] =  0x07;  // red, lower 4 bits
 					  pLine += 2;
-					  CCDImage[x][y]=a;
+					  CCDImage[y][x]=a;
 					  }
 					  }
 					  
@@ -7820,12 +7820,14 @@ HRESULT CMyD3DApplication::Render()
 									int r=v>>11;
 									int g=(v&0x7e0)>>6;
 									int b=v&0x1f;
-									CCDImage[x][y]=(r<<10)+(g<<5)+b;
+									//CCDImage[y][x]=(r<<10)+(g<<5)+b;
+									CCDImage[y][x]=(r<<16)+(g<<8)+b;
 									pLine += 2;
 								}
 							}
 						}
 						else if((int)(Lock.Pitch/GCCDWIDTH)==4) {
+							/*
 							int y;
 							for(y = 0; y < GCCDHEIGHT; y++ )
 							{
@@ -7835,10 +7837,11 @@ HRESULT CMyD3DApplication::Render()
 									int b=pLine[0]>>3;
 									int g=pLine[1]>>3;
 									int r=pLine[2]>>3;
-									CCDImage[x][y]=(r<<10)+(g<<5)+b;
+									CCDImage[y][x]=(r<<10)+(g<<5)+b;
 									pLine += 4;
 								}
-							}
+							}*/
+							memcpy(CCDImage,pBase,sizeof(int)*GCCDHEIGHT*GCCDWIDTH);
 						}
 						
 						pSurfaceCCD->UnlockRect();
@@ -7846,11 +7849,13 @@ HRESULT CMyD3DApplication::Render()
 				}
 			}
 			else {
+				/*
 				for( int y = 0; y < GCCDHEIGHT; y++ ){
 					for(int x = 0; x < GCCDWIDTH; x++ ){
-						CCDImage[x][y]=0;
+						CCDImage[y][x]=0;
 					}
-				}
+				}*/
+				memset(CCDImage,0,sizeof(int)*GCCDHEIGHT*GCCDWIDTH);
 			}
 			m_pd3dDevice->SetViewport(&viewData);
 		}

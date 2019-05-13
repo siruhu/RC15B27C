@@ -175,24 +175,44 @@ int luaSetCCDZoom(lua_State *L)
 	return 1;
 }
 
+/* FÌ«°Ï¯Ä‘I‘ğ‚ğ‘«‚µ‚Ä‚İ‚½‚à‚Ì‚ÌA•¶š—ñ‚ğˆø”‚Éæ‚é‚Æ‚¾‚¢‚ÔGC‚ÉŠÔæ‚ç‚ê‚Ä’x‚­‚È‚Á‚¿‚á‚Á‚½‚Ì‚Å–v
 int luaGetCCD(lua_State *L)
 {
-	lua_pushnumber(L,  (double)CCDImage[(int)lua_tonumber(L, 2)][(int)lua_tonumber(L, 1)]);
+	int color=CCDImage[(int)lua_tonumber(L, 2)][(int)lua_tonumber(L, 1)];
+	if (lua_type(L, 3)==LUA_TSTRING){
+		const char* format = lua_tostring(L,3);
+		if(!stricmp(format, "R8G8B8")) color=(color&0x7C00)<<9 | (color&0x03E0)<<6 | (color&0x001F)<<3;
+		else if(!stricmp(format, "R5G5B5")) color=color;
+		else if(!stricmp(format, "R5G6B5")) color=(color&0xFFE0)<<1 | (color&0x001F);
+		else luaL_argerror(L,3,"color format invalid");
+	}
+	lua_pushnumber(L,  (double)color);
+	return 1;
+}--*/
+int luaGetCCD32(lua_State *L)
+{
+	lua_pushnumber(L,  (double)(CCDImage[(int)lua_tonumber(L, 1)][(int)lua_tonumber(L, 2)]&0xFFFFFF));
+	return 1;
+}
+int luaGetCCD(lua_State *L)
+{
+	UINT32 rgb=CCDImage[(int)lua_tonumber(L, 1)][(int)lua_tonumber(L, 2)];
+	lua_pushnumber(L,  ((rgb&0xF80000)>>9)|((rgb&0xF800)>>6)|((rgb&0xF8)>>3));
 	return 1;
 }
 int luaGetCCDRed(lua_State *L)
 {
-	lua_pushnumber(L, (CCDImage[(int)lua_tonumber(L, 2)][(int)lua_tonumber(L, 1)]>>10)/32.0);
+	lua_pushnumber(L, ((CCDImage[(int)lua_tonumber(L, 1)][(int)lua_tonumber(L, 2)]&0xFF0000)>>16)/256.0);
 	return 1;
 }
 int luaGetCCDGreen(lua_State *L)
 {
-	lua_pushnumber(L,((CCDImage[(int)lua_tonumber(L, 2)][(int)lua_tonumber(L, 1)]&0x3e0)>>5)/32.0);
+	lua_pushnumber(L,((CCDImage[(int)lua_tonumber(L, 1)][(int)lua_tonumber(L, 2)]&0x00FF00)>>8)/256.0);
 	return 1;
 }
 int luaGetCCDBlue(lua_State *L)
 {
-	lua_pushnumber(L,(CCDImage[(int)lua_tonumber(L, 2)][(int)lua_tonumber(L, 1)]&0x1f)/32.0);
+	lua_pushnumber(L,(CCDImage[(int)lua_tonumber(L, 1)][(int)lua_tonumber(L, 2)]&0x0000FF)/256.0);
 	return 1;
 }
 
