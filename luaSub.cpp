@@ -1196,7 +1196,8 @@ int luaGetFuelMax(lua_State *L)
 }
 void luaUpdateVal() {
 	int i,k;
-	for(i=0;i<GVALMAX;i++) {
+	for(i=0;i<VarCount;i++) {
+	//for(i=0;i<GVALMAX;i++) {
 		for(k=0;k<ValList[i].RefCount;k++) {
 			if(ValList[i].Flag[k])
 				*(ValList[i].Ref[k])=-ValList[i].Val;

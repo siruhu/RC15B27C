@@ -812,7 +812,7 @@ HRESULT MyReceiveFunc( MYAPP_PLAYER_INFO* playerInfo,DWORD size,BYTE *stream ) {
 			GSTREAM strm2;
 			strm2.code=1;
 			char *str=(char*)strm2.data;
-			sprintf(str,"Version=1.5 C13pre4");
+			sprintf(str,"Version=1.5 C13pre5");
 			DWORD size=strlen(str)+1+sizeof(short);
 			DPlay->SendTo(playerInfo->dpnidPlayer,(BYTE*)&strm2,size,180,DPNSEND_NOLOOPBACK|DPNSEND_NOCOMPLETE);
 		}
@@ -3399,7 +3399,7 @@ CMyD3DApplication::CMyD3DApplication()
 
 	m_dwCreationWidth           = 640;
     m_dwCreationHeight          = 480;
-    m_strWindowTitle            = TEXT( "RigidChips 1.5.B27C13pre4" );
+    m_strWindowTitle            = TEXT( "RigidChips 1.5.B27C13pre5" );
     m_bUseDepthBuffer           = TRUE;
 
 	m_dLimidFPS=1000/LIMITFPS;
@@ -6232,7 +6232,7 @@ if( win == FALSE )
 	}
 	if(World->Stop==false && World->NetStop==false) {
 		//変数の内容を更新
-		for(i=0;i<GVALMAX;i++) {
+		for(i=0;i<VarCount;i++) {
 			if(ValList[i].Updated==false) {
 				if(ValList[i].Val>ValList[i].Def){
 					ValList[i].Val-=(GFloat)fabs(ValList[i].Dec*30.0f/LIMITFPS);
@@ -7100,7 +7100,7 @@ HRESULT CMyD3DApplication::Render()
 		}
 		//変数の値がここでさらに更新される。
 		if(SystemL!=NULL && (World->B26Bullet || DPlay->GetNumPlayers()==0)) luaSystemRun("OnFrame");
-		for(i=0;i<GVALMAX;i++) {
+		for(i=0;(int)i<VarCount;i++) {
 			ValList[i].Updated=false;
 		}
 		Line(GVector(0,0,0),GVector(0,0,0),0xff000000); //Lineﾊﾞｯﾌｧ強制描画 ｼﾅﾘｵ分
