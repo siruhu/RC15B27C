@@ -164,6 +164,7 @@ int luaGetSpeedLimit(lua_State *L);
 int luaGetFogRange(lua_State *L);
 int luaGetMakerSize(lua_State *L);
 int luaGetNameSize(lua_State *L);
+int luaGetFogColor(lua_State *L);
 //--------¿ﬁ–∞ä÷êî
 int luaDummyFunc0(lua_State *L);
 int luaDummyFunc1(lua_State *L);
@@ -174,6 +175,7 @@ int luaGetNoiseTicks(lua_State *L);
 int luaSetScriptFunction(lua_State *L);
 int luaSetSpeedLimit(lua_State *L);
 int luaSetFogRange(lua_State *L);
+int luaSetFogColor(lua_State *L);
 int luaSetMakerSize(lua_State *L);
 int luaSetNameSize(lua_State *L);
 int luaSetView(lua_State *L);

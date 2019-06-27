@@ -812,7 +812,7 @@ HRESULT MyReceiveFunc( MYAPP_PLAYER_INFO* playerInfo,DWORD size,BYTE *stream ) {
 			GSTREAM strm2;
 			strm2.code=1;
 			char *str=(char*)strm2.data;
-			sprintf(str,"Version=1.5 C13pre5");
+			sprintf(str,"Version=1.5 C13pre6");
 			DWORD size=strlen(str)+1+sizeof(short);
 			DPlay->SendTo(playerInfo->dpnidPlayer,(BYTE*)&strm2,size,180,DPNSEND_NOLOOPBACK|DPNSEND_NOCOMPLETE);
 		}
@@ -1383,8 +1383,30 @@ void Text3Dm(CD3DFont*font,D3DXMATRIX &m,char *str,DWORD col) {
 	font->Render3DText(str,D3DFONT_CENTERED);
 }
 
+//---------------------------------------------------------------------------
+//-------------    Global variable Get/Set functions    ---------------------
+//---------------------------------------------------------------------------
+//global D3DXVECTOR3 FogColor
+DWORD SetFogColor(BYTE r,BYTE g,BYTE b){
+	FogColor.x=r;
+	FogColor.y=g;
+	FogColor.z=b;
+	return r<<16|g<<8|b;
+}
+DWORD SetFogColor(DWORD R8G8B8){
+	return SetFogColor((R8G8B8>>16)&0xFF,(R8G8B8>>8)&0xFF,(R8G8B8>>0)&0xFF);
+}
+DWORD GetFogColor(){
+	return ((int)FogColor.x<<16)|((int)FogColor.y<<8)|(int)FogColor.z;
+}
+//-----------------------------
+D3DXVECTOR3 GetLightColor(){
+	return lightColor;
+}
+//-----------------------------
 
-
+//---------------------------------------------------------------------------
+//---------------------------------------------------------------------------
 #define line2dVertexMax 400 //奇数が始点 偶数が終点の線
 D3DPOINTVERTEX line2dVertexTable[line2dVertexMax]; //頂点ﾊﾞｯﾌｧ 埋まったら描画
 int line2dVertexTable_n=0;
@@ -1549,7 +1571,7 @@ int CALLBACK DlgExtraProc(HWND hDlg,UINT uMsg,WPARAM wParam,LPARAM lParam)
 			sprintf(str,"%.1lfkm",GFARMAX/1000);
 			SendDlgItemMessage(hDlg,IDC_FARSTATIC,WM_SETTEXT,0,(LPARAM)str);
 			//-----------
-			r=(((int)FogColor.z)<<16)+(((int)FogColor.y)<<8)+(int)FogColor.x;
+			r=GetFogColor();
 			sprintf(str,"%06X",r);
 			SendDlgItemMessage(hDlg,IDC_COLORSTATIC,WM_SETTEXT,0,(LPARAM)str);
 			//-----------
@@ -1612,19 +1634,18 @@ int CALLBACK DlgExtraProc(HWND hDlg,UINT uMsg,WPARAM wParam,LPARAM lParam)
 					state=1;
 					ZeroMemory(custColors,sizeof(custColors));
 					custColors[0]=0x00ffe6c8;
-					r=(((int)FogColor.z)<<16)+(((int)FogColor.y)<<8)+(int)FogColor.x;
+					r=GetFogColor();
+					r=r>>16|r&0xFF00|(r&0xFF)<<16; //COLORREF型はB8G8R8なため並べ替え
 					custColors[1]=r;
 					ZeroMemory(&cc,sizeof(cc));
 					cc.lStructSize=sizeof(cc);
-					cc.Flags=CC_ANYCOLOR;
+					cc.Flags=CC_RGBINIT|CC_ANYCOLOR;
 					cc.hwndOwner=hDlg;
 					cc.lpCustColors=custColors;
 					cc.rgbResult=r;
-					r=ChooseColor(&cc);
-					FogColor.z=(float)((cc.rgbResult>>16)&0xff);
-					FogColor.y=(float)((cc.rgbResult>>8)&0xff);
-					FogColor.x=(float)(cc.rgbResult&0xff);
-					r=(((int)FogColor.z)<<16)+(((int)FogColor.y)<<8)+(int)FogColor.x;
+					ChooseColor(&cc);
+					r = GetRValue(cc.rgbResult)<<16|GetGValue(cc.rgbResult)<<8|GetBValue(cc.rgbResult); //R8G8B8に並べ替え
+					r=SetFogColor(r);
 					sprintf(str,"%06X",r);
 					SendDlgItemMessage(hDlg,IDC_COLORSTATIC,WM_SETTEXT,0,(LPARAM)str);
 					state=0;
@@ -3399,7 +3420,7 @@ CMyD3DApplication::CMyD3DApplication()
 
 	m_dwCreationWidth           = 640;
     m_dwCreationHeight          = 480;
-    m_strWindowTitle            = TEXT( "RigidChips 1.5.B27C13pre5" );
+    m_strWindowTitle            = TEXT( "RigidChips 1.5.B27C13pre6" );
     m_bUseDepthBuffer           = TRUE;
 
 	m_dLimidFPS=1000/LIMITFPS;

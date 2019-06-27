@@ -43,6 +43,9 @@ extern DWORD PortNo;
 extern char LastChatData[];
 void Line(GVector &p1,GVector &p2,unsigned int col);
 void Line2D(GFloat x0,GFloat y0,GFloat x1,GFloat y1,int col);
+DWORD SetFogColor(DWORD R8G8B8);
+DWORD GetFogColor();
+D3DXVECTOR3 GetLightColor();
 
 //snprintf‚ª‚È‚¢‚Á‚ÄÏ¼Þ‚©‚æ   ‚Æ‚¢‚¤‚±‚Æ‚ÅŽ—‚½ŠÖ”‚ÆÏ¸Û‚ÅºÞØ‰Ÿ‚µ‰ðŒˆ
 static int snprintf_temporary_var_stringlength;
@@ -1591,6 +1594,27 @@ int luaGetFogRange(lua_State *L)
 {
 	lua_pushnumber(L,GFARMAX);
 	return 1;
+}
+int luaSetFogColor(lua_State *L)
+{
+	DWORD color=(DWORD)lua_tonumber(L,1);
+	SetFogColor(color);
+	return 0;
+}
+int luaGetFogColor(lua_State *L)
+{
+	DWORD R8G8B8=GetFogColor();
+	lua_pushnumber(L,R8G8B8);
+
+	D3DXVECTOR3 lightColor=GetLightColor();
+	int r,g,b;
+	r=(R8G8B8>>16)&0xFF;
+	g=(R8G8B8>>8)&0xFF;
+	b=(R8G8B8>>0)&0xFF;
+	DWORD R8G8B8_ambient=(int)(r*lightColor.x)<<16|(int)(g*lightColor.y)<<8|(int)(b*lightColor.z);
+	lua_pushnumber(L,R8G8B8_ambient);
+
+	return 2;
 }
 int luaSetMakerSize(lua_State *L)
 {

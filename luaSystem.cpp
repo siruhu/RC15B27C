@@ -1194,6 +1194,8 @@ int luaSystemInit() {
 	
 	// ä÷êîÇìoò^Ç∑ÇÈ(C13)
     lua_register(SystemL, "_CCD32", luaGetCCD32);
+    lua_register(SystemL, "_GETFOGCOLOR", luaGetFogColor);
+    lua_register(SystemL, "_SETFOGCOLOR", luaGetFogColor);
 	// ä÷êîÇìoò^Ç∑ÇÈ(v1.5C)
     lua_register(SystemL, "_GETVIEWUP", luaGetViewUp);
     lua_register(SystemL, "_GETSPEEDLIM", luaGetSpeedLimit);

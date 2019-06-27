@@ -67,6 +67,7 @@ lua_State *luaScriptInit(char *buff) {
 	lua_State *L = lua_open();  /* create state */
 	// ŠÖ”‚ğ“o˜^‚·‚é(C13)
     lua_register(L, "_CCD32", luaGetCCD32);
+    lua_register(L, "_GETFOGCOLOR", luaGetFogColor);
 	// ŠÖ”‚ğ“o˜^‚·‚é(v1.5C)
 	lua_register(L, "_RANGECHIP",luaGetRangeChip);
     lua_register(L, "_GETSPEEDLIM", luaGetSpeedLimit);
