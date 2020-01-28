@@ -1200,6 +1200,8 @@ int luaSystemInit() {
     lua_register(SystemL, "_GETVIEWUP", luaGetViewUp);
     lua_register(SystemL, "_GETSPEEDLIM", luaGetSpeedLimit);
     lua_register(SystemL, "_SETSPEEDLIM", luaSetSpeedLimit);
+    lua_register(SystemL, "_GETSPPEDLIM", luaGetSpeedLimit); //ŒëŽš‚Á‚Ä‚½‚¯‚Ç‚»‚Ì‚Ü‚ÜŽc‚·
+    lua_register(SystemL, "_SETSPPEDLIM", luaSetSpeedLimit);
     lua_register(SystemL, "_GETFOGRANGE", luaGetFogRange);
     lua_register(SystemL, "_SETFOGRANGE", luaSetFogRange);
     lua_register(SystemL, "_GETNAMESIZE", luaGetNameSize);

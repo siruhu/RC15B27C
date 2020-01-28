@@ -49,7 +49,8 @@ D3DXVECTOR3 GetLightColor();
 
 //snprintfがないってﾏｼﾞかよ   ということで似た関数とﾏｸﾛでｺﾞﾘ押し解決
 static int snprintf_temporary_var_stringlength;
-#define snprintf(pBuf,cnt,fmt,...) ((snprintf_temporary_var_stringlength=_snprintf((pBuf),((!(cnt))?0:((cnt)-1+(*((pBuf)+(cnt)-1)='\0'))),(fmt),__VA_ARGS__))<0?(cnt):snprintf_temporary_var_stringlength)
+//#define snprintf(pBuf,cnt,fmt,...) ((snprintf_temporary_var_stringlength=_snprintf((pBuf),((!(cnt))?0:((cnt)-1+(*((pBuf)+(cnt)-1)='\0'))),(fmt),__VA_ARGS__))<0?(cnt):snprintf_temporary_var_stringlength)
+#define snprintf(pBuf,cnt,fmt,...) ((*((pBuf)+(cnt)-1)='\0'),(snprintf_temporary_var_stringlength=_snprintf((pBuf),(cnt)-1,(fmt),__VA_ARGS__))<0?(cnt):snprintf_temporary_var_stringlength) //カンマ演算子を使って修正
 
 int __luaPrintSub(lua_State *L, int s, int e, char* dest, int destSize) //スタックのs番目からe番目までの値を文字列化してdestへ書き込む  成功時は0,バッファオーバーラン時は1を返す  
 {

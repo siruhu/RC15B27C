@@ -71,6 +71,7 @@ lua_State *luaScriptInit(char *buff) {
 	// ŠÖ”‚ğ“o˜^‚·‚é(v1.5C)
 	lua_register(L, "_RANGECHIP",luaGetRangeChip);
     lua_register(L, "_GETSPEEDLIM", luaGetSpeedLimit);
+    lua_register(L, "_GETSPPEDLIM", luaGetSpeedLimit); //Œëš‚Á‚Ä‚½‚¯‚Ç‚»‚Ì‚Ü‚Üc‚·
     lua_register(L, "_GETFOGRANGE", luaGetFogRange);
     lua_register(L, "_GETNAMESIZE", luaGetNameSize);
     lua_register(L, "_GETMAKERSIZE", luaGetMakerSize);
