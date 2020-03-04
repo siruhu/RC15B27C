@@ -40,6 +40,7 @@
 #endif 
 //--メモリリーク検出用
 
+extern char szUpdateFileName[];
 extern char szUpdateFileName0[];
 extern GFloat luaL3dx,luaL3dy,luaL3dz;
 extern int luaGraColor;
@@ -235,6 +236,44 @@ lua_State *luaScriptInit(char *buff) {
 	lua_register(L, "_FUEL",luaGetFuel);
 	lua_register(L, "_FUELMAX",luaGetFuelMax);
 
+	//---LUA_PATHをLua側へ登録
+	const char* lua_path=getenv("LUA_PATH_5_0"); //この辺の定数がｿｰｽに残ってないので仕方なくﾏｼﾞｯｸﾅﾝﾊﾞｰで検索
+	if(!lua_path) lua_path = getenv("LUA_PATH");
+	if(lua_path){
+		lua_pushstring(L, lua_path); lua_setglobal(L, "LUA_PATH");
+
+	}
+	//--------
+	// ﾓﾃﾞﾙﾌｧｲﾙﾊﾟｽをLua側へ登録
+	{
+		char* itr=szUpdateFileName;
+		while(strcmp(itr, szUpdateFileName0) && *itr++){}
+
+		lua_pushlstring(L, szUpdateFileName, itr-szUpdateFileName); lua_setglobal(L, "MODEL_PATH");
+		lua_pushlstring(L, szUpdateFileName0, strlen(szUpdateFileName0)); lua_setglobal(L, "MODEL_NAME");
+	}
+	//--------
+	// EXEﾊﾟｽをLua側へ登録
+	{
+		//----------------------------
+		//ファイルパス登録 (ホストアプリケーション,DLL)  FATとかWin32APIの仕様としては、_MAX_PATH"文字"制限なので_MAX_PATH"byte"のバッファじゃまずいんでは…?   ということで全部*2しとこ
+		char tmpBuff[_MAX_PATH*2];   //パス組立用一時バッファ
+
+		char szDrive[_MAX_DRIVE*2];	// ドライブ名格納領域 
+		char szPath[_MAX_DIR*2];		// パス名格納領域 
+		char szTitle[_MAX_FNAME*2];	// ファイルタイトル格納領域 
+		char szExt[_MAX_EXT*2];		// ファイル拡張子格納領域 
+
+		//------------
+		GetModuleFileNameA(NULL, tmpBuff, sizeof(tmpBuff)); //ここで返るパスはUNCパスだったり8.3だったり  モジュール呼び出し時に使った文字列依存らしい
+		_splitpath_s(tmpBuff, szDrive, szPath, szTitle, szExt);
+
+		lua_pushfstring(L, "%s%s", szDrive, szPath); lua_setglobal(L, "EXE_PATH");
+		lua_pushfstring(L, "%s%s", szTitle, szExt); lua_setglobal(L, "EXE_NAME");
+		//------------
+	}
+
+	//--------
 	luaL3dx=luaL3dy=luaL3dz=0.0f;
 	luaGraColor=0xffffff;
 	//グローバル変数の登録
@@ -248,11 +287,25 @@ lua_State *luaScriptInit(char *buff) {
       luaopen_table(L);
       luaopen_math(L);
 //      luaopen_io(L);
+
+
+	//----------------------------
+	{ //LUA_INIT.lua実行
+		int err;
+		if((err=luaL_loadstring(L, "local f=loadfile(EXE_PATH..'LUA_INIT.lua'); if f then f() end")) || (err=lua_pcall(L, 0, 0, 0))){
+			ScriptErrorCode = -1;
+			sprintf(ScriptErrorStr, "%s\n", lua_tostring(L, -1));
+			lua_close(L);
+			return NULL;
+		}
+	}
+	//----------------------------
+
 	//この辺りでｼﾅﾘｵLua呼び出し位置置けば全関数潰せるかな?
 	int e=lua_dobuffer (L,buff,strlen(buff),szUpdateFileName0);
 	if(e!=0) {
 		ScriptErrorCode=-1;
-		sprintf(ScriptErrorStr,"%s\n",lua_tostring(L,0));
+		sprintf(ScriptErrorStr,"%s\n",lua_tostring(L,-1));
 		lua_close(L);
 		return NULL;
 	}

@@ -183,4 +183,10 @@ int luaSetViewUp(lua_State *L);
 int luaSetViewType(lua_State *L);
 int luaSetViewZoom(lua_State *L);
 
+
+
+//lua compat
+static int luaL_loadstring(lua_State* L, const char* s) {
+	return luaL_loadbuffer(L, s, strlen(s), s);
+}
 #endif

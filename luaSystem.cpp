@@ -43,7 +43,8 @@
 //--メモリリーク検出用
 
 extern CMyD3DApplication* g_pApp;
-extern char szUpdateFileName0[];
+extern char szSystemFileName[];
+extern char szSystemFileName0[];
 extern GFloat luaL3dx,luaL3dy,luaL3dz;
 extern int luaGraColor;
 extern GVector CompassTarget;
@@ -1433,6 +1434,46 @@ int luaSystemInit() {
 	lua_register(SystemL, "_PLAYERNAME",luaGetPlayerName);
 	lua_register(SystemL, "_FUEL",luaGetFuel);
 	lua_register(SystemL, "_FUELMAX",luaGetFuelMax);
+
+
+	//---LUA_PATHをLua側へ登録
+	const char* lua_path = getenv("LUA_PATH_5_0"); //この辺の定数がｿｰｽに残ってないので仕方なくﾏｼﾞｯｸﾅﾝﾊﾞｰで検索
+	if (!lua_path) lua_path = getenv("LUA_PATH");
+	if (lua_path) {
+		lua_pushstring(SystemL, lua_path); lua_setglobal(SystemL, "LUA_PATH");
+
+	}
+	//--------
+	// ｼﾅﾘｵﾌｧｲﾙﾊﾟｽをLua側へ登録
+	{
+		char* itr = szSystemFileName;
+		while (strcmp(itr, szSystemFileName0) && *itr++) {}
+
+		lua_pushlstring(SystemL, szSystemFileName, itr-szSystemFileName); lua_setglobal(SystemL, "SCENARIO_PATH");
+		lua_pushlstring(SystemL, szSystemFileName0, strlen(szSystemFileName0)); lua_setglobal(SystemL, "SCENARIO_NAME");
+	}
+	//--------
+	// EXEﾊﾟｽをLua側へ登録
+	{
+		//----------------------------
+		//ファイルパス登録 (ホストアプリケーション,DLL)  FATとかWin32APIの仕様としては、_MAX_PATH"文字"制限なので_MAX_PATH"byte"のバッファじゃまずいんでは…?   ということで全部*2しとこ
+		char tmpBuff[_MAX_PATH*2];   //パス組立用一時バッファ
+
+		char szDrive[_MAX_DRIVE*2];	// ドライブ名格納領域 
+		char szPath[_MAX_DIR*2];		// パス名格納領域 
+		char szTitle[_MAX_FNAME*2];	// ファイルタイトル格納領域 
+		char szExt[_MAX_EXT*2];		// ファイル拡張子格納領域 
+
+		//------------
+		GetModuleFileNameA(NULL, tmpBuff, sizeof(tmpBuff)); //ここで返るパスはUNCパスだったり8.3だったり  モジュール呼び出し時に使った文字列依存らしい
+		_splitpath_s(tmpBuff, szDrive, szPath, szTitle, szExt);
+
+		lua_pushfstring(SystemL, "%s%s", szDrive, szPath); lua_setglobal(SystemL, "EXE_PATH");
+		lua_pushfstring(SystemL, "%s%s", szTitle, szExt); lua_setglobal(SystemL, "EXE_NAME");
+		//------------
+	}
+
+	//--------
 	luaL3dx=luaL3dy=luaL3dz=0.0f;
 	luaGraColor=0xffffff;
 	for(int i=0;i<8;i++) ControlKeysLock[i]=false;
