@@ -31,6 +31,8 @@
 #include "GDPlay.hpp"
 #include "GPlayers.h"
 
+#include "c99_snprintf.h"
+
 //メモリリーク検出用
 #include <crtdbg.h>  
 #ifdef _DEBUG 
@@ -55,7 +57,7 @@ extern DWORD LoadlibDummy;
 char SystemOutput[GOUTPUTMAX][GOUTPUTMAXCHAR];
 char *SystemSource=NULL;
 int SystemErrorCode;
-char SystemErrorStr[512];
+char SystemErrorStr[GOUTPUTMAXCHAR];
 lua_State *SystemL=NULL;
 
 extern int scenarioCode;
@@ -1533,11 +1535,14 @@ int luaSystemRun (char *funcName) {
 	}
     // 関数を呼ぶ。lua_callの第2引数は渡す引数の数、第3引数は戻り値の数。
     // 関数とその引数はスタックから取り除かれ、戻り値がスタックに残る。
-    SystemErrorCode=lua_pcall(SystemL, 0, 0,0);
+	lua_pushcfunction(SystemL, luaErrMsgHandler);
+	lua_insert(SystemL, -2);
+    SystemErrorCode=lua_pcall(SystemL, 0, 0 ,-2);
 	if(SystemErrorCode){
-		sprintf(SystemErrorStr,"%s %s\n",lua_tostring(SystemL,-1));
+		sprintf(SystemErrorStr,"%s\n",lua_tostring(SystemL,-1));
 		lua_pop(SystemL,1);//使い終わったｴﾗｰﾒｯｾｰｼﾞを捨てる
 	}
+	lua_pop(SystemL, 1); //ﾒｯｾｰｼﾞﾊﾝﾄﾞﾗを捨てる
 	for(int i=0;i<VarCount;i++) {
 		lua_pushstring( SystemL , ValList[i].Name ); // (1) Luaの変数名toCを指定
 		lua_gettable( SystemL , LUA_GLOBALSINDEX ); // (2)と(3)の動作

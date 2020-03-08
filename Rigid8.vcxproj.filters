@@ -72,6 +72,12 @@
     <ClCompile Include="script.cpp">
       <Filter>MySource</Filter>
     </ClCompile>
+    <ClCompile Include="c99_snprintf.c">
+      <Filter>MySource</Filter>
+    </ClCompile>
+    <ClCompile Include="lua_5_3_compat.c">
+      <Filter>MySource</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="d3dapp.h">
@@ -149,6 +155,12 @@
     <ClInclude Include="GRigid.hpp">
       <Filter>MySource</Filter>
     </ClInclude>
+    <ClInclude Include="c99_snprintf.h">
+      <Filter>MySource</Filter>
+    </ClInclude>
+    <ClInclude Include="lua_5_3_compat.h">
+      <Filter>MySource</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="cursor1.cur">
@@ -179,5 +191,8 @@
     <Library Include="Lua\lib\liblualibd.lib">
       <Filter>Lua</Filter>
     </Library>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="__ReadMe.txt" />
   </ItemGroup>
 </Project>

@@ -812,7 +812,7 @@ HRESULT MyReceiveFunc( MYAPP_PLAYER_INFO* playerInfo,DWORD size,BYTE *stream ) {
 			GSTREAM strm2;
 			strm2.code=1;
 			char *str=(char*)strm2.data;
-			sprintf(str,"Version=1.5 C13pre7");
+			sprintf(str,"Version=1.5 C13pre8");
 			DWORD size=strlen(str)+1+sizeof(short);
 			DPlay->SendTo(playerInfo->dpnidPlayer,(BYTE*)&strm2,size,180,DPNSEND_NOLOOPBACK|DPNSEND_NOCOMPLETE);
 		}
@@ -3420,7 +3420,7 @@ CMyD3DApplication::CMyD3DApplication()
 
 	m_dwCreationWidth           = 640;
     m_dwCreationHeight          = 480;
-    m_strWindowTitle            = TEXT( "RigidChips 1.5.B27C13pre7" );
+    m_strWindowTitle            = TEXT( "RigidChips 1.5.B27C13pre8" );
     m_bUseDepthBuffer           = TRUE;
 
 	m_dLimidFPS=1000/LIMITFPS;
@@ -4934,8 +4934,6 @@ HRESULT CMyD3DApplication::InitChips(GFloat a,int hereFlag)
 		luaScriptEnd(ScriptL);
 		ScriptL=NULL;
 	}
-	ScriptErrorStr[0] = '\0';
-	ScriptErrorCode = 0;
 	if(ScriptType==1 && ScriptSource[0]!='\0') ScriptL=luaScriptInit(ScriptSource);
 	GroundParticle->Clear();
 	WaterLineParticle->Clear();

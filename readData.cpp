@@ -906,6 +906,9 @@ int  readData2(FILE *fp,bool checkFlag)
 		ScriptSource[0]='\0';
 		int b=1;
 		//resetToken();
+		ScriptErrorStr[0] = '\0';
+		ScriptErrorCode = 0;
+
 		if(strcmp("SCRIPT",str)==0) {
 			ScriptType=0;
 			if(GetTokenCh()!='{') searchData(fp,'{'); 

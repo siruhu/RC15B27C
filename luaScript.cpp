@@ -29,6 +29,8 @@
 #include "luaScript.hpp"
 #include "luaSub.hpp"
 
+#include "c99_snprintf.h"
+
 //メモリリーク検出用
 #include <crtdbg.h>  
 #ifdef _DEBUG 
@@ -286,18 +288,39 @@ lua_State *luaScriptInit(char *buff) {
       luaopen_base(L);
       luaopen_table(L);
       luaopen_math(L);
-//      luaopen_io(L);
+	  luaopen_io(L);
 
 
 	//----------------------------
 	{ //LUA_INIT.lua実行
+		//L={}
+		lua_getglobal(L, "EXE_PATH");
+		lua_pushstring(L, "LUA_INIT.lua");
+		lua_concat(L, 2);
+		//L={filepath}
 		int err;
-		if((err=luaL_loadstring(L, "local f=loadfile(EXE_PATH..'LUA_INIT.lua'); if f then f() end")) || (err=lua_pcall(L, 0, 0, 0))){
+		if((err=luaL_loadfile(L, lua_tostring(L, -1)))) {
+			if(err==LUA_ERRFILE){
+				lua_pop(L,1);
+				err=luaL_loadstring(L,
+					"io=nil;"
+					"os=nil;"
+				);
+			}
+		}
+		lua_remove(L,-2);
+		//L={LUA_INIT}
+
+		lua_pushcfunction(L, luaErrMsgHandler);
+		lua_insert(L, -2);
+		//L={msgh,LUA_INIT}
+		if(err || (err=lua_pcall(L, 0, 0, -2))){
 			ScriptErrorCode = -1;
-			sprintf(ScriptErrorStr, "%s\n", lua_tostring(L, -1));
+			snprintf(ScriptErrorStr, GOUTPUTMAXCHAR, "%s\n", lua_tostring(L, -1));
 			lua_close(L);
 			return NULL;
 		}
+		lua_pop(L,1);
 	}
 	//----------------------------
 
@@ -305,7 +328,7 @@ lua_State *luaScriptInit(char *buff) {
 	int e=lua_dobuffer (L,buff,strlen(buff),szUpdateFileName0);
 	if(e!=0) {
 		ScriptErrorCode=-1;
-		sprintf(ScriptErrorStr,"%s\n",lua_tostring(L,-1));
+		snprintf(ScriptErrorStr, GOUTPUTMAXCHAR,"%s\n",lua_tostring(L,-1));
 		lua_close(L);
 		return NULL;
 	}
@@ -338,11 +361,14 @@ int luaScriptRun (lua_State *L,char *funcName) {
 	}
     // 関数を呼ぶ。lua_callの第2引数は渡す引数の数、第3引数は戻り値の数。
     // 関数とその引数はスタックから取り除かれ、戻り値がスタックに残る。
-    ScriptErrorCode=lua_pcall(L, 0, 0,0);
+	lua_pushcfunction(L, luaErrMsgHandler);
+	lua_insert(L,-2);
+    ScriptErrorCode=lua_pcall(L,0,0,-2);
 	if(ScriptErrorCode){
-		sprintf(ScriptErrorStr,"%s\n",lua_tostring(L,-1));
+		snprintf(ScriptErrorStr, GOUTPUTMAXCHAR,"%s\n",lua_tostring(L,-1));
 		lua_pop(L,1);//使い終わったｴﾗｰﾒｯｾｰｼﾞを捨てる
 	}
+	lua_pop(L, 1); //ﾒｯｾｰｼﾞﾊﾝﾄﾞﾗを捨てる
 	for(int i=0;i<VarCount;i++) {
 		lua_pushstring( L , ValList[i].Name ); // (1) Luaの変数名toCを指定
 		lua_gettable( L , LUA_GLOBALSINDEX ); // (2)と(3)の動作

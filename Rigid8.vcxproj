@@ -186,6 +186,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="c99_snprintf.c" />
     <ClCompile Include="d3dapp.cpp">
       <Optimization Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Disabled</Optimization>
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -259,6 +260,7 @@
     <ClCompile Include="luaScript.cpp" />
     <ClCompile Include="luaSub.cpp" />
     <ClCompile Include="luaSystem.cpp" />
+    <ClCompile Include="lua_5_3_compat.c" />
     <ClCompile Include="readData.cpp">
       <Optimization Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Disabled</Optimization>
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -283,6 +285,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="c99_snprintf.h" />
     <ClInclude Include="d3dapp.h" />
     <ClInclude Include="d3dfile.h" />
     <ClInclude Include="d3dfont.h" />
@@ -293,6 +296,7 @@
     <ClInclude Include="dsutil.h" />
     <ClInclude Include="dxutil.h" />
     <ClInclude Include="GRigid.hpp" />
+    <ClInclude Include="lua_5_3_compat.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="GDPlay.hpp" />
     <ClInclude Include="GLand.hpp" />
@@ -322,6 +326,9 @@
     <Library Include="Lua\lib\libluad.lib" />
     <Library Include="Lua\lib\liblualib.lib" />
     <Library Include="Lua\lib\liblualibd.lib" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="__ReadMe.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

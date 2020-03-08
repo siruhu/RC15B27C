@@ -1065,7 +1065,7 @@ char *ScriptSource=NULL;
 int ScriptType=0;
 char ScriptStr[MAXNAMESIZE],ScriptChar,ScriptSym;
 int ScriptErrorCode;
-char ScriptErrorStr[512];
+char ScriptErrorStr[GOUTPUTMAXCHAR];
 int ScriptErrorPc;
 int ScriptPc;
 int ScriptSymPC;

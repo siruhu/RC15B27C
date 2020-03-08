@@ -11,6 +11,7 @@ extern int CCDImage[GCCDHEIGHT][GCCDWIDTH];
 //----------------------------------
 int __luaPrintSub(lua_State *L, int s, int e, char* dest, int destSize);
 
+int luaErrMsgHandler(lua_State* L);
 //----------
 int luaGetSMouseX(lua_State *L);
 int luaGetSMouseY(lua_State *L);
