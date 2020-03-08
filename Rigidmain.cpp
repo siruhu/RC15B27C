@@ -19,6 +19,9 @@
 #include "GDPlay.hpp"
 #include "GPlayers.h"
 
+#include "c99_snprintf.h"
+#define sntprintf snprintf
+
 //#include "WINNLS32.H"
 
 
@@ -812,7 +815,7 @@ HRESULT MyReceiveFunc( MYAPP_PLAYER_INFO* playerInfo,DWORD size,BYTE *stream ) {
 			GSTREAM strm2;
 			strm2.code=1;
 			char *str=(char*)strm2.data;
-			sprintf(str,"Version=1.5 C13pre8");
+			sprintf(str,"Version=1.5 C13pre8.1");
 			DWORD size=strlen(str)+1+sizeof(short);
 			DPlay->SendTo(playerInfo->dpnidPlayer,(BYTE*)&strm2,size,180,DPNSEND_NOLOOPBACK|DPNSEND_NOCOMPLETE);
 		}
@@ -3420,7 +3423,7 @@ CMyD3DApplication::CMyD3DApplication()
 
 	m_dwCreationWidth           = 640;
     m_dwCreationHeight          = 480;
-    m_strWindowTitle            = TEXT( "RigidChips 1.5.B27C13pre8" );
+    m_strWindowTitle            = TEXT( "RigidChips 1.5.B27C13pre8.1" );
     m_bUseDepthBuffer           = TRUE;
 
 	m_dLimidFPS=1000/LIMITFPS;
@@ -8156,7 +8159,7 @@ HRESULT CMyD3DApplication::RenderText()
 	SIZE size;
 	float w=(FLOAT) m_d3dsdBackBuffer.Width;
 	float h=(FLOAT) m_d3dsdBackBuffer.Height;
-    TCHAR szMsg[MAX_PATH] = TEXT("");
+    TCHAR szMsg[GOUTPUTMAXCHAR] = TEXT("");
 	
 	G3dDevice->SetRenderState( D3DRS_ALPHABLENDENABLE,TRUE );
 	G3dDevice->SetRenderState( D3DRS_AMBIENT, 0xffffffff );
@@ -8167,23 +8170,23 @@ HRESULT CMyD3DApplication::RenderText()
 	static bool goal=false;
 	static int b=0;
 	int i;
-//	_stprintf( szMsg, _T("Course=%d"),Chip[0]->Top->TotalCount);
+//	sntprintf( szMsg, sizeof(szMsg), _T("Course=%d"),Chip[0]->Top->TotalCount);
 //	m_pFont->DrawText( 16, fNextLine, fontColor2, szMsg );
 	if(ShowMessage) {
 		if(ScriptType==1) {
 			if(ScriptErrorCode!=0) {
 				switch(ScriptErrorCode){
 					case -1:
-						_stprintf( szMsg, _T("Lua compile error  %s"),ScriptErrorStr);
+						sntprintf( szMsg, sizeof(szMsg), _T("Lua compile error  %s"),ScriptErrorStr);
 						break;
 					case LUA_ERRSYNTAX:
-						_stprintf( szMsg, _T("Lua statement error  %s"),ScriptErrorStr);
+						sntprintf( szMsg, sizeof(szMsg), _T("Lua statement error  %s"),ScriptErrorStr);
 						break;
 					case LUA_ERRMEM:
-						_stprintf( szMsg, _T("Lua memory error  %s"),ScriptErrorStr);
+						sntprintf( szMsg, sizeof(szMsg), _T("Lua memory error  %s"),ScriptErrorStr);
 						break;
 					default:
-						_stprintf( szMsg, _T("Lua runtime error  %s"),ScriptErrorStr);
+						sntprintf( szMsg, sizeof(szMsg), _T("Lua runtime error  %s"),ScriptErrorStr);
 						break;
 				}
 				m_pFont->DrawText( 16, fNextLine, fontWarningColor, szMsg );
@@ -8199,7 +8202,7 @@ HRESULT CMyD3DApplication::RenderText()
 					if(pc>ScriptErrorPc) break;
 				}
 				tstr[k]='\0';
-				_stprintf( szMsg, _T("Script Error  %d:%s [ %s ]"),ScriptErrorCode,ScriptErrorStr,tstr);
+				sntprintf( szMsg, sizeof(szMsg), _T("Script Error  %d:%s [ %s ]"),ScriptErrorCode,ScriptErrorStr,tstr);
 				m_pFont->DrawText( 16, fNextLine, fontWarningColor, szMsg );
 
 			}
@@ -8247,16 +8250,16 @@ HRESULT CMyD3DApplication::RenderText()
 			if(SystemErrorCode!=0) {
 				switch(SystemErrorCode){
 					case -1:
-						_stprintf( szMsg, _T("Scenario compile error  %s"),SystemErrorStr);
+						sntprintf( szMsg, sizeof(szMsg), _T("Scenario compile error  %s"),SystemErrorStr);
 						break;
 					case LUA_ERRSYNTAX:
-						_stprintf( szMsg, _T("Scenario statement error  %s"),SystemErrorStr);
+						sntprintf( szMsg, sizeof(szMsg), _T("Scenario statement error  %s"),SystemErrorStr);
 						break;
 					case LUA_ERRMEM:
-						_stprintf( szMsg, _T("Scenario memory error  %s"),SystemErrorStr);
+						sntprintf( szMsg, sizeof(szMsg), _T("Scenario memory error  %s"),SystemErrorStr);
 						break;
 					default:
-						_stprintf( szMsg, _T("Scenario runtime error  %s"),SystemErrorStr);
+						sntprintf( szMsg, sizeof(szMsg), _T("Scenario runtime error  %s"),SystemErrorStr);
 						break;
 				}
 				m_pFont->DrawText( 24, 0, fontWarningColor, szMsg );
@@ -8311,14 +8314,14 @@ HRESULT CMyD3DApplication::RenderText()
 	
     // Output statistics & help
 	//   fNextLine += 15.0f;
-	//    _stprintf( szMsg, _T("%d  %d %8.1f"),World->Land->List2Count,World->Land->List1Count,Chip[0]->MaxImpulse);
+	//    sntprintf( szMsg, sizeof(szMsg), _T("%d  %d %8.1f"),World->Land->List2Count,World->Land->List1Count,Chip[0]->MaxImpulse);
 	//    m_pFont->DrawText( 2, fNextLine, fontColor, szMsg );
 	//   fNextLine += 15.0f;
-	//    _stprintf( szMsg, _T("%d"),NumFace);
+	//    sntprintf( szMsg, sizeof(szMsg), _T("%d"),NumFace);
 	//    m_pFont->DrawText( 2, fNextLine, fontColor, szMsg );
 	
 	//    fNextLine += 15.0f;
-	//    _stprintf( szMsg, _T("%.1f %.1f %.1f"),Chip[0]->X.x,Chip[0]->X.y,Chip[0]->X.z);
+	//    sntprintf( szMsg, sizeof(szMsg), _T("%.1f %.1f %.1f"),Chip[0]->X.x,Chip[0]->X.y,Chip[0]->X.z);
 	//    m_pFont->DrawText( 2, fNextLine, fontColor, szMsg );
 	
 	if(ShowRegulation) {
@@ -8326,12 +8329,12 @@ HRESULT CMyD3DApplication::RenderText()
 			float t=(float)GameTime/30.0f;
 			if(t>=0) {
 				if(waitCount>0) {
-					_stprintf( szMsg, _T("%d"), waitCount/30+1);
+					sntprintf( szMsg, sizeof(szMsg), _T("%d"), waitCount/30+1);
 					m_pFontL->GetTextExtent(szMsg, &size );
 					m_pFontL->DrawText(w-48-size.cx/2,80, fontWarningColor, szMsg );
 				}
 				else {
-					_stprintf( szMsg, _T("%06.2f"), t);
+					sntprintf( szMsg, sizeof(szMsg), _T("%06.2f"), t);
 					m_pFont->GetTextExtent(szMsg, &size );
 					if(CurrentCheckPoint<Course[CurrentCourse].Count-1) {
 						m_pFont->DrawText(w-48-size.cx/2,85, fontColor2, szMsg );
@@ -8362,7 +8365,7 @@ HRESULT CMyD3DApplication::RenderText()
 						m_pFont->DrawText(w-47-size.cx/2,84, fontColor2, szMsg );
 						m_pFont->DrawText(w-47-size.cx/2,86, fontColor2, szMsg );
 						m_pFont->DrawText(w-47-size.cx/2,85, fontWarningColor, szMsg );
-						_stprintf( szMsg, _T("%08X"), b);
+						sntprintf( szMsg, sizeof(szMsg), _T("%08X"), b);
 						m_pFont->GetTextExtent(szMsg, &size );
 						m_pFont->DrawText(w-48-size.cx/2,130, fontColor2, szMsg );
 						m_pFont->DrawText(w-46-size.cx/2,130, fontColor2, szMsg );
@@ -8374,7 +8377,7 @@ HRESULT CMyD3DApplication::RenderText()
 				}
 			}
 			else {
-				_stprintf( szMsg, _T("READY"));
+				sntprintf( szMsg, sizeof(szMsg), _T("READY"));
 				m_pFont->GetTextExtent(szMsg, &size );
 				m_pFont->DrawText(w-47-size.cx/2,85, fontColor, szMsg );
 			}
@@ -8383,56 +8386,56 @@ HRESULT CMyD3DApplication::RenderText()
 		FLOAT w1=w-47+(CurrentCourse!=0?-75:0);
 		if(KeyRecordMode!=0) {
 			if(CurrentCourse==0) {
-				_stprintf( szMsg, _T("%07.2f"), KeyRecordCount*World->StepTime);
+				sntprintf( szMsg, sizeof(szMsg), _T("%07.2f"), KeyRecordCount*World->StepTime);
 				m_pFont->DrawText( w-106, h1, fontColor2, szMsg );
 			}
 		}
 		if(KeyRecordMode==1) {
-			_stprintf( szMsg, _T("REC"));
+			sntprintf( szMsg, sizeof(szMsg), _T("REC"));
 			m_pFont->DrawText( w1, h1, fontWarningColor, szMsg );
 		}
 		else if(KeyRecordMode==2) {
-			_stprintf( szMsg, _T("PLAY"));
+			sntprintf( szMsg, sizeof(szMsg), _T("PLAY"));
 			m_pFont->DrawText( w1-3, h1, fontPlayColor, szMsg );
 		}
 		int ch='A'+ViewType;
 		if(ViewType<0) ch='X';
-		_stprintf( szMsg, _T("%c"),ch);
+		sntprintf( szMsg, sizeof(szMsg), _T("%c"),ch);
 		m_pFont->DrawText( w-228, 15, fontWarningColor, szMsg );
 		
 		if(GravityFlag) {
-			_stprintf( szMsg, _T("G"));
+			sntprintf( szMsg, sizeof(szMsg), _T("G"));
 			m_pFont->DrawText( w-196, 15, fontColor2, szMsg );
 		}
 		if(AirFlag) {
-			_stprintf( szMsg, _T("A"));
+			sntprintf( szMsg, sizeof(szMsg), _T("A"));
 			m_pFont->DrawText( w-172, 15, fontColor2, szMsg );
 		}
 		if(TorqueFlag) {
-			_stprintf( szMsg, _T("T"));
+			sntprintf( szMsg, sizeof(szMsg), _T("T"));
 			m_pFont->DrawText( w-148, 15, fontColor2, szMsg );
 		}
 		if(JetFlag) {
-			_stprintf( szMsg, _T("J"));
+			sntprintf( szMsg, sizeof(szMsg), _T("J"));
 			m_pFont->DrawText( w-124, 15, fontColor2, szMsg );
 		}
 		if(UnbreakableFlag) {
-			_stprintf( szMsg, _T("U"));
+			sntprintf( szMsg, sizeof(szMsg), _T("U"));
 			m_pFont->DrawText( w-100, 15, fontColor2, szMsg );
 		}
 		if(CCDFlag) {
-			_stprintf( szMsg, _T("C"));
+			sntprintf( szMsg, sizeof(szMsg), _T("C"));
 			m_pFont->DrawText( w-76, 15, fontColor2, szMsg );
 		}
 		if(ScriptFlag) {
-			_stprintf( szMsg, _T("S"));
+			sntprintf( szMsg, sizeof(szMsg), _T("S"));
 			m_pFont->DrawText( w-52, 15, fontColor2, szMsg );
 		}
 		if(EfficientFlag) {
-			_stprintf( szMsg, _T("E"));
+			sntprintf( szMsg, sizeof(szMsg), _T("E"));
 			m_pFont->DrawText( w-28, 15, fontColor2, szMsg );
 		}
-		_stprintf( szMsg, _T(Course[CurrentCourse].Name));
+		sntprintf( szMsg, sizeof(szMsg), _T(Course[CurrentCourse].Name));
 		m_pFont->GetTextExtent(szMsg, &size );
 		m_pFont->DrawText(w-size.cx-15, 40.0f, fontColor, szMsg );
 		m_pFont->DrawText(w-size.cx-17, 40.0f, fontColor, szMsg );
@@ -8442,12 +8445,12 @@ HRESULT CMyD3DApplication::RenderText()
 	}
 	if(ShowMeter) {
 		float height=(float)Chip[0]->X.y;
-		_stprintf( szMsg, _T("%05.0f"), height);
+		sntprintf( szMsg, sizeof(szMsg), _T("%05.0f"), height);
 		m_pFont->GetTextExtent(szMsg, &size );
 		m_pFont->DrawText(w-128-44.0f-size.cx/2, h-60.0f, fontColor2, szMsg );
 		
 		float power=(float)TotalPower;
-		_stprintf( szMsg, _T("%05.0f"), power);
+		sntprintf( szMsg, sizeof(szMsg), _T("%05.0f"), power);
 		m_pFont->GetTextExtent(szMsg, &size );
 		m_pFont->DrawText(w-128-94-44.0f-size.cx/2, h-60.0f, fontColor2, szMsg );
 
@@ -8465,7 +8468,7 @@ HRESULT CMyD3DApplication::RenderText()
 				m_pFont->GetTextExtent(szMsg, &size );
 				m_pFont->DrawText(71.0f-size.cx, h-14.0f*(n-j)-9.0f, (DWORD)fontColor3, szMsg );
 				m_pFont->DrawText(70.0f-size.cx, h-14.0f*(n-j)-10.0f, (DWORD)fontColor2, szMsg );
-				_stprintf( szMsg, _T("%.2f"), ValList[i].Val);
+				sntprintf( szMsg, sizeof(szMsg), _T("%.2f"), ValList[i].Val);
 				m_pFont->GetTextExtent(szMsg, &size );
 				m_pFont->DrawText(141.0f-size.cx, h-14.0f*(n-j)-9.0f, (DWORD)fontColor3, szMsg,0 );
 				m_pFont->DrawText(140.0f-size.cx, h-14.0f*(n-j)-10.0f, (DWORD)fontColor2, szMsg,0 );
@@ -8474,7 +8477,7 @@ HRESULT CMyD3DApplication::RenderText()
 		}
 	}
 	if(ShowFPS) {
-		_stprintf( szMsg, _T("%.2f"), m_fFPS);
+		sntprintf( szMsg, sizeof(szMsg), _T("%.2f"), m_fFPS);
 		m_pFont->GetTextExtent(szMsg, &size );
 		m_pFont->DrawText( w-1-size.cx, 1, fontColor3, szMsg ,0 );
 		m_pFont->DrawText( w-2-size.cx, 0, fontColor2, szMsg ,0 );
