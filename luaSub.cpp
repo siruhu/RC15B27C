@@ -2,7 +2,7 @@
 #include "GDPlay.hpp"
 #include "GPlayers.h"
 
-#include "c99_snprintf.h"
+//#include "c99_snprintf.h"
 #include "lua_5_3_compat.h"
 
 //メモリリーク検出用

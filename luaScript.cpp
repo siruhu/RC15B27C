@@ -29,7 +29,7 @@
 #include "luaScript.hpp"
 #include "luaSub.hpp"
 
-#include "c99_snprintf.h"
+//#include "c99_snprintf.h"
 
 //メモリリーク検出用
 #include <crtdbg.h>  

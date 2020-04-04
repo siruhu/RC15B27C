@@ -19,7 +19,7 @@
 #include "GDPlay.hpp"
 #include "GPlayers.h"
 
-#include "c99_snprintf.h"
+//#include "c99_snprintf.h"
 #define sntprintf snprintf
 
 //#include "WINNLS32.H"

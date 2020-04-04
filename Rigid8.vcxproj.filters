@@ -72,9 +72,6 @@
     <ClCompile Include="script.cpp">
       <Filter>MySource</Filter>
     </ClCompile>
-    <ClCompile Include="c99_snprintf.c">
-      <Filter>MySource</Filter>
-    </ClCompile>
     <ClCompile Include="lua_5_3_compat.c">
       <Filter>MySource</Filter>
     </ClCompile>
@@ -153,9 +150,6 @@
       <Filter>Lua</Filter>
     </ClInclude>
     <ClInclude Include="GRigid.hpp">
-      <Filter>MySource</Filter>
-    </ClInclude>
-    <ClInclude Include="c99_snprintf.h">
       <Filter>MySource</Filter>
     </ClInclude>
     <ClInclude Include="lua_5_3_compat.h">
