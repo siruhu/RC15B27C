@@ -87,6 +87,8 @@ typedef struct _D3DPOINTVERTEX_ {
 #define GTEXMAX 23
 #define GCHECKPOINTMAX 100
 
+#define B27C_VERSIONSTR "14"
+
 inline DWORD FtoDW( FLOAT f ) { return *((DWORD*)&f); }
 
 GFloat GSPEEDLIMIT=140.0f;
@@ -815,7 +817,7 @@ HRESULT MyReceiveFunc( MYAPP_PLAYER_INFO* playerInfo,DWORD size,BYTE *stream ) {
 			GSTREAM strm2;
 			strm2.code=1;
 			char *str=(char*)strm2.data;
-			sprintf(str,"Version=1.5 C13pre8.1");
+			sprintf(str,"Version=1.5 C" B27C_VERSIONSTR);
 			DWORD size=strlen(str)+1+sizeof(short);
 			DPlay->SendTo(playerInfo->dpnidPlayer,(BYTE*)&strm2,size,180,DPNSEND_NOLOOPBACK|DPNSEND_NOCOMPLETE);
 		}
@@ -2722,7 +2724,7 @@ void GWorld::DispNetJetAll()
 								GFloat a=1.0f;
 								GVector V=(X1-X2)/PlayerData[i].span2*1000;
 								GVector vv=-GVector(0,1,0)*r*po/50000.0f*LIMITFPS;
-								JetParticle->Add(10,p+(V-vv)/LIMITFPS,vv/30,-(V-vv)/LIMITFPS,GVector(0,0,0),0.08f,a,0.02f,GVector(1,1,1),0,false);
+								JetParticle->Add(10, p+(V-vv)/LIMITFPS, vv/30, -(V-vv)/LIMITFPS, GVector(0, 0, 0), 0.08f, a, 0.02f, GVector((((int)chip->color)>>10)/32.0f, ((((int)chip->color)&0x3e0)>>5)/32.0f, (((int)chip->color)&0x1f)/32.0f), 0, false);
 							}
 						}
 				//-----------------
@@ -3423,7 +3425,7 @@ CMyD3DApplication::CMyD3DApplication()
 
 	m_dwCreationWidth           = 640;
     m_dwCreationHeight          = 480;
-    m_strWindowTitle            = TEXT( "RigidChips 1.5.B27C13pre8.1" );
+    m_strWindowTitle            = TEXT( "RigidChips 1.5.B27C" B27C_VERSIONSTR);
     m_bUseDepthBuffer           = TRUE;
 
 	m_dLimidFPS=1000/LIMITFPS;
@@ -6382,6 +6384,9 @@ if( win == FALSE )
 							Chip[i]->ApplyForce(GVector(0,1,0)*Chip[i]->R*po,Chip[i]->X);
 							TotalPower+=(GFloat)fabs(po);
 						}
+
+						int col=(int)Chip[i]->Color;
+						GVector color= GVector((col>>16)&0xFF,(col>>8)&0xFF,col&0xFF);
 						if(Chip[i]->Effect==1) {
 							int nn=(int)((fabs(po)+7900)/8000);
 							if(nn>0) {
@@ -6390,7 +6395,7 @@ if( win == FALSE )
 								GVector vv=-GVector(0,1,0)*Chip[i]->R*po/50000.0f*LIMITFPS; // m/s
 								//if(v.abs()>0.1f) v=v.normalize()/10.0f;
 								for(int ii=0;ii<nn;ii++) {
-									JetParticle->Add(Chip[i]->X+(Chip[i]->V-vv)/LIMITFPS*(GFloat)ii/(GFloat)nn,vv/30,GVector(0,0,0),0.08f,a,0.02f,GVector(1,1,1));
+									JetParticle->Add(Chip[i]->X+(Chip[i]->V-vv)/LIMITFPS*(GFloat)ii/(GFloat)nn,vv/30,GVector(0,0,0),0.08f,a,0.02f,color);
 								}
 							}
 						}
@@ -6403,7 +6408,7 @@ if( win == FALSE )
 		//						double f=fabs(Power/2000.0);if(f>2.5) f=2.5;
 								for(int ii=0;ii<nn;ii++) {
 									GVector rv=GVector((rand()%100-50)/2000.0f,(rand()%100-50)/2000.0f,(rand()%100-50)/2000.0f);
-									JetParticle->Add(Chip[i]->X+vv*2/LIMITFPS+(Chip[i]->V-vv)/LIMITFPS*(GFloat)ii/(GFloat)nn,vv/30+rv,GVector(0,0,0),0.08f,a,0.003f,GVector(1,1,1));
+									JetParticle->Add(Chip[i]->X+vv*2/LIMITFPS+(Chip[i]->V-vv)/LIMITFPS*(GFloat)ii/(GFloat)nn,vv/30+rv,GVector(0,0,0),0.08f,a,0.003f,color);
 								}
 							}
 						}
@@ -6415,7 +6420,7 @@ if( win == FALSE )
 								GVector vv=-GVector(0,1,0)*Chip[i]->R*po/50000.0f*LIMITFPS;
 								//if(v.abs()>0.1f) v=v.normalize()/10.0f;
 								for(int ii=0;ii<nn;ii++) {
-									JetParticle->Add(Chip[i]->X+(Chip[i]->V-vv)/LIMITFPS*(GFloat)ii/(GFloat)nn,vv/30,GVector(0,0,0),0.08f,a,0.005f,GVector(1,1,1));
+									JetParticle->Add(Chip[i]->X+(Chip[i]->V-vv)/LIMITFPS*(GFloat)ii/(GFloat)nn,vv/30,GVector(0,0,0),0.08f,a,0.005f,color);
 								}
 							}
 						}
@@ -6426,7 +6431,7 @@ if( win == FALSE )
 								GVector vv=-GVector(0,1,0)*Chip[i]->R*po/50000.0f*LIMITFPS;
 								//if(v.abs()>0.1f) v=v.normalize()/10.0f;
 								for(int ii=0;ii<nn;ii++) {
-									JetParticle->Add(Chip[i]->X+(Chip[i]->V-vv)/LIMITFPS*(GFloat)ii/(GFloat)nn,vv/30,GVector(0,0,0),0.01f,a,0.000f,GVector(1,1,1));
+									JetParticle->Add(Chip[i]->X+(Chip[i]->V-vv)/LIMITFPS*(GFloat)ii/(GFloat)nn,vv/30,GVector(0,0,0),0.01f,a,0.000f,color);
 								}
 							}
 						}
@@ -6434,14 +6439,14 @@ if( win == FALSE )
 							if(fabs(Chip[i]->PowerByFuel)>2500) {
 								GFloat a=1.0f;
 								GVector vv=-GVector(0,1,0)*Chip[i]->R*po/50000.0f*LIMITFPS;
-								JetParticle->Add(10,Chip[i]->X+(Chip[i]->V-vv)/LIMITFPS,vv/30,-(Chip[i]->V-vv)/LIMITFPS,GVector(0,0,0),0.08f,a,0.02f,GVector(1,1,1),0,false);
+								JetParticle->Add(10,Chip[i]->X+(Chip[i]->V-vv)/LIMITFPS,vv/30,-(Chip[i]->V-vv)/LIMITFPS,GVector(0,0,0),0.08f,a,0.02f,color,0,false);
 							}
 						}
 						if(Chip[i]->Effect==6) {
 							if(fabs(Chip[i]->PowerByFuel)>2500) {
 								GFloat a=1.0f;
 								GVector vv=-GVector(0,1,0)*Chip[i]->R*po/50000.0f*LIMITFPS;
-								JetParticle->Add(10,Chip[i]->X+(Chip[i]->V-vv)/LIMITFPS,vv/30,-(Chip[i]->V-vv)/LIMITFPS,GVector(0,0,0),0.08f,a,0.005f,GVector(1,1,1),0,false);
+								JetParticle->Add(10,Chip[i]->X+(Chip[i]->V-vv)/LIMITFPS,vv/30,-(Chip[i]->V-vv)/LIMITFPS,GVector(0,0,0),0.08f,a,0.005f,color,0,false);
 							}
 						}
 					}
@@ -7822,7 +7827,7 @@ HRESULT CMyD3DApplication::Render()
 						float widthRatio = 1.0f;
 						unsigned char *pLine,*pBase;
 						m_pd3dDevice->GetBackBuffer(0,D3DBACKBUFFER_TYPE_MONO,&backBuffer);
-						RECT rect = { viewData2.X, viewData2.Y, viewData2.X+viewData2.Width, viewData2.Y+viewData2.Height };
+						RECT rect = { (LONG)viewData2.X, (LONG)viewData2.Y, (LONG)(viewData2.X+viewData2.Width), (LONG)(viewData2.Y+viewData2.Height) };
 						
 
 						POINT point = {0,0};

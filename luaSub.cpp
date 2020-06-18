@@ -1113,6 +1113,7 @@ int luaGetPlayerX(lua_State *L)
 		lua_pushnumber(L,(double)Chip[0]->X.x);
 		return 1;
 	}
+	if(!World->haveArm) a=0;
 	double v=PlayerData[n].x+(rand()%10000-5000)/1000.0*a+sin(randTime/150.0)*a-sin(randTime/350.0)*a;
 	lua_pushnumber(L,v);
 	return 1;
@@ -1129,6 +1130,7 @@ int luaGetPlayerY(lua_State *L)
 		lua_pushnumber(L,(double)Chip[0]->X.y);
 		return 1;
 	}
+	if (!World->haveArm) a = 0;
 	double v=PlayerData[n].y+(rand()%10000-5000)/1000.0*a+sin(randTime/160.0)*a-sin(randTime/360.0)*a;
 	lua_pushnumber(L,v);
 	return 1;
@@ -1145,6 +1147,7 @@ int luaGetPlayerZ(lua_State *L)
 		lua_pushnumber(L,(double)Chip[0]->X.z);
 		return 1;
 	}
+	if (!World->haveArm) a = 0;
 	double v=PlayerData[n].z+(rand()%10000-5000)/1000.0*a+sin(randTime/140.0)*a-sin(randTime/340.0)*a;
 	lua_pushnumber(L,v);
 	return 1;
@@ -1237,6 +1240,7 @@ int luaGetPlayerPos(lua_State *L)
 		lua_pushnumber(L,0.0);
 	}
 	double a=pow((double)PlayerData[n].ChipCount,1.0/3.0)/2.0;
+	if (!World->haveArm) a = 0;
 	double x=PlayerData[n].X[chipNo].x+(rand()%10000-5000)/1000.0*a+sin(randTime/150.0)*a-sin(randTime/350.0)*a;
 	double y=PlayerData[n].X[chipNo].y+(rand()%10000-5000)/1000.0*a+sin(randTime/160.0)*a-sin(randTime/360.0)*a;
 	double z=PlayerData[n].X[chipNo].z+(rand()%10000-5000)/1000.0*a+sin(randTime/140.0)*a-sin(randTime/340.0)*a;
