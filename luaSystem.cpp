@@ -1490,14 +1490,18 @@ int luaSystemInit() {
       luaopen_table(SystemL);
       luaopen_math(SystemL);
 //      luaopen_io(SystemL);
-	int e=lua_dobuffer (SystemL,SystemSource,strlen(SystemSource),"System.rcs");
-	if(e!=0) {
+
+	//L={}
+	lua_pushcfunction(SystemL, luaErrMsgHandler);
+	if (luaL_loadbuffer(SystemL, SystemSource, strlen(SystemSource), "System.rcs") || lua_pcall(SystemL, 0, 0, -2)) {
 		SystemErrorCode=-1;
-		sprintf(SystemErrorStr,"%s\n",lua_tostring(SystemL,0));
+		sprintf(SystemErrorStr,"%s\n",lua_tostring(SystemL,-1));
 		lua_close(SystemL);
 		SystemL=NULL;
 		return 1;
 	}
+	lua_pop(SystemL, 1);
+	//L={}
 	return 0;
 }
 void luaSystemEnd() {

@@ -321,17 +321,21 @@ lua_State *luaScriptInit(char *buff) {
 			return NULL;
 		}
 		lua_pop(L,1);
-	}
+	}//L={}
 	//----------------------------
 
 	//この辺りでｼﾅﾘｵLua呼び出し位置置けば全関数潰せるかな?
-	int e=lua_dobuffer (L,buff,strlen(buff),szUpdateFileName0);
-	if(e!=0) {
+	//int e=lua_dobuffer (L,buff,strlen(buff),szUpdateFileName0); 
+			//  lua_dobufferはundocumentedな関数(Lua4.0時代の残骸?)のようで、挙動が他のdo***系と異なりｽﾀｯｸにｴﾗｰｵﾌﾞｼﾞｪｸﾄを残さずstderrに吐き出す(または_G["_ALEAT"] 変数が関数の場合はそれを呼び出す)模様
+	lua_pushcfunction(L, luaErrMsgHandler);
+	if(luaL_loadbuffer(L,buff,strlen(buff),szUpdateFileName0) || lua_pcall(L, 0, 0, -2)) {
 		ScriptErrorCode=-1;
 		snprintf(ScriptErrorStr, GOUTPUTMAXCHAR,"%s\n",lua_tostring(L,-1));
 		lua_close(L);
 		return NULL;
 	}
+	lua_pop(L,1);
+	//L={}
 	return L;
 }
 void luaScriptEnd(lua_State *L) {
