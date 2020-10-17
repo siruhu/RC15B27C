@@ -11,6 +11,7 @@ extern "C" {
 void luaL_traceback(lua_State* L, lua_State* L1, const char* msg, int level);
 
 int lua_getfield(lua_State* L, int idx, const char* k);
+void lua_setfield(lua_State* L, int idx, const char* k);
 void lua_copy(lua_State* L, int fromidx, int toidx);
 
 

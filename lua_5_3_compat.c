@@ -3,6 +3,8 @@
 
 #include "string.h"
 
+#define luaUL_isRelativeIndex(idx) ((idx)<0&&(idx)>LUA_REGISTRYINDEX)
+//idx‚ª‘Š‘Î²ÝÃÞ¯¸½‚Å‚ ‚ê‚Î1‚ð•Ô‚·
 
 
 /*
@@ -135,6 +137,11 @@ int lua_getfield(lua_State* L, int idx, const char* k) {
 	lua_pushstring(L, k);
 	lua_gettable(L, idx);
 	return lua_type(L, -1);
+}
+void lua_setfield(lua_State* L, int idx, const char* k) {
+	lua_pushstring(L, k);
+	lua_insert(L, -2);
+	lua_settable(L, idx-luaUL_isRelativeIndex(idx));
 }
 void lua_copy(lua_State* L, int fromidx, int toidx) {
 	lua_pushvalue(L, fromidx);

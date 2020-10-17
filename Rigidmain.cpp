@@ -87,7 +87,7 @@ typedef struct _D3DPOINTVERTEX_ {
 #define GTEXMAX 23
 #define GCHECKPOINTMAX 100
 
-#define B27C_VERSIONSTR "14.1"
+#define B27C_VERSIONSTR "14.2"
 
 inline DWORD FtoDW( FLOAT f ) { return *((DWORD*)&f); }
 

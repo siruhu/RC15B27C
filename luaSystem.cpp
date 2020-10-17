@@ -1489,8 +1489,97 @@ int luaSystemInit() {
       luaopen_base(SystemL);
       luaopen_table(SystemL);
       luaopen_math(SystemL);
-//      luaopen_io(SystemL);
+      luaopen_io(SystemL);
 
+	//----------------------------
+	  { //SCENARIO_INIT.lua実行
+		  lua_State* L=SystemL;
+		  //L={}
+		  lua_getglobal(L, "EXE_PATH");
+		  lua_pushstring(L, "SCENARIO_INIT.lua");
+		  lua_concat(L, 2);
+		  //L={filepath}
+		  int err;
+		  if ((err = luaL_loadfile(L, lua_tostring(L, -1)))) {
+			  if (err==LUA_ERRFILE) {
+				  lua_pop(L, 1); //ｴﾗｰﾒｯｾｰｼﾞを捨てて
+				  err=luaL_loadstring(L, //無害な関数を代わりに積む
+					  "io=nil;"
+					  "os=nil;"
+				  );
+			  }
+			  if(err){ //LUA_ERRFILE以外ならこの時点で抜ける
+				  SystemErrorCode = -1;
+				  snprintf(SystemErrorStr, GOUTPUTMAXCHAR, "%s\n", lua_tostring(L, -1));
+				  lua_close(L);
+				  SystemL = NULL;
+				  return 1;
+			  }
+		  }
+		  lua_remove(L, -2);
+		  //L={SCENARIO_INIT}
+
+		  //fenvの作成と一部の値の移動
+		  lua_newtable(L);
+		  luaUL_movetablefield(L, -1, LUA_GLOBALSINDEX, "LUA_PATH");
+
+		  luaUL_movetablefield(L, -1, LUA_GLOBALSINDEX, "os");
+		  luaUL_movetablefield(L, -1, LUA_GLOBALSINDEX, "io");
+		  //----
+		  luaUL_copytablefield(L, -1, LUA_GLOBALSINDEX, "string");
+		  luaUL_copytablefield(L, -1, LUA_GLOBALSINDEX, "math");
+		  luaUL_copytablefield(L, -1, LUA_GLOBALSINDEX, "table");
+
+		  luaUL_copytablefield(L, -1, LUA_GLOBALSINDEX, "assert");
+		  luaUL_copytablefield(L, -1, LUA_GLOBALSINDEX, "error");
+		  luaUL_copytablefield(L, -1, LUA_GLOBALSINDEX, "pairs");
+		  luaUL_copytablefield(L, -1, LUA_GLOBALSINDEX, "ipairs");
+		  luaUL_copytablefield(L, -1, LUA_GLOBALSINDEX, "next");
+		  luaUL_copytablefield(L, -1, LUA_GLOBALSINDEX, "print");
+		  luaUL_copytablefield(L, -1, LUA_GLOBALSINDEX, "tonumber");
+		  luaUL_copytablefield(L, -1, LUA_GLOBALSINDEX, "tostring");
+		  luaUL_copytablefield(L, -1, LUA_GLOBALSINDEX, "type");
+		  luaUL_copytablefield(L, -1, LUA_GLOBALSINDEX, "unpack");
+		  luaUL_copytablefield(L, -1, LUA_GLOBALSINDEX, "pcall");
+		  luaUL_copytablefield(L, -1, LUA_GLOBALSINDEX, "xpcall");
+
+		  luaUL_copytablefield(L, -1, LUA_GLOBALSINDEX, "EXE_PATH");
+		  luaUL_copytablefield(L, -1, LUA_GLOBALSINDEX, "EXE_NAME");
+		  luaUL_copytablefield(L, -1, LUA_GLOBALSINDEX, "SCENARIO_PATH");
+		  luaUL_copytablefield(L, -1, LUA_GLOBALSINDEX, "SCENARIO_NAME");
+		  //L={SCENARIO_INIT,newtbl}
+
+		  //fenvのｾｯﾄ
+		  lua_pushvalue(L, -1); //L={SCENARIO_INIT,newtbl,newtbl}
+		  lua_insert(L, -3); //L={newtbl,SCENARIO_INIT,newtbl}
+		  lua_setfenv(L,-2);
+		  //L={newtbl,SCENARIO_INIT(fenv=newtbl)}
+
+
+		  lua_pushcfunction(L, luaErrMsgHandler);
+		  lua_insert(L, -2);
+		  //L={newtbl,msgh,SCENARIO_INIT}
+		  if (err || (err = lua_pcall(L, 0, 0, -2))) {
+			  SystemErrorCode = -1;
+			  snprintf(SystemErrorStr, GOUTPUTMAXCHAR, "%s\n", lua_tostring(L, -1));
+			  lua_close(L);
+			  SystemL = NULL;
+			  return 1;
+		  }
+		  lua_pop(L, 1);
+		  //L={newtbl}
+
+		  //fenvからｸﾞﾛｰﾊﾞﾙへの転送
+		  lua_pushnil(L);
+		  while(lua_next(L, -2)){
+			  //L={newtbl,key,value}
+			  lua_pushvalue(L, -2);
+			  lua_insert(L, -2); //L={newtbl,key,key,value}
+			  lua_settable(L, LUA_GLOBALSINDEX);
+		  }
+
+	  }//L={}
+	  //----------------------------
 	//L={}
 	lua_pushcfunction(SystemL, luaErrMsgHandler);
 	if (luaL_loadbuffer(SystemL, SystemSource, strlen(SystemSource), "System.rcs") || lua_pcall(SystemL, 0, 0, -2)) {

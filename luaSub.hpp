@@ -1,5 +1,6 @@
 #ifndef G_LUASUB_H
 #define G_LUASUB_H
+#include "lua_5_3_compat.h"
 #include "luaScript.hpp"
 #include "resource.h"
 
@@ -7,6 +8,15 @@
 extern int CCDImage[GCCDHEIGHT][GCCDWIDTH];
 
 
+//----------------------------------
+#define luaUL_isRelativeIndex(idx) ((idx)<0&&(idx)>LUA_REGISTRYINDEX)
+	//idx‚ª‘Š‘Î²İÃŞ¯¸½‚Å‚ ‚ê‚Î1‚ğ•Ô‚·
+
+#define luaUL_copytablefield(L,destIdx,fromIdx,fieldname) {lua_getfield(L,(fromIdx),(fieldname));lua_setfield(L,(destIdx)-luaUL_isRelativeIndex(destIdx),(fieldname));}while(0)
+	//dest[fieldname]=from[fieldname] ‚Æ“¯“™‚Ì‘€ì‚ğs‚¤
+
+#define luaUL_movetablefield(L,destIdx,fromIdx,fieldname) {luaUL_copytablefield(L,destIdx,fromIdx,fieldname);lua_pushnil(L);lua_setfield(L,(fromIdx)-luaUL_isRelativeIndex(fromIdx),(fieldname));}while(0)
+	//dest[fieldname],from[fieldname]=from[fieldname],nil ‚Æ“¯“™‚Ì‘€ì‚ğs‚¤
 
 //----------------------------------
 int __luaPrintSub(lua_State *L, int s, int e, char* dest, int destSize);

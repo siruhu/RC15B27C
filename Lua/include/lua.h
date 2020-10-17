@@ -95,6 +95,8 @@ typedef LUA_NUMBER lua_Number;
 
 
 /* mark for all API functions */
+#define LUA_API		__declspec(dllexport)
+	//ŠO•”‚©‚ç‚àLuaº±‚Ö±¸¾½‚Å‚«‚é‚æ‚¤´¸½Îß°Ä‚·‚é
 #ifndef LUA_API
 #define LUA_API		extern
 #endif
