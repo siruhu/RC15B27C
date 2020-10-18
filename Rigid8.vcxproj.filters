@@ -166,6 +166,9 @@
     <None Include="Start.bmp">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="ExportFunctions.def">
+      <Filter>MySource</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Rigid.rc">

@@ -307,6 +307,8 @@ lua_State *luaScriptInit(char *buff) {
 					"os=nil;"
 				);
 			}
+		} else {
+			if (!LoadlibDummy) luaopen_loadlib(L); //loadlib‚ÍÀÞÐ°‚Å‚È‚­LUA_INIT—LŒø‚ÈŒo˜H‚Å‚Ì‚Ý—LŒø‚É
 		}
 		lua_remove(L,-2);
 		//L={LUA_INIT}

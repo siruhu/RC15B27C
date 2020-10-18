@@ -128,7 +128,7 @@
       <TargetMachine>MachineX86</TargetMachine>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <EnableUAC>false</EnableUAC>
-      <ModuleDefinitionFile>.\ExportFunctions.def</ModuleDefinitionFile>
+      <ModuleDefinitionFile>ExportFunctions.def</ModuleDefinitionFile>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -179,13 +179,13 @@
       <TargetMachine>MachineX86</TargetMachine>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <EnableUAC>false</EnableUAC>
-      <ModuleDefinitionFile>.\ExportFunctions.def</ModuleDefinitionFile>
+      <ModuleDefinitionFile>ExportFunctions.def</ModuleDefinitionFile>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Template|Win32'">
     <Link>
       <EnableUAC>false</EnableUAC>
-      <ModuleDefinitionFile>.\ExportFunctions.def</ModuleDefinitionFile>
+      <ModuleDefinitionFile>ExportFunctions.def</ModuleDefinitionFile>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -316,6 +316,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="cursor1.cur" />
+    <None Include="ExportFunctions.def" />
     <None Include="Rigid.ico" />
     <None Include="Start.bmp" />
   </ItemGroup>

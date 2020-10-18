@@ -1511,10 +1511,12 @@ int luaSystemInit() {
 			  if(err){ //LUA_ERRFILE以外ならこの時点で抜ける
 				  SystemErrorCode = -1;
 				  snprintf(SystemErrorStr, GOUTPUTMAXCHAR, "%s\n", lua_tostring(L, -1));
-				  lua_close(L);
-				  SystemL = NULL;
+				  luaSystemEnd();
 				  return 1;
 			  }
+		  } else {
+			  if(!LoadlibDummy) luaopen_loadlib(L); //loadlibはﾀﾞﾐｰでなくLUA_INIT有効な経路でのみ有効に
+
 		  }
 		  lua_remove(L, -2);
 		  //L={SCENARIO_INIT}
@@ -1525,6 +1527,7 @@ int luaSystemInit() {
 
 		  luaUL_movetablefield(L, -1, LUA_GLOBALSINDEX, "os");
 		  luaUL_movetablefield(L, -1, LUA_GLOBALSINDEX, "io");
+		  luaUL_movetablefield(L, -1, LUA_GLOBALSINDEX, "loadlib");
 		  //----
 		  luaUL_copytablefield(L, -1, LUA_GLOBALSINDEX, "string");
 		  luaUL_copytablefield(L, -1, LUA_GLOBALSINDEX, "math");
@@ -1562,8 +1565,7 @@ int luaSystemInit() {
 		  if (err || (err = lua_pcall(L, 0, 0, -2))) {
 			  SystemErrorCode = -1;
 			  snprintf(SystemErrorStr, GOUTPUTMAXCHAR, "%s\n", lua_tostring(L, -1));
-			  lua_close(L);
-			  SystemL = NULL;
+			  luaSystemEnd();
 			  return 1;
 		  }
 		  lua_pop(L, 1);
@@ -1585,8 +1587,7 @@ int luaSystemInit() {
 	if (luaL_loadbuffer(SystemL, SystemSource, strlen(SystemSource), "System.rcs") || lua_pcall(SystemL, 0, 0, -2)) {
 		SystemErrorCode=-1;
 		sprintf(SystemErrorStr,"%s\n",lua_tostring(SystemL,-1));
-		lua_close(SystemL);
-		SystemL=NULL;
+		luaSystemEnd();
 		return 1;
 	}
 	lua_pop(SystemL, 1);
