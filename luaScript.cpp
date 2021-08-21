@@ -82,6 +82,9 @@ lua_State *luaScriptInit(char *buff) {
 	lua_register(L, "_RANGE",luaGetRange);
     lua_register(L, "_PLAYEREXTTIME", luaGetPlayerExtTime);
 	lua_register(L, "_PLAYERPOS",luaGetPlayerPos);
+	lua_register(L, "_OVX",luaGetObjVx);
+	lua_register(L, "_OVY",luaGetObjVy);
+	lua_register(L, "_OVZ",luaGetObjVz);
 	//½ËßŒÝŠ·—p
     lua_register(L, "InitMTRand", luaRandInit);
     lua_register(L, "MTRand", luaRand);

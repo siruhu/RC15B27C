@@ -399,6 +399,28 @@ int luaGetM(lua_State *L)
 	lua_pushnumber(L,Chip[(int)no]->M);
 	return 1;
 }
+
+int luaGetObjVx(lua_State *L)
+{
+	int no=(int)lua_tonumber(L, 1);
+	if(no<0 || no>=GOBJMAX || World->Object[(int)no]==NULL) lua_pushnumber(L,0);
+	else lua_pushnumber(L,World->Object[(int)no]->V.x);
+	return 1;
+}
+int luaGetObjVy(lua_State *L)
+{
+	int no=(int)lua_tonumber(L, 1);
+	if(no<0 || no>=GOBJMAX || World->Object[(int)no]==NULL) lua_pushnumber(L,0);
+	else lua_pushnumber(L,World->Object[(int)no]->V.y);
+	return 1;
+}
+int luaGetObjVz(lua_State *L)
+{
+	int no=(int)lua_tonumber(L, 1);
+	if(no<0 || no>=GOBJMAX || World->Object[(int)no]==NULL) lua_pushnumber(L,0);
+	else lua_pushnumber(L,World->Object[(int)no]->V.z);
+	return 1;
+}
 int luaGetObjM(lua_State *L)
 {
 	int no=(int)lua_tonumber(L, 1);
