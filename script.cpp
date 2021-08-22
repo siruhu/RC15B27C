@@ -223,6 +223,21 @@ double  ObjPosz(double no)
 	if(no<0 || no>=World->ObjectCount) return 0.0;
 	return World->Object[(int)no]->X.z;
 }
+double  ObjVelx(double no)
+{
+	if(no<0 || no>=World->ObjectCount) return 0.0;
+	return World->Object[(int)no]->V.x;
+}
+double  ObjVely(double no)
+{
+	if(no<0 || no>=World->ObjectCount) return 0.0;
+	return World->Object[(int)no]->V.y;
+}
+double  ObjVelz(double no)
+{
+	if(no<0 || no>=World->ObjectCount) return 0.0;
+	return World->Object[(int)no]->V.z;
+}
 double  getType(double no)
 {
 	if(no<0 || no>=ChipCount) return 0.0;
@@ -949,6 +964,9 @@ struct funrec{
 	{"_OX",NULL,ObjPosx,NULL,NULL,1},	//オブジェクトの位置
 	{"_OY",NULL,ObjPosy,NULL,NULL,1},
 	{"_OZ",NULL,ObjPosz,NULL,NULL,1},
+	{"_OVX",NULL,ObjVelx,NULL,NULL,1},
+	{"_OVY",NULL,ObjVely,NULL,NULL,1},
+	{"_OVZ",NULL,ObjVelz,NULL,NULL,1},
 	{"_AX",NULL,ax,NULL,NULL,1},	//角度（バグ有り）
 	{"_AY",NULL,ay,NULL,NULL,1},
 	{"_AZ",NULL,az,NULL,NULL,1},
